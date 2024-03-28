@@ -47,4 +47,7 @@ SET_TARGET_PROPERTIES(
     IMPORTED_LOCATION "${GTEST_INSTALL_DIR}/lib/libgtest.a"
 )
 ADD_DEPENDENCIES(gtest_lib gtest_external)
-INCLUDE_DIRECTORIES(${GTEST_INSTALL_DIR}/include)
+
+SET(GTEST_INCLUDE_DIR "${GTEST_INSTALL_DIR}/include" CACHE STRING "Path to gtest include directory")
+SET(GTEST_LIBRARIES "${GTEST_INSTALL_DIR}/lib/libgtest.a" CACHE STRING "Path to gtest library")
+SET(GTEST_MAIN_LIBRARIES "${GTEST_INSTALL_DIR}/lib/libgtest_main.a" CACHE STRING "gtest main")

@@ -33,12 +33,14 @@ ExternalProject_Add(gmp_external
     INSTALL_COMMAND make install -j
 )
 
-ADD_LIBRARY(gmp_static OBJECT IMPORTED)
-SET_TARGET_PROPERTIES(gmp_static PROPERTIES IMPORTED_LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.a")
-ADD_DEPENDENCIES(gmp_static gmp_external)
+ADD_LIBRARY(gmp_static_lib OBJECT IMPORTED)
+SET_TARGET_PROPERTIES(gmp_static_lib PROPERTIES LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.a")
+ADD_DEPENDENCIES(gmp_static_lib gmp_external)
 
-ADD_LIBRARY(gmp_shared SHARED IMPORTED)
-SET_TARGET_PROPERTIES(gmp_shared PROPERTIES IMPORTED_LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.so")
-ADD_DEPENDENCIES(gmp_shared gmp_external)
+ADD_LIBRARY(gmp_shared_lib SHARED IMPORTED)
+SET_TARGET_PROPERTIES(gmp_shared_lib PROPERTIES LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.so")
+ADD_DEPENDENCIES(gmp_shared_lib gmp_external)
 
 SET(GMP_INCLUDE_DIR "${GMP_INSTALL_DIR}/include" CACHE STRING "gmp include directory")
+SET(GMP_LIBRARIES "${GMP_INSTALL_DIR}/lib/libgmp.a" CACHE STRING "gmp library")
+SET(GMP_SHARED_LIBRARIES "${GMP_INSTALL_DIR}/lib/libgmp.so" CACHE STRING "gmp shared library")

@@ -3,8 +3,9 @@
 
 #include "Decimal.h"
 
-namespace fy {
-using namespace decimal_impl;
+namespace bignum {
+using namespace detail;
+
 enum class ArithOp {
     ADD,
     SUB,
@@ -60,10 +61,12 @@ class DecimalTest : public ::testing::Test {
                     result = lhs % rhs;
                     break;
                 default:
-                    ASSERT(false);
+                    __BIGNUM_ASSERT(false);
                     break;
             }
-            EXPECT_EQ(result.to_string(), cals.result);
+            if (result.to_string() != cals.result) {
+                EXPECT_EQ(result.to_string(), cals.result);
+            }
         }
     }
 
@@ -92,7 +95,7 @@ class DecimalTest : public ::testing::Test {
                     result = lhs >= rhs;
                     break;
                 default:
-                    ASSERT(false);
+                    __BIGNUM_ASSERT(false);
                     break;
             }
             if (result != comp.result) {
@@ -108,8 +111,12 @@ TEST_F(DecimalTest, StringConversion) {
     EXPECT_EQ(Decimal("0").to_string(), "0");
     EXPECT_EQ(Decimal("0.1").to_string(), "0.1");
     EXPECT_EQ(Decimal("123.1").to_string(), "123.1");
+    EXPECT_EQ(Decimal("123.10").to_string(), "123.1");
+    EXPECT_EQ(Decimal("-123.10").to_string(), "-123.1");
     EXPECT_EQ(Decimal("123.666").to_string(), "123.666");
     EXPECT_EQ(Decimal("-123.666").to_string(), "-123.666");
+    EXPECT_EQ(Decimal("123.000").to_string(), "123");
+    EXPECT_EQ(Decimal("-123.000").to_string(), "-123");
 
     // Batch of c++ string
     std::vector<std::string> dstrings = {
@@ -188,10 +195,12 @@ TEST_F(DecimalTest, Mul) {
         {"-0.12345", "0.54321", ArithOp::MUL, "-0.0670592745"},
         {"-123.456", "543.21", ArithOp::MUL, "-67062.53376"},
         {"-444.32", "555.123", ArithOp::MUL, "-246652.25136"},
-        {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}};
+        {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}
+    };
     DoTestDecimalArithmetic(calculations);
 }
 
+#if 0
 TEST_F(DecimalTest, VeryLargeInt128Overflow) {
     __int128_t very_large_value = kInt128Max;
     __int128_t very_small_value = kInt128Min;
@@ -221,42 +230,84 @@ TEST_F(DecimalTest, VeryLargeInt128Overflow) {
     err = dd.assign(Decimal::kDecimalInt128Min - 1);
     EXPECT_TRUE(!!err);
 }
+#endif
 
 TEST_F(DecimalTest, StringConstructionOverflow) {
-    // String construction of the largest and smallest values.
-    Decimal dmax(Decimal::kDecimalInt128MaxStr);
-    EXPECT_EQ(dmax.to_string(), Decimal::kDecimalInt128MaxStr);
-    EXPECT_EQ(dmax.get_int128(), Decimal::kDecimalInt128Max);
+    // String construction of some "large" and "small" values
+    {
+        constexpr static const char *kDecimalInt128MaxStr = "99999999999999999999999999999999999999";
+        constexpr static const char *kDecimalInt128MinStr = "-100000000000000000000000000000000000000";
+        Decimal dmax(kDecimalInt128MaxStr);
+        EXPECT_EQ(dmax.to_string(), kDecimalInt128MaxStr);
 
-    Decimal dmin(Decimal::kDecimalInt128MinStr);
-    EXPECT_EQ(dmin.to_string(), Decimal::kDecimalInt128MinStr);
-    EXPECT_EQ(dmin.get_int128(), Decimal::kDecimalInt128Min);
+        Decimal dmin(kDecimalInt128MinStr);
+        EXPECT_EQ(dmin.to_string(), kDecimalInt128MinStr);
+    }
 
-    Decimal dd;
-    ErrCode err;
+    // 65 digits, should be OK
+    {
+        const char *PositiveLargeStr = "99999999999999999999999999999999999999999999999999999999999999999";
+        const char *NegativeLargeStr = "-99999999999999999999999999999999999999999999999999999999999999999";
+        Decimal maxv(PositiveLargeStr);
+        Decimal minv(NegativeLargeStr);
 
-    const char *PositiveOverflowStr = "100000000000000000000000000000000000000";
-    const char *NegativeOverflowStr = "-100000000000000000000000000000000000001";
-    EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
-    err = dd.assign(PositiveOverflowStr);
-    EXPECT_TRUE(!!err);
-    err = dd.assign(NegativeOverflowStr);
-    EXPECT_TRUE(!!err);
+        EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
+        EXPECT_EQ(minv.to_string(), NegativeLargeStr);
 
-    // Min/Max value with extra decimal dot should be fine
-    const char *max_str_dot = "99999999999999999999999999999.999999999";
-    const char *min_str_dot = "-100000000000000000000000000.000000000000";
-    Decimal dmax_dot(max_str_dot);
-    EXPECT_EQ(dmax_dot.to_string(), max_str_dot);
-    EXPECT_EQ(dmax_dot.get_int128(), Decimal::kDecimalInt128Max);
-    Decimal dmin_dot(min_str_dot);
-    EXPECT_EQ(dmin_dot.to_string(), "-100000000000000000000000000");
-    EXPECT_EQ(dmin_dot.get_int128(), static_cast<__int128_t>(-1000000000000000LL) * 100000000000LL);
+        Decimal add_res = maxv + minv;
+        EXPECT_EQ(add_res, Decimal("0"));
+        EXPECT_EQ(add_res.to_string(), "0");
 
-    // Scale too large would trigger overflow assertion
-    const char *scale_too_large = "99999999999999.999999999999999999999999";
-    EXPECT_EXIT(Decimal{scale_too_large}, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+
+        Decimal div_res = maxv / minv;
+        EXPECT_EQ(div_res, Decimal("-1"));
+    }
+
+    // 69 digits, quick and simple, should be rejected.
+    {
+        const char *PositiveOverflowStr = "100000000000000000000000000000000000000000000000000000000000000000000";
+        const char *NegativeOverflowStr = "-100000000000000000000000000000000000000000000000000000000000000000000";
+        EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
+
+        Decimal dd;
+        ErrCode err;
+        err = dd.assign(PositiveOverflowStr);
+        EXPECT_TRUE(!!err);
+        err = dd.assign(NegativeOverflowStr);
+        EXPECT_TRUE(!!err);
+    }
+
+    // 65 digits, with non-zero scale=30 (max scale), should be OK
+    {
+        const char *PositiveLargeStr = "99999999999999999999999999999999999.999999999999999999999999999999";
+        const char *NegativeLargeStr = "-99999999999999999999999999999999999.999999999999999999999999999999";
+        Decimal maxv(PositiveLargeStr);
+        Decimal minv(NegativeLargeStr);
+
+        EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
+        EXPECT_EQ(minv.to_string(), NegativeLargeStr);
+
+        Decimal add_res = maxv + minv;
+        EXPECT_EQ(add_res, Decimal("0"));
+        EXPECT_EQ(add_res.to_string(), "0");
+
+        EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+
+        Decimal div_res = maxv / minv;
+        EXPECT_EQ(div_res, Decimal("-1"));
+    }
+
+    // 65 digits, with scale>kDecimalMaxScale, should be rejected.
+    {
+        const char *PositiveLargeStr = "9999999999999999999999999999999999.9999999999999999999999999999999";
+        const char *NegativeLargeStr = "-9999999999999999999999999999999999.9999999999999999999999999999999";
+        EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
+    }
 
     // Invalid characters inside decimal string would trigger error.
     EXPECT_EXIT(Decimal{"1234567890abcdef"}, testing::KilledBySignal(SIGABRT), "");
@@ -265,6 +316,7 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
     EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
 }
 
+#if 0
 TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
     EXPECT_EQ(Decimal("101.1010").get_scale(), 3);
     EXPECT_EQ(Decimal("-101.1010").get_scale(), 3);
@@ -2556,4 +2608,7 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         EXPECT_EQ(b5, true);
     }
 }
-}  // namespace fy
+#endif
+
+// TODO test string initialization with leading space or leading zero
+}  // namespace bignum

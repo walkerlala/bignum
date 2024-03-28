@@ -50,18 +50,21 @@ endif()
 include(cmake/gmp.cmake)
 include(cmake/gtest.cmake)
 
+# TODO set install rpath for gmp if needed
 set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/Decimal.cc)
 if (BIGNUM_BUILD_SHARED)
     add_library(bignum SHARED ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
-    target_link_libraries(bignum gmp_shared)
     set_target_properties(bignum PROPERTIES SOVERSION 1 VERSION 1.0.0)
+    add_dependencies(bignum gmp_shared_lib)
+    target_link_libraries(bignum PRIVATE ${GMP_SHARED_LIBRARIES})
 else()
     add_library(bignum STATIC ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
-    target_link_libraries(bignum gmp_static)
+    add_dependencies(bignum gmp_static_lib)
+    target_link_libraries(bignum PRIVATE ${GMP_LIBRARIES})
 endif()
 
 install(TARGETS bignum
@@ -71,18 +74,29 @@ install(TARGETS bignum
     INCLUDES DESTINATION include
 )
 
-add_executable(test ${PROJECT_ROOT}/src/test.cc)
-target_include_directories(test PRIVATE ${PROJECT_ROOT}/src)
-target_include_directories(test PRIVATE ${GMP_INCLUDE_DIR})
-target_link_libraries(test bignum gmp_static)
-
 if (BIGNUM_BUILD_TESTS)
-    add_executable(test_decimal ${PROJECT_ROOT}/src/test_decimal.cc)
-    target_link_libraries(test_decimal bignum)
-    install(TARGETS test_decimal
+    add_executable(unittest ${PROJECT_ROOT}/tests/op.cc)
+    target_link_libraries(unittest bignum)
+    target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
+    target_include_directories(unittest PRIVATE ${GMP_INCLUDE_DIR})
+    target_include_directories(unittest PRIVATE ${GTEST_INCLUDE_DIR})
+    target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
+    install(TARGETS unittest
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib
         RUNTIME DESTINATION bin
         INCLUDES DESTINATION include
     )
 endif()
+
+################################################################################
+# These binaries and libraries are for dev purposes only
+################################################################################
+#add_executable(test ${PROJECT_ROOT}/scripts/test.cc)
+#target_include_directories(test PRIVATE ${PROJECT_ROOT}/src)
+#target_include_directories(test PRIVATE ${GMP_INCLUDE_DIR})
+#target_link_libraries(test bignum)
+#
+#add_executable(GenerateGmpPow10 ${PROJECT_ROOT}/scripts/GenerateGmpPow10.cc)
+#target_include_directories(GenerateGmpPow10 PRIVATE ${GMP_INCLUDE_DIR})
+#target_link_libraries(GenerateGmpPow10 ${GMP_LIBRARIES})

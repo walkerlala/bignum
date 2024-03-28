@@ -31,9 +31,9 @@ static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool 
             has_met_non_zero = true;
         }
         int64_t digit = remainder + '0';
-        ASSERT(digit >= '0' && digit <= '9');
+        __BIGNUM_ASSERT(digit >= '0' && digit <= '9');
         *p++ = static_cast<char>(digit);
-        ASSERT(p < pend);
+        __BIGNUM_ASSERT(p < pend);
     }
 
     // Guarantee at least one '0' after the '.' decimal point.
@@ -45,25 +45,25 @@ static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool 
     // Need decimal points if there is any least significant part
     if (p > pstart) {
         *p++ = '.';
-        ASSERT(p < pend);
+        __BIGNUM_ASSERT(p < pend);
     }
 
     if (!v) {
         *p++ = '0';
-        ASSERT(p < pend);
+        __BIGNUM_ASSERT(p < pend);
     } else {
         for (; v;) {
             int64_t remainder = static_cast<int64_t>(v % 10);
             v /= 10;
             int64_t digit = remainder + '0';
-            ASSERT(digit >= '0' && digit <= '9');
+            __BIGNUM_ASSERT(digit >= '0' && digit <= '9');
             *p++ = static_cast<char>(digit);
-            ASSERT(p < pend);
+            __BIGNUM_ASSERT(p < pend);
         }
     }
-    if (is_negative && v != 0) {
+    if (is_negative && p > pstart) {
         *p++ = '-';
-        ASSERT(p < pend);
+        __BIGNUM_ASSERT(p < pend);
     }
     std::reverse(pstart, p);
     return std::string(pstart, p);
@@ -91,7 +91,7 @@ std::string decimal128_to_string(__int128_t v, int32_t scale) {
     return decimal_unsigned_integral_to_string(uv, scale, is_negative);
 }
 
-std::string decimal_general_to_string(const GmpWrapper &v, int32_t scale) {
+std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
     __mpz_struct mpz = v.mpz;
     if (mpz._mp_size == 0) {
         return "0";
@@ -113,8 +113,8 @@ std::string decimal_general_to_string(const GmpWrapper &v, int32_t scale) {
     bool is_negative = (mpz._mp_size < 0);
     int x_size = std::abs(mpz._mp_size);
     int64_t str_size = mpn_get_str((unsigned char *)buf, /*base*/ 10, mpz._mp_d, x_size);
-    ASSERT(str_size > 0 && str_size <= 77);
-    ASSERT(str_size >= scale);
+    __BIGNUM_ASSERT(str_size > 0 && str_size <= 77);
+    __BIGNUM_ASSERT(str_size >= scale);
 
     /* Convert result to printable chars.  */
     char res_buf[buf_size] = {0};
@@ -125,7 +125,7 @@ std::string decimal_general_to_string(const GmpWrapper &v, int32_t scale) {
     }
 
     auto to_printable = [](int pos) -> char {
-        ASSERT(pos >= 0 && pos <= 9);
+        __BIGNUM_ASSERT(pos >= 0 && pos <= 9);
         int chr = pos + '0';
         return static_cast<char>(chr);
     };
@@ -134,18 +134,18 @@ std::string decimal_general_to_string(const GmpWrapper &v, int32_t scale) {
     int64_t num_least_significant_digits = scale;
     if (num_most_significant_digits == 0) {
         *p++ = '0';
-        ASSERT(p < res_buf_end);
+        __BIGNUM_ASSERT(p < res_buf_end);
     } else {
         for (int64_t i = 0; i < num_most_significant_digits; i++) {
             *p++ = to_printable(buf[i]);
-            ASSERT(p < res_buf_end);
+            __BIGNUM_ASSERT(p < res_buf_end);
         }
     }
     if (num_least_significant_digits > 0) {
         *p++ = '.';
         for (int64_t i = num_most_significant_digits; i < str_size; i++) {
             *p++ = to_printable(buf[i]);
-            ASSERT(p < res_buf_end);
+            __BIGNUM_ASSERT(p < res_buf_end);
         }
     }
     return std::string(res_buf, p);
