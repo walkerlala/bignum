@@ -42,10 +42,15 @@ concept FloatingPointType =
 namespace detail {
 constexpr int32_t kDecimalMaxScale = 30;
 constexpr int32_t kDecimalMaxPrecision = 65;
-constexpr int32_t kDecimalDivIncreaseScale = 4;
+constexpr int32_t kDecimalDivIncrScale = 4;
 
 constexpr __int128_t kInt128Max = (static_cast<__int128_t>(INT64_MAX) << 64) | UINT64_MAX;
 constexpr __int128_t kInt128Min = static_cast<__int128_t>(INT64_MIN) << 64;
+
+constexpr const char *kDecimalMaxStr =
+    "99999999999999999999999999999999999999999999999999999999999999999";
+constexpr const char *kDecimalMinStr =
+    "-99999999999999999999999999999999999999999999999999999999999999999";
 
 /* clang-format off */
 /* This array is copied directly from gmp 6.3.0 source code.
@@ -117,24 +122,24 @@ struct GmpWrapper {
         static_assert(sizeof...(args) == N, "Invalid number of arguments");
     }
 
-    GmpWrapper(const GmpWrapper& rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
+    GmpWrapper(const GmpWrapper &rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
         for (size_t i = 0; i < N; ++i) {
             limbs[i] = rhs.limbs[i];
         }
     }
-    GmpWrapper& operator=(const GmpWrapper& rhs) {
+    GmpWrapper &operator=(const GmpWrapper &rhs) {
         mpz = __mpz_struct{N, rhs.mpz._mp_size, &limbs[0]};
         for (size_t i = 0; i < N; ++i) {
             limbs[i] = rhs.limbs[i];
         }
         return *this;
     }
-    GmpWrapper(GmpWrapper&& rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
+    GmpWrapper(GmpWrapper &&rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
         for (size_t i = 0; i < N; ++i) {
             limbs[i] = rhs.limbs[i];
         }
     }
-    GmpWrapper& operator=(GmpWrapper&& rhs) {
+    GmpWrapper &operator=(GmpWrapper &&rhs) {
         mpz = __mpz_struct{N, rhs.mpz._mp_size, &limbs[0]};
         for (size_t i = 0; i < N; ++i) {
             limbs[i] = rhs.limbs[i];
@@ -329,8 +334,16 @@ inline Gmp320 convert_int64_to_gmp(int64_t i64) {
 }
 
 constexpr void init_gmp_with_uint128(__mpz_struct *mpz, __uint128_t value) {
-    mpz->_mp_size = 2;
-    std::memcpy(mpz->_mp_d, &value, sizeof(value));
+    if (value == 0) {
+        mpz->_mp_size = 0;
+    } else if (value <= static_cast<__int128_t>(UINT64_MAX)) {
+        mpz->_mp_size = 1;
+        mpz->_mp_d[0] = reinterpret_cast<int64_t *>(&value)[0];
+    } else {
+        mpz->_mp_size = 2;
+        mpz->_mp_d[0] = reinterpret_cast<int64_t *>(&value)[0];
+        mpz->_mp_d[1] = reinterpret_cast<int64_t *>(&value)[1];
+    }
 }
 
 inline Gmp320 convert_int128_to_gmp(__int128_t i128) {
@@ -649,6 +662,7 @@ constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
 std::string decimal64_to_string(int64_t v, int32_t scale);
 std::string decimal128_to_string(__int128_t v, int32_t scale);
 std::string decimal_general_to_string(const Gmp320 &v, int32_t scale);
+std::string decimal_general_to_string(const Gmp640 &v, int32_t scale);
 
 }  // namespace detail
 
@@ -715,7 +729,7 @@ class DecimalImpl final {
     // Note that even when max scale is reached, the scale is still increased
     // before division. Intermediate result would be increased to scale 16+4=20,
     // and then after the calculation, it is decreased to scale 16.
-    constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncreaseScale;
+    constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
 
    public:
     constexpr DecimalImpl() : m_i64(0), m_dtype_init(DType::kInt64), m_scale_init(0) {}
@@ -825,6 +839,7 @@ class DecimalImpl final {
     //=----------------------------------------------------------
     // getters && setters
     //=----------------------------------------------------------
+    constexpr int32_t get_scale() const { return m_scale; }
     constexpr bool is_negative() const;
 
     //=--------------------------------------------------------
@@ -1101,7 +1116,7 @@ class DecimalImpl final {
     constexpr ErrCode mod_gmp_gmp(detail::Gmp320 l, int32_t lscale, detail::Gmp320 r,
                                   int32_t rscale);
 
-    constexpr bool cmp(const DecimalImpl &rhs) const;
+    constexpr int cmp(const DecimalImpl &rhs) const;
     constexpr int cmp_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale) const;
     constexpr int cmp_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
                                 int32_t rscale) const;
@@ -1187,9 +1202,12 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
     } else {
         err = assign_str_general(ptr, end);
     }
+    if (err) {
+        return err;
+    }
 
     sanity_check();
-    return err;
+    return kOk;
 }
 
 template <typename T>
@@ -1341,7 +1359,11 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
         }
         *pbuf++ = detail::gmp_digit_value_tab[pv];
         num_digits++;
-        assert(num_digits <= kMaxPrecision);
+
+        // The string is too long (more than kMaxPrecision digits) to fit into our representation.
+        if (num_digits > kMaxPrecision) {
+            return kInvalidArgument;
+        }
     }
     scale = pdot ? end - (pdot + 1) : 0;
 
@@ -1351,6 +1373,9 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
 
     m_dtype = DType::kGeneral;
     m_scale = scale;
+    if (m_scale > kMaxScale) {
+        return kInvalidArgument;
+    }
 
     return kOk;
 }
@@ -1628,6 +1653,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
         // Need to do the rounding, so first div by (10 ^ (delta_scale - 1))
         // As both lscale and rscale is <=kDecimalMaxScale, delta_scale is <=kDecimalMaxScale.
         // So, the result of the division is <=10 ^ 30, which can be stored in an int128_t.
+
         if (delta_scale - 1 > 0) {
             __int128_t div_first_part = detail::get_int128_power10(delta_scale - 1);
             detail::Gmp320 divisor = detail::convert_int128_to_gmp(div_first_part);
@@ -1814,7 +1840,7 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
     bool result_negative = (l_negative != r_negative);
 
     // calculation algorithm:
-    //    newl = (l320 * 10 ^ (rscale + kDecimalDivIncreaseScale + 1))
+    //    newl = (l320 * 10 ^ (rscale + kDecimalDivIncrScale + 1))
     //    res640 = newl // rhs
     //    remainder = res640 % 10
     //    res640 /= 10
@@ -1825,17 +1851,17 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
     //         res640 += 1
     //      }
     //    }
-    //    res_scale = lscale + kDecimalDivIncreaseScale
+    //    res_scale = lscale + kDecimalDivIncrScale
     const detail::Gmp320 *mul_rhs =
-        detail::get_gmp320_power10(rscale + detail::kDecimalDivIncreaseScale + 1);
+        detail::get_gmp320_power10(rscale + detail::kDecimalDivIncrScale + 1);
     detail::Gmp640 newl;
     mpz_mul(&newl.mpz, &l320.mpz, &mul_rhs->mpz);
 
     detail::Gmp640 res640;
     mpz_tdiv_q(&res640.mpz, &newl.mpz, &r320.mpz);
 
-    if (lscale + detail::kDecimalDivIncreaseScale > detail::kDecimalMaxScale) {
-        int trim_scale = lscale + detail::kDecimalDivIncreaseScale - detail::kDecimalMaxScale;
+    if (lscale + detail::kDecimalDivIncrScale > detail::kDecimalMaxScale) {
+        int trim_scale = lscale + detail::kDecimalDivIncrScale - detail::kDecimalMaxScale;
         detail::Gmp640 tmp;
         mpz_tdiv_q(&tmp.mpz, &res640.mpz, &detail::get_gmp320_power10(trim_scale)->mpz);
         res640 = tmp;
@@ -1863,7 +1889,7 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
     init_internal_gmp();
     detail::copy_gmp_to_gmp(m_gmp, res640);
     m_dtype = DType::kGeneral;
-    m_scale = std::min(detail::kDecimalMaxScale, lscale + detail::kDecimalDivIncreaseScale);
+    m_scale = std::min(detail::kDecimalMaxScale, lscale + detail::kDecimalDivIncrScale);
     sanity_check();
     return kOk;
 }
@@ -2065,7 +2091,7 @@ constexpr inline int DecimalImpl<T>::cmp_gmp_gmp(const detail::Gmp320 &l320, int
 }
 
 template <typename T>
-constexpr inline bool DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
+constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
     int res = 0;
     if (m_dtype == DType::kInt64) {
         if (rhs.m_dtype == DType::kInt64) {

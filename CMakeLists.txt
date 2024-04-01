@@ -1,10 +1,28 @@
-cmake_minimum_required (VERSION 3.22)
+cmake_minimum_required (VERSION 3.16)
 project (bignum VERSION 1.0)
 
 include(CheckCSourceCompiles)
 include(CheckCXXSourceCompiles)
+include(CheckCXXCompilerFlag) # Check if the compiler supports the C++20 standard
 
-set(CMAKE_CXX_STANDARD 20)
+check_cxx_compiler_flag("-std=c++20" COMPILER_SUPPORTS_CXX20)
+check_cxx_compiler_flag("-std=c++17" COMPILER_SUPPORTS_CXX17)
+check_cxx_compiler_flag("-std=c++11" COMPILER_SUPPORTS_CXX11)
+
+message(STATUS "Compiler ID ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
+if(COMPILER_SUPPORTS_CXX20)
+    message(STATUS "Compiler support C++20. Setting C++ standard to c++20")
+    set(CMAKE_CXX_STANDARD 20)
+elseif(COMPILER_SUPPORTS_CXX17)
+    message(STATUS "Compiler support C++17. Setting C++ standard to c++17")
+    set(CMAKE_CXX_STANDARD 17)
+elseif(COMPILER_SUPPORTS_CXX11)
+    message(STATUS "Compiler support C++11. Setting C++ standard to c++11")
+    set(CMAKE_CXX_STANDARD 11)
+else()
+    message(FATAL_ERROR "Compiler should at least support C++11")
+endif()
 
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -49,6 +67,7 @@ endif()
 
 include(cmake/gmp.cmake)
 include(cmake/gtest.cmake)
+find_package(Threads REQUIRED)
 
 # TODO set install rpath for gmp if needed
 set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/Decimal.cc)
@@ -58,11 +77,11 @@ if (BIGNUM_BUILD_SHARED)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
     set_target_properties(bignum PROPERTIES SOVERSION 1 VERSION 1.0.0)
     add_dependencies(bignum gmp_shared_lib)
-    target_link_libraries(bignum PRIVATE ${GMP_SHARED_LIBRARIES})
+    target_link_libraries(bignum PRIVATE ${GMP_SHARED_LIBRARIES} Threads::Threads)
 else()
     add_library(bignum STATIC ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
-    target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
+    target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR} Threads::Threads)
     add_dependencies(bignum gmp_static_lib)
     target_link_libraries(bignum PRIVATE ${GMP_LIBRARIES})
 endif()
@@ -80,7 +99,8 @@ if (BIGNUM_BUILD_TESTS)
     target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(unittest PRIVATE ${GMP_INCLUDE_DIR})
     target_include_directories(unittest PRIVATE ${GTEST_INCLUDE_DIR})
-    target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES})
+    target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
+    add_dependencies(unittest gtest_lib)
     install(TARGETS unittest
         LIBRARY DESTINATION lib
         ARCHIVE DESTINATION lib

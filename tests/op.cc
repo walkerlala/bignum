@@ -101,7 +101,9 @@ class DecimalTest : public ::testing::Test {
             if (result != comp.result) {
                 std::cout << "Hello World\n";
             }
-            EXPECT_EQ(result, comp.result);
+            if (result != comp.result) {
+                EXPECT_EQ(result, comp.result);
+            }
         }
     }
 };
@@ -195,48 +197,17 @@ TEST_F(DecimalTest, Mul) {
         {"-0.12345", "0.54321", ArithOp::MUL, "-0.0670592745"},
         {"-123.456", "543.21", ArithOp::MUL, "-67062.53376"},
         {"-444.32", "555.123", ArithOp::MUL, "-246652.25136"},
-        {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}
-    };
+        {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}};
     DoTestDecimalArithmetic(calculations);
 }
-
-#if 0
-TEST_F(DecimalTest, VeryLargeInt128Overflow) {
-    __int128_t very_large_value = kInt128Max;
-    __int128_t very_small_value = kInt128Min;
-    // Overflow assertion on very large value
-    EXPECT_EXIT(Decimal{very_large_value}, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(Decimal{very_small_value}, testing::KilledBySignal(SIGABRT), "");
-
-    // Test assign(...) interface.
-    Decimal dd;
-    ErrCode err;
-    err = dd.assign(very_large_value);
-    EXPECT_TRUE(!!err);
-    err = dd.assign(very_small_value);
-    EXPECT_TRUE(!!err);
-
-    // Make sure that kDecimalInt128Min and kDecimalInt128Max are correct.
-    Decimal dmax(Decimal::kDecimalInt128Max);
-    EXPECT_EQ(dmax.to_string(), Decimal::kDecimalInt128MaxStr);
-    Decimal dmin(Decimal::kDecimalInt128Min);
-    EXPECT_EQ(dmin.to_string(), Decimal::kDecimalInt128MinStr);
-
-    // No even +1 or -1 can be assigned to Decimal.
-    EXPECT_EXIT(Decimal{Decimal::kDecimalInt128Max + 1}, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(Decimal{Decimal::kDecimalInt128Min - 1}, testing::KilledBySignal(SIGABRT), "");
-    err = dd.assign(Decimal::kDecimalInt128Max + 1);
-    EXPECT_TRUE(!!err);
-    err = dd.assign(Decimal::kDecimalInt128Min - 1);
-    EXPECT_TRUE(!!err);
-}
-#endif
 
 TEST_F(DecimalTest, StringConstructionOverflow) {
     // String construction of some "large" and "small" values
     {
-        constexpr static const char *kDecimalInt128MaxStr = "99999999999999999999999999999999999999";
-        constexpr static const char *kDecimalInt128MinStr = "-100000000000000000000000000000000000000";
+        constexpr static const char *kDecimalInt128MaxStr =
+            "99999999999999999999999999999999999999";
+        constexpr static const char *kDecimalInt128MinStr =
+            "-100000000000000000000000000000000000000";
         Decimal dmax(kDecimalInt128MaxStr);
         EXPECT_EQ(dmax.to_string(), kDecimalInt128MaxStr);
 
@@ -246,8 +217,10 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
 
     // 65 digits, should be OK
     {
-        const char *PositiveLargeStr = "99999999999999999999999999999999999999999999999999999999999999999";
-        const char *NegativeLargeStr = "-99999999999999999999999999999999999999999999999999999999999999999";
+        const char *PositiveLargeStr =
+            "99999999999999999999999999999999999999999999999999999999999999999";
+        const char *NegativeLargeStr =
+            "-99999999999999999999999999999999999999999999999999999999999999999";
         Decimal maxv(PositiveLargeStr);
         Decimal minv(NegativeLargeStr);
 
@@ -267,8 +240,10 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
 
     // 69 digits, quick and simple, should be rejected.
     {
-        const char *PositiveOverflowStr = "100000000000000000000000000000000000000000000000000000000000000000000";
-        const char *NegativeOverflowStr = "-100000000000000000000000000000000000000000000000000000000000000000000";
+        const char *PositiveOverflowStr =
+            "100000000000000000000000000000000000000000000000000000000000000000000";
+        const char *NegativeOverflowStr =
+            "-100000000000000000000000000000000000000000000000000000000000000000000";
         EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
         EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
 
@@ -282,8 +257,10 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
 
     // 65 digits, with non-zero scale=30 (max scale), should be OK
     {
-        const char *PositiveLargeStr = "99999999999999999999999999999999999.999999999999999999999999999999";
-        const char *NegativeLargeStr = "-99999999999999999999999999999999999.999999999999999999999999999999";
+        const char *PositiveLargeStr =
+            "99999999999999999999999999999999999.999999999999999999999999999999";
+        const char *NegativeLargeStr =
+            "-99999999999999999999999999999999999.999999999999999999999999999999";
         Decimal maxv(PositiveLargeStr);
         Decimal minv(NegativeLargeStr);
 
@@ -303,8 +280,10 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
 
     // 65 digits, with scale>kDecimalMaxScale, should be rejected.
     {
-        const char *PositiveLargeStr = "9999999999999999999999999999999999.9999999999999999999999999999999";
-        const char *NegativeLargeStr = "-9999999999999999999999999999999999.9999999999999999999999999999999";
+        const char *PositiveLargeStr =
+            "9999999999999999999999999999999999.9999999999999999999999999999999";
+        const char *NegativeLargeStr =
+            "-9999999999999999999999999999999999.9999999999999999999999999999999";
         EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
         EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
     }
@@ -316,14 +295,31 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
     EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
 }
 
-#if 0
 TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
     EXPECT_EQ(Decimal("101.1010").get_scale(), 3);
+    EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
+    EXPECT_EQ(Decimal("101.1010"), Decimal("101.101"));
+
     EXPECT_EQ(Decimal("-101.1010").get_scale(), 3);
+    EXPECT_EQ(Decimal("-101.1010").to_string(), "-101.101");
+    EXPECT_EQ(Decimal("-101.1010"), Decimal("-101.101"));
+
     EXPECT_EQ(Decimal("123.0000").get_scale(), 0);
+    EXPECT_EQ(Decimal("123.0000").to_string(), "123");
+    EXPECT_EQ(Decimal("123.0000"), Decimal("123"));
+
     EXPECT_EQ(Decimal("-134.0000").get_scale(), 0);
+    EXPECT_EQ(Decimal("-134.0000").to_string(), "-134");
+    EXPECT_EQ(Decimal("-134.0000"), Decimal("-134"));
+
     EXPECT_EQ(Decimal("0.0000").get_scale(), 0);
+    EXPECT_EQ(Decimal("0.0000").to_string(), "0");
+    EXPECT_EQ(Decimal("0.0000"), Decimal("0"));
+
     EXPECT_EQ(Decimal("-0.0000").get_scale(), 0);
+    EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
+    EXPECT_EQ(Decimal("-0.0000"), Decimal("-0"));
+    EXPECT_EQ(Decimal("-0.0000"), Decimal("0"));
 }
 
 TEST_F(DecimalTest, Comparison) {
@@ -477,66 +473,66 @@ TEST_F(DecimalTest, ScaleNarrowDownAfterMultiply) {
     DoTestDecimalArithmetic(calculations);
 }
 
-TEST_F(DecimalTest, LargeNumberAnnotation) {
-    EXPECT_EQ(Decimal{"123456"}.to_string_pretty(true), "123,456");
-    EXPECT_EQ(Decimal{"456"}.to_string_pretty(true), "456");
-    EXPECT_EQ(Decimal{"0"}.to_string_pretty(true), "0");
-    EXPECT_EQ(Decimal{"0009"}.to_string_pretty(true), "9");
-
-    EXPECT_EQ(Decimal{"123456.123456"}.to_string_pretty(true), "123,456.123456");
-    EXPECT_EQ(Decimal{"456.123456"}.to_string_pretty(true), "456.123456");
-    EXPECT_EQ(Decimal{"0.123456"}.to_string_pretty(true), "0.123456");
-    EXPECT_EQ(Decimal{"0009.123456"}.to_string_pretty(true), "9.123456");
-}
-
 TEST_F(DecimalTest, MulOverflowSignificantDigits) {
-    EXPECT_EXIT(Decimal{Decimal::kDecimalInt128MaxStr} * Decimal{Decimal::kDecimalInt128MaxStr},
+    EXPECT_EXIT(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
                 testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(Decimal{Decimal::kDecimalInt128MinStr} * Decimal{Decimal::kDecimalInt128MinStr},
+    EXPECT_EXIT(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
                 testing::KilledBySignal(SIGABRT), "");
 
     // overflow
     {
-        const char *str1 = "10000000000000000000";
+        const char *str1 = "1000000000000000000000000000000000";
         Decimal d1{str1};
         EXPECT_EXIT(d1 * d1, testing::KilledBySignal(SIGABRT), "");
-        const char *str2 = "-10000000000000000000";
+        const char *str2 = "-1000000000000000000000000000000000";
         Decimal d2{str2};
         EXPECT_EXIT(d2 * d2, testing::KilledBySignal(SIGABRT), "");
     }
 
     // not overflow
     {
-        const char *str1 = "1000000000000000000";
+        const char *str1 = "100000000000000000000000000000000";
         Decimal d1{str1};
-        EXPECT_EQ((d1 * d1).to_string(), "1000000000000000000000000000000000000");
-        const char *str2 = "-1000000000000000000";
+        EXPECT_EQ((d1 * d1).to_string(),
+                  "10000000000000000000000000000000000000000000000000000000000000000");
+        const char *str2 = "-100000000000000000000000000000000";
         Decimal d2{str2};
-        EXPECT_EQ((d2 * d2).to_string(), "1000000000000000000000000000000000000");
+        EXPECT_EQ((d2 * d2).to_string(),
+                  "10000000000000000000000000000000000000000000000000000000000000000");
     }
 }
 
 TEST_F(DecimalTest, MulOverflowLeastSignificantDigits) {
     {
-        Decimal d1("1.100000001");
-        EXPECT_EQ((d1 * d1).to_string(), "1.2100000022");
+        Decimal d1("1.123456789123456789123456789555");
+        EXPECT_EQ((d1 * d1).to_string(), "1.262155157027587256793019357528");
+        EXPECT_EQ((d1 * -d1).to_string(), "-1.262155157027587256793019357528");
+        EXPECT_EQ((-d1 * d1).to_string(), "-1.262155157027587256793019357528");
     }
 
     {
-        Decimal d1("1.10000000001");
-        EXPECT_EQ((d1 * d1).to_string(), "1.210000000022");
+        Decimal d1("1.100000000000001");
+        EXPECT_EQ((d1 * d1).to_string(), "1.210000000000002200000000000001");
+        EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000002200000000000001");
+        EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000002200000000000001");
     }
     {
-        Decimal d1("1.10000000016");
-        EXPECT_EQ((d1 * d1).to_string(), "1.210000000352");
+        Decimal d1("1.1000000000000016");
+        EXPECT_EQ((d1 * d1).to_string(), "1.210000000000003520000000000003");
+        EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000003520000000000003");
+        EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000003520000000000003");
     }
     {
-        Decimal d1("1.18888888886");
-        EXPECT_EQ((d1 * d1).to_string(), "1.4134567900547654");
+        Decimal d1("1.1888888888888886");
+        EXPECT_EQ((d1 * d1).to_string(), "1.41345679012345610320987654321");
+        EXPECT_EQ((d1 * -d1).to_string(), "-1.41345679012345610320987654321");
+        EXPECT_EQ((-d1 * d1).to_string(), "-1.41345679012345610320987654321");
     }
     {
         Decimal d1("1.134567900547654");
-        EXPECT_EQ((d1 * d1).to_string(), "1.2872443209531113");
+        EXPECT_EQ((d1 * d1).to_string(), "1.287244320953111297713124903716");
+        EXPECT_EQ((d1 * -d1).to_string(), "-1.287244320953111297713124903716");
+        EXPECT_EQ((-d1 * d1).to_string(), "-1.287244320953111297713124903716");
     }
 }
 
@@ -614,24 +610,42 @@ TEST_F(DecimalTest, Div) {
         {"-999999.57565", "-1", ArithOp::DIV, "999999.57565"},
         {"-123456.57565", "-1", ArithOp::DIV, "123456.57565"},
 
-        // Maxscale exceeded, rounding back to kMaxScale
         {"1.5756533334441", "3", ArithOp::DIV, "0.5252177778147"},
         {"30030.202898898933", "3.33", ArithOp::DIV, "9018.0789486182981982"},
-        {"100000.111111111111111", "3.33", ArithOp::DIV, "30030.0633967300633967"},
-        {"999999.111111111111111", "3.33", ArithOp::DIV, "300300.0333667000333667"},
-        {"123456.111111111111111", "3.33", ArithOp::DIV, "37073.9072405739072405"},
+        {"100000.111111111111111", "3.33", ArithOp::DIV, "30030.0633967300633966967"},
+        {"999999.111111111111111", "3.33", ArithOp::DIV, "300300.0333667000333666667"},
+        {"123456.111111111111111", "3.33", ArithOp::DIV, "37073.9072405739072405405"},
 
         {"1.5756533334441", "-3", ArithOp::DIV, "-0.5252177778147"},
         {"30030.202898898933", "-3.33", ArithOp::DIV, "-9018.0789486182981982"},
-        {"100000.111111111111111", "-3.33", ArithOp::DIV, "-30030.0633967300633967"},
-        {"999999.111111111111111", "-3.33", ArithOp::DIV, "-300300.0333667000333667"},
-        {"123456.111111111111111", "-3.33", ArithOp::DIV, "-37073.9072405739072405"},
+        {"100000.111111111111111", "-3.33", ArithOp::DIV, "-30030.0633967300633966967"},
+        {"999999.111111111111111", "-3.33", ArithOp::DIV, "-300300.0333667000333666667"},
+        {"123456.111111111111111", "-3.33", ArithOp::DIV, "-37073.9072405739072405405"},
 
         {"-1.5756533334441", "-3", ArithOp::DIV, "0.5252177778147"},
         {"-30030.202898898933", "-3.33", ArithOp::DIV, "9018.0789486182981982"},
-        {"-100000.111111111111111", "-3.33", ArithOp::DIV, "30030.0633967300633967"},
-        {"-999999.111111111111111", "-3.33", ArithOp::DIV, "300300.0333667000333667"},
-        {"-123456.111111111111111", "-3.33", ArithOp::DIV, "37073.9072405739072405"},
+        {"-100000.111111111111111", "-3.33", ArithOp::DIV, "30030.0633967300633966967"},
+        {"-999999.111111111111111", "-3.33", ArithOp::DIV, "300300.0333667000333666667"},
+        {"-123456.111111111111111", "-3.33", ArithOp::DIV, "37073.9072405739072405405"},
+
+        // Maxscale exceeded, rounding back to kMaxScale
+        {"     1.57565333344415555555599999988", "3.33", ArithOp::DIV, "0.473169169202449115782582582547"},
+        {" 30030.20289889893315555555599999988", "3.33", ArithOp::DIV, "9018.078948618298244911578378378342"},
+        {"100000.11111111111111155555599999988", "3.33", ArithOp::DIV, "30030.063396730063396863530330330294"},
+        {"999999.11111111111111155555599999988", "3.33", ArithOp::DIV, "300300.033366700033366833500300300264"},
+        {"123456.11111111111111155555599999988", "3.33", ArithOp::DIV, "37073.907240573907240707374174174138"},
+
+        {"     1.57565333344415555555599999988", "-3.33", ArithOp::DIV, "-0.473169169202449115782582582547"},
+        {" 30030.20289889893315555555599999988", "-3.33", ArithOp::DIV, "-9018.078948618298244911578378378342"},
+        {"100000.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-30030.063396730063396863530330330294"},
+        {"999999.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-300300.033366700033366833500300300264"},
+        {"123456.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-37073.907240573907240707374174174138"},
+
+        {"    -1.57565333344415555555599999988", "-3.33", ArithOp::DIV, "0.473169169202449115782582582547"},
+        {"-30030.20289889893315555555599999988", "-3.33", ArithOp::DIV, "9018.078948618298244911578378378342"},
+        {"-100000.11111111111111155555599999988", "-3.33", ArithOp::DIV, "30030.063396730063396863530330330294"},
+        {"-999999.11111111111111155555599999988", "-3.33", ArithOp::DIV, "300300.033366700033366833500300300264"},
+        {"-123456.11111111111111155555599999988", "-3.33", ArithOp::DIV, "37073.907240573907240707374174174138"},
     };
     DoTestDecimalArithmetic(calculations);
 
@@ -639,6 +653,7 @@ TEST_F(DecimalTest, Div) {
     EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
 
+#if 0
 TEST_F(DecimalTest, Mod) {
     std::vector<DecimalArithmetic> calculations = {
         {"1", "3", ArithOp::MOD, "1"},
@@ -718,6 +733,7 @@ TEST_F(DecimalTest, Mod) {
     // Modulo by zero
     EXPECT_EXIT(Decimal{"1.01"} % Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
+#endif
 
 TEST_F(DecimalTest, DiffSignCompare) {
     std::vector<DecimalComparison> compares = {
@@ -767,10 +783,23 @@ TEST_F(DecimalTest, DiffScaleSameSignCompare) {
 }
 
 TEST_F(DecimalTest, LargeValueAddOverflow) {
-    Decimal d0(Decimal::kDecimalInt128Max);
-    Decimal d1(Decimal::kDecimalInt128Min);
-    EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+    {
+        const char *PositiveLargeStr =
+            "99999999999999999999999999999999999.999999999999999999999999999999";
+        Decimal d0(PositiveLargeStr);
+        Decimal d1(PositiveLargeStr);
+        EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+    }
+
+    {
+        const char *NegativeLargeStr =
+            "-99999999999999999999999999999999999.999999999999999999999999999999";
+        Decimal d0(NegativeLargeStr);
+        Decimal d1(NegativeLargeStr);
+        EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+    }
 }
 
 TEST_F(DecimalTest, Int128AddOverflow) {
@@ -778,31 +807,12 @@ TEST_F(DecimalTest, Int128AddOverflow) {
     ErrCode err = kOk;
 
     __int128_t i128max = kInt128Max;
-    err = safe_add_int128(res128, i128max, i128max);
+    err = detail::safe_add(res128, i128max, i128max);
     EXPECT_TRUE(!!err);
 
     __int128_t i128min = kInt128Min;
-    err = safe_add_int128(res128, i128min, i128min);
+    err = detail::safe_add(res128, i128min, i128min);
     EXPECT_TRUE(!!err);
-}
-
-TEST_F(DecimalTest, Int256AddOverflow) {
-    using namespace boost::multiprecision;
-    int256_t res256 = 0;
-    ErrCode err = kOk;
-
-    int256_t i256max = kInt256Max;
-    err = safe_add_int256(res256, i256max, i256max);
-    EXPECT_TRUE(!!err);
-
-    int256_t i256min = kInt256Min;
-    err = safe_add_int256(res256, i256min, i256min);
-    EXPECT_TRUE(!!err);
-
-    // Non-overflow cases
-    int256_t i256val = 123;
-    err = safe_add_int256(res256, i256val, i256val);
-    EXPECT_TRUE(!err);
 }
 
 TEST_F(DecimalTest, safe_mul_int128) {
@@ -810,114 +820,37 @@ TEST_F(DecimalTest, safe_mul_int128) {
     ErrCode err = kOk;
 
     // +  vs  +, non-overflow
-    err = safe_mul_int128(res128, 123, 456);
+    err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(456));
     EXPECT_TRUE(!err);
     // +  vs  +, overflow
-    err = safe_mul_int128(res128, kInt128Max, kInt128Max);
+    err = detail::safe_mul(res128, kInt128Max, kInt128Max);
     EXPECT_TRUE(!!err);
     // +  vs  -, non-overflow
-    err = safe_mul_int128(res128, 123, -456);
+    err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(-456));
     EXPECT_TRUE(!err);
     // +  vs  -, overflow
-    err = safe_mul_int128(res128, kInt128Max, kInt128Min);
+    err = detail::safe_mul(res128, kInt128Max, kInt128Min);
     EXPECT_TRUE(!!err);
     // -  vs  +, non-overflow
-    err = safe_mul_int128(res128, -123, 456);
+    err = detail::safe_mul(res128, static_cast<__int128_t>(-123), static_cast<__int128_t>(456));
     EXPECT_TRUE(!err);
     // -  vs  +, overflow
-    err = safe_mul_int128(res128, kInt128Min, kInt128Max);
+    err = detail::safe_mul(res128, kInt128Min, kInt128Max);
     EXPECT_TRUE(!!err);
     // -  vs  -, non-overflow
-    err = safe_mul_int128(res128, -123, -456);
+    err = detail::safe_mul(res128, static_cast<__int128_t>(-123), static_cast<__int128_t>(-456));
     EXPECT_TRUE(!err);
     // -  vs  -, overflow
-    err = safe_mul_int128(res128, kInt128Min, kInt128Min);
+    err = detail::safe_mul(res128, kInt128Min, kInt128Min);
     EXPECT_TRUE(!!err);
-}
-
-TEST_F(DecimalTest, safe_mul_int256) {
-    using namespace boost::multiprecision;
-    int256_t res256 = 0;
-    ErrCode err = kOk;
-
-    // +  vs  +, non-overflow
-    err = safe_mul_int256(res256, 123, 456);
-    EXPECT_TRUE(!err);
-    // +  vs  +, overflow
-    err = safe_mul_int256(res256, kInt256Max, kInt256Max);
-    EXPECT_TRUE(!!err);
-    // +  vs  -, non-overflow
-    err = safe_mul_int256(res256, 123, -456);
-    EXPECT_TRUE(!err);
-    // +  vs  -, overflow
-    err = safe_mul_int256(res256, kInt256Max, kInt256Min);
-    EXPECT_TRUE(!!err);
-    // -  vs  +, non-overflow
-    err = safe_mul_int256(res256, -123, 456);
-    EXPECT_TRUE(!err);
-    // -  vs  +, overflow
-    err = safe_mul_int256(res256, kInt256Min, kInt256Max);
-    EXPECT_TRUE(!!err);
-    // -  vs  -, non-overflow
-    err = safe_mul_int256(res256, -123, -456);
-    EXPECT_TRUE(!err);
-    // -  vs  -, overflow
-    err = safe_mul_int256(res256, kInt256Min, kInt256Min);
-    EXPECT_TRUE(!!err);
-}
-
-TEST_F(DecimalTest, safe_div_int128) {
-    __int128_t res128 = 0;
-    ErrCode err = kOk;
-
-    // Divison by zero
-    err = safe_div_int128(res128, 123, 0);
-    EXPECT_TRUE(!!err);
-
-    // int128min / -1
-    err = safe_div_int128(res128, kInt128Min, -1);
-    EXPECT_TRUE(!!err);
-
-    // normal, non-overflow division
-    err = safe_div_int128(res128, 123, 456);
-    EXPECT_TRUE(!err);
-}
-
-TEST_F(DecimalTest, safe_div_int256) {
-    using namespace boost::multiprecision;
-    int256_t res256 = 0;
-    ErrCode err = kOk;
-
-    // Divison by zero
-    err = safe_div_int256(res256, 123, 0);
-    EXPECT_TRUE(!!err);
-
-    // int256min / -1
-    err = safe_div_int256(res256, kInt256Min, -1);
-    EXPECT_TRUE(!!err);
-
-    // normal, non-overflow division
-    err = safe_div_int256(res256, 123, 456);
-    EXPECT_TRUE(!err);
 }
 
 TEST_F(DecimalTest, int128_to_string) {
-    EXPECT_EQ(convert_int128_to_string(0), "0");
-    EXPECT_EQ(convert_int128_to_string(123), "123");
-    EXPECT_EQ(convert_int128_to_string(-123), "-123");
-    EXPECT_EQ(convert_int128_to_string(kInt128Max), "170141183460469231731687303715884105727");
-    EXPECT_EQ(convert_int128_to_string(kInt128Min), "-170141183460469231731687303715884105728");
-}
-
-TEST_F(DecimalTest, int256_to_string) {
-    using namespace boost::multiprecision;
-    EXPECT_EQ(convert_int256_to_string(0), "0");
-    EXPECT_EQ(convert_int256_to_string(123), "123");
-    EXPECT_EQ(convert_int256_to_string(-123), "-123");
-    EXPECT_EQ(convert_int256_to_string(kInt256Max),
-              "57896044618658097711785492504343953926634992332820282019728792003956564819967");
-    EXPECT_EQ(convert_int256_to_string(kInt256Min),
-              "-57896044618658097711785492504343953926634992332820282019728792003956564819968");
+    EXPECT_EQ(detail::decimal128_to_string(0, 0), "0");
+    EXPECT_EQ(detail::decimal128_to_string(123, 0), "123");
+    EXPECT_EQ(detail::decimal128_to_string(-123, 0), "-123");
+    EXPECT_EQ(detail::decimal128_to_string(kInt128Max, 0), "170141183460469231731687303715884105727");
+    EXPECT_EQ(detail::decimal128_to_string(kInt128Min, 0), "-170141183460469231731687303715884105728");
 }
 
 TEST_F(DecimalTest, InitializeDecimalWithEmptyString) {
@@ -944,7 +877,7 @@ TEST_F(DecimalTest, LargePartOverflow) {
     ErrCode err;
 
     // Significant digits overflow
-    err = d0.assign("12345678901234567890123456789012345678901.11");
+    err = d0.assign("1234567890123456789012345679899999999999999999999999012345678901.11");
     EXPECT_TRUE(err);
 
     // Least significant digits overflow
@@ -971,23 +904,23 @@ TEST_F(DecimalTest, DecimalAddSubResultTrailingLeastSignificantZero) {
     Decimal d0{"124.5"};
     Decimal d1{"123.5"};
     Decimal d2 = d0 + d1;
-    EXPECT_EQ(d2.to_string(), "248");
+    EXPECT_EQ(d2.to_string(), "248.0"); // Add operation does not trim trailing zero
 
     Decimal d3 = d0 - d1;
-    EXPECT_EQ(d3.to_string(), "1");
+    EXPECT_EQ(d3.to_string(), "1.0");
 
     err = d0.assign("-124.5");
     EXPECT_TRUE(!err);
     err = d1.assign("123.5");
     EXPECT_TRUE(!err);
     d2 = d0 + d1;
-    EXPECT_EQ(d2.to_string(), "-1");
+    EXPECT_EQ(d2.to_string(), "-1.0");
 
     d3 = d0 - d1;
-    EXPECT_EQ(d3.to_string(), "-248");
+    EXPECT_EQ(d3.to_string(), "-248.0");
 }
 
-// Decimal multiply as int128 overflow, but the intermediate result could be held in int256.
+// Decimal multiply as int128 overflow, but the intermediate result could be held in gmp array.
 TEST_F(DecimalTest, DecimalMulAsInt128Overflow) {
     {
         Decimal d0{"10000000000.9999999999999999"};
@@ -1006,11 +939,50 @@ TEST_F(DecimalTest, DecimalMulAsInt128Overflow) {
         // Test 5 -> 1 carry.
         Decimal d0{"10000000000.7777777777777777"};
         Decimal d1{"10000000000.7777777777777777"};
-        Decimal d2 = d0 * d1;  // 100000000015555555556.16049227160493815061
-        EXPECT_EQ(d2.to_string(), "100000000015555555556.1604922716049382");
+        Decimal d2 = d0 * d1;
+        EXPECT_EQ(d2.to_string(), "100000000015555555556.160492271604938150617283950617");
     }
 }
 
+TEST_F(DecimalTest, StaticCastToString) {
+    // Simple C string
+    EXPECT_EQ(static_cast<std::string>(Decimal("0")), "0");
+    EXPECT_EQ(static_cast<std::string>(Decimal("0.1")), "0.1");
+    EXPECT_EQ(static_cast<std::string>(Decimal("123.1")), "123.1");
+    EXPECT_EQ(static_cast<std::string>(Decimal("123.666")), "123.666");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-123.666")), "-123.666");
+
+    // Batch of c++ string
+    std::vector<std::string> dstrings = {
+        "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
+        "-44.11223455", "-999.11223455", "12456789",    "101.101",
+
+    };
+    for (const auto &str : dstrings) {
+        EXPECT_EQ(static_cast<std::string>(Decimal(str)), str);
+    }
+
+    // Leading zero truncation
+    EXPECT_EQ(static_cast<std::string>(Decimal("000.1")), "0.1");
+    EXPECT_EQ(static_cast<std::string>(Decimal("00.0000")), "0");
+    EXPECT_EQ(static_cast<std::string>(Decimal("00.11223455")), "0.11223455");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-00.11223455")), "-0.11223455");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-00123.11223455")), "-123.11223455");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-0044.11223455")), "-44.11223455");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-000999.11223455")), "-999.11223455");
+
+    // trailing '0' omitted, but not those middle ones
+    EXPECT_EQ(static_cast<std::string>(Decimal("101.101")), "101.101");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-101.101")), "-101.101");
+    EXPECT_EQ(static_cast<std::string>(Decimal("101.1010")), "101.101");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-101.1010")), "-101.101");
+    EXPECT_EQ(static_cast<std::string>(Decimal("200.1000")), "200.1");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-200.1000")), "-200.1");
+    EXPECT_EQ(static_cast<std::string>(Decimal("0.0000")), "0");
+    EXPECT_EQ(static_cast<std::string>(Decimal("-0.0000")), "0");
+}
+
+#if 0
 TEST_F(DecimalTest, DecimalDivAsInt128Overflow) {
     {
         Decimal d0{"9999999999999999999999.22"};
@@ -1083,43 +1055,8 @@ TEST_F(DecimalTest, DecimalDivAsInt128Overflow) {
     }
 }
 
-TEST_F(DecimalTest, StaticCastToString) {
-    // Simple C string
-    EXPECT_EQ(static_cast<std::string>(Decimal("0")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("0.1")), "0.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("123.1")), "123.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("123.666")), "123.666");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-123.666")), "-123.666");
 
-    // Batch of c++ string
-    std::vector<std::string> dstrings = {
-        "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
-        "-44.11223455", "-999.11223455", "12456789",    "101.101",
 
-    };
-    for (const auto &str : dstrings) {
-        EXPECT_EQ(static_cast<std::string>(Decimal(str)), str);
-    }
-
-    // Leading zero truncation
-    EXPECT_EQ(static_cast<std::string>(Decimal("000.1")), "0.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("00.0000")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("00.11223455")), "0.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-00.11223455")), "-0.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-00123.11223455")), "-123.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-0044.11223455")), "-44.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-000999.11223455")), "-999.11223455");
-
-    // trailing '0' omitted, but not those middle ones
-    EXPECT_EQ(static_cast<std::string>(Decimal("101.101")), "101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-101.101")), "-101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("101.1010")), "101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-101.1010")), "-101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("200.1000")), "200.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-200.1000")), "-200.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("0.0000")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-0.0000")), "0");
-}
 
 TEST_F(DecimalTest, StaticCastToDouble) {
     // Simple C string
@@ -2609,6 +2546,105 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
     }
 }
 #endif
+
+#if 0
+TEST_F(DecimalTest, Int256AddOverflow) {
+    using namespace boost::multiprecision;
+    int256_t res256 = 0;
+    ErrCode err = kOk;
+
+    int256_t i256max = kInt256Max;
+    err = safe_add_int256(res256, i256max, i256max);
+    EXPECT_TRUE(!!err);
+
+    int256_t i256min = kInt256Min;
+    err = safe_add_int256(res256, i256min, i256min);
+    EXPECT_TRUE(!!err);
+
+    // Non-overflow cases
+    int256_t i256val = 123;
+    err = safe_add_int256(res256, i256val, i256val);
+    EXPECT_TRUE(!err);
+}
+
+TEST_F(DecimalTest, safe_mul_int256) {
+    using namespace boost::multiprecision;
+    int256_t res256 = 0;
+    ErrCode err = kOk;
+
+    // +  vs  +, non-overflow
+    err = safe_mul_int256(res256, 123, 456);
+    EXPECT_TRUE(!err);
+    // +  vs  +, overflow
+    err = safe_mul_int256(res256, kInt256Max, kInt256Max);
+    EXPECT_TRUE(!!err);
+    // +  vs  -, non-overflow
+    err = safe_mul_int256(res256, 123, -456);
+    EXPECT_TRUE(!err);
+    // +  vs  -, overflow
+    err = safe_mul_int256(res256, kInt256Max, kInt256Min);
+    EXPECT_TRUE(!!err);
+    // -  vs  +, non-overflow
+    err = safe_mul_int256(res256, -123, 456);
+    EXPECT_TRUE(!err);
+    // -  vs  +, overflow
+    err = safe_mul_int256(res256, kInt256Min, kInt256Max);
+    EXPECT_TRUE(!!err);
+    // -  vs  -, non-overflow
+    err = safe_mul_int256(res256, -123, -456);
+    EXPECT_TRUE(!err);
+    // -  vs  -, overflow
+    err = safe_mul_int256(res256, kInt256Min, kInt256Min);
+    EXPECT_TRUE(!!err);
+}
+
+TEST_F(DecimalTest, safe_div_int128) {
+    __int128_t res128 = 0;
+    ErrCode err = kOk;
+
+    // Divison by zero
+    err = safe_div_int128(res128, 123, 0);
+    EXPECT_TRUE(!!err);
+
+    // int128min / -1
+    err = safe_div_int128(res128, kInt128Min, -1);
+    EXPECT_TRUE(!!err);
+
+    // normal, non-overflow division
+    err = safe_div_int128(res128, 123, 456);
+    EXPECT_TRUE(!err);
+}
+
+TEST_F(DecimalTest, safe_div_int256) {
+    using namespace boost::multiprecision;
+    int256_t res256 = 0;
+    ErrCode err = kOk;
+
+    // Divison by zero
+    err = safe_div_int256(res256, 123, 0);
+    EXPECT_TRUE(!!err);
+
+    // int256min / -1
+    err = safe_div_int256(res256, kInt256Min, -1);
+    EXPECT_TRUE(!!err);
+
+    // normal, non-overflow division
+    err = safe_div_int256(res256, 123, 456);
+    EXPECT_TRUE(!err);
+}
+
+TEST_F(DecimalTest, int256_to_string) {
+    using namespace boost::multiprecision;
+    EXPECT_EQ(convert_int256_to_string(0), "0");
+    EXPECT_EQ(convert_int256_to_string(123), "123");
+    EXPECT_EQ(convert_int256_to_string(-123), "-123");
+    EXPECT_EQ(convert_int256_to_string(kInt256Max),
+              "57896044618658097711785492504343953926634992332820282019728792003956564819967");
+    EXPECT_EQ(convert_int256_to_string(kInt256Min),
+              "-57896044618658097711785492504343953926634992332820282019728792003956564819968");
+}
+#endif
+
 
 // TODO test string initialization with leading space or leading zero
 }  // namespace bignum

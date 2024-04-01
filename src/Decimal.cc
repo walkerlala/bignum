@@ -91,9 +91,8 @@ std::string decimal128_to_string(__int128_t v, int32_t scale) {
     return decimal_unsigned_integral_to_string(uv, scale, is_negative);
 }
 
-std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
-    __mpz_struct mpz = v.mpz;
-    if (mpz._mp_size == 0) {
+static std::string decimal_general_to_string(const __mpz_struct *mpz, int32_t scale) {
+    if (mpz->_mp_size == 0) {
         return "0";
     }
 
@@ -110,9 +109,9 @@ std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
     constexpr size_t buf_size = 101;
     char buf[buf_size] = {0};
 
-    bool is_negative = (mpz._mp_size < 0);
-    int x_size = std::abs(mpz._mp_size);
-    int64_t str_size = mpn_get_str((unsigned char *)buf, /*base*/ 10, mpz._mp_d, x_size);
+    bool is_negative = (mpz->_mp_size < 0);
+    int x_size = std::abs(mpz->_mp_size);
+    int64_t str_size = mpn_get_str((unsigned char *)buf, /*base*/ 10, mpz->_mp_d, x_size);
     __BIGNUM_ASSERT(str_size > 0 && str_size <= 77);
     __BIGNUM_ASSERT(str_size >= scale);
 
@@ -143,12 +142,36 @@ std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
     }
     if (num_least_significant_digits > 0) {
         *p++ = '.';
+
         for (int64_t i = num_most_significant_digits; i < str_size; i++) {
             *p++ = to_printable(buf[i]);
             __BIGNUM_ASSERT(p < res_buf_end);
         }
+
+        // Trim trailing '0'
+        char *pdot = p - (str_size - num_most_significant_digits) - 1;
+        assert(*pdot == '.');
+        for (; p > pdot + 1; p--) {
+            if (*(p-1) != '0') {
+                break;
+            }
+        }
+
+        // "1." -> "1"
+        if (p == pdot + 1) {
+            p = pdot;
+        }
     }
+
     return std::string(res_buf, p);
+}
+
+std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
+    return decimal_general_to_string(&(v.mpz), scale);
+}
+
+std::string decimal_general_to_string(const Gmp640 &v, int32_t scale) {
+    return decimal_general_to_string(&(v.mpz), scale);
 }
 }  // namespace detail
 

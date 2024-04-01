@@ -1,5 +1,8 @@
 #include <gmp.h>
 #include <iostream>
+#include <string>
+#include <cassert>
+#include <cstring>
 
 void func_cdiv() {
     mpz_t dividend, divisor, quotient;
@@ -67,11 +70,89 @@ struct GmpWrapperImpl {
 };
 using GmpWrapper = GmpWrapperImpl<5>;
 
+
+std::string decimal_general_to_string(const GmpWrapper &v, int32_t scale) {
+    __mpz_struct mpz = v.mpz;
+    if (mpz._mp_size == 0) {
+        return "0";
+    }
+
+    // With kNumLimbs=5 limbs, there is 320 bits (signed).
+    // Therefore there is at most 97 digits for this mpz object.
+    // +1 for possible '-' sign,
+    // +1 for possible '.' sign,
+    // +1 for '\0'
+    // So this is 100.
+    //
+    // Considering that scale might be equal to the number digits, e.g., 0.12345,
+    // where scale is 5, we need to add 1 more digit for the leading 0.
+    // So this is 101.
+    constexpr size_t buf_size = 101;
+    char buf[buf_size] = {0};
+
+    bool is_negative = (mpz._mp_size < 0);
+    int x_size = std::abs(mpz._mp_size);
+    int64_t str_size = mpn_get_str((unsigned char *)buf, /*base*/ 10, mpz._mp_d, x_size);
+
+    /* Convert result to printable chars.  */
+    char res_buf[buf_size] = {0};
+    //const char *const res_buf_end = res_buf + buf_size;
+    char *p = res_buf;
+    if (is_negative) {
+        *p++ = '-';
+    }
+
+    auto to_printable = [](int pos) -> char {
+        int chr = pos + '0';
+        return static_cast<char>(chr);
+    };
+
+    int64_t num_most_significant_digits = str_size - scale;
+    int64_t num_least_significant_digits = scale;
+    if (num_most_significant_digits == 0) {
+        *p++ = '0';
+    } else {
+        for (int64_t i = 0; i < num_most_significant_digits; i++) {
+            *p++ = to_printable(buf[i]);
+        }
+    }
+    if (num_least_significant_digits > 0) {
+        *p++ = '.';
+
+        for (int64_t i = num_most_significant_digits; i < str_size; i++) {
+            *p++ = to_printable(buf[i]);
+        }
+
+        // Trim trailing '0'
+        char *pdot = p - (str_size - num_most_significant_digits) - 1;
+        assert(*pdot == '.');
+        for (; p > pdot + 1; p--) {
+            if (*(p-1) != '0') {
+                break;
+            }
+        }
+
+        // "1." -> "1"
+        if (p == pdot + 1) {
+            p = pdot;
+        }
+    }
+
+    return std::string(res_buf, p);
+}
+
+
 int main() {
     // func_cdiv();
     // func_fdiv();
     // func_tdiv();
 
     [[maybe_unused]] GmpWrapper a;
+    __int128_t x = static_cast<__int128_t>(1000000000099999ll) * static_cast<__int128_t>(100000000000) + static_cast<__int128_t>(99999999999);
+    a.initialize();
+    a.mpz._mp_size = 2;
+    std::memcpy(a.mpz._mp_d, &x, sizeof(x));
+
+    std::cout << decimal_general_to_string(a, 0) << std::endl;
     return 0;
 }
