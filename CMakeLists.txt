@@ -94,7 +94,10 @@ install(TARGETS bignum
 )
 
 if (BIGNUM_BUILD_TESTS)
-    add_executable(unittest ${PROJECT_ROOT}/tests/op.cc)
+    add_executable(unittest
+        ${PROJECT_ROOT}/tests/op.cc
+        ${PROJECT_ROOT}/tests/gmp.cc
+    )
     target_link_libraries(unittest bignum)
     target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(unittest PRIVATE ${GMP_INCLUDE_DIR})

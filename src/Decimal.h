@@ -15,7 +15,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include "gmp.h"
+#include "GmpWrapper.h"
 
 namespace bignum {
 template <typename T>
@@ -52,133 +52,29 @@ constexpr const char *kDecimalMaxStr =
 constexpr const char *kDecimalMinStr =
         "-99999999999999999999999999999999999999999999999999999999999999999";
 
-/* clang-format off */
-/* This array is copied directly from gmp 6.3.0 source code.
-
-   Table to be indexed by character, to get its numerical value.  Assumes ASCII
-   character set.
-
-   First part of table supports common usages, where 'A' and 'a' have the same
-   value; this supports bases 2..36
-
-   At offset 208, values for bases 37..62 start.  Here, 'A' has the value 10
-   (in decimal) and 'a' has the value 36.  */
-#define X 0xff
-const unsigned char gmp_digit_value_tab[] =
-{
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, X, X, X, X, X, X,
-  X,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
-  25,26,27,28,29,30,31,32,33,34,35,X, X, X, X, X,
-  X,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
-  25,26,27,28,29,30,31,32,33,34,35,X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  0, 1, 2, 3, 4, 5, 6, 7, 8, 9, X, X, X, X, X, X,
-  X,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,
-  25,26,27,28,29,30,31,32,33,34,35,X, X, X, X, X,
-  X,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,
-  51,52,53,54,55,56,57,58,59,60,61,X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X,
-  X, X, X, X, X, X, X, X, X, X, X, X, X, X, X, X
-};
-#undef X
-/* clang-format on */
-
-// A helper class for 'Decimal' to store the actual limbs of gmp integer and its __mpz_struct
-//
-// For a mpz integer of kDecimalMaxPrecision=65, only 4 limbs is needed at most.
-// However, considering the alignment and padding of the 'Decimal' class (__int128_t is 16 bytes
-// aligned), the memory footprint of a 'Decimal' is the same even if we use 5 limbs.
-template <size_t N>
-struct GmpWrapper {
-        constexpr static size_t kNumLimbs = N;
-        __mpz_struct mpz;
-        mp_limb_t limbs[N];
-
-        constexpr GmpWrapper() : mpz{N, 0, &limbs[0]} {
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = 0ull;
-                }
+template <IntegralType T>
+constexpr inline T type_max() {
+        if constexpr (std::is_same_v<T, __int128_t>) {
+                return detail::kInt128Max;
+        } else {
+                return std::numeric_limits<T>::max();
         }
+}
 
-        template <typename... T>
-        constexpr GmpWrapper(int sz, T... args)
-                : mpz{N, sz, &limbs[0]}, limbs{static_cast<mp_limb_t>(args)...} {
-                static_assert(sizeof...(args) == N, "Invalid number of arguments");
+template <IntegralType T>
+constexpr inline T type_min() {
+        if constexpr (std::is_same_v<T, __int128_t>) {
+                return detail::kInt128Min;
+        } else {
+                return std::numeric_limits<T>::min();
         }
+}
 
-        GmpWrapper(const GmpWrapper &rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = rhs.limbs[i];
-                }
-        }
-        GmpWrapper &operator=(const GmpWrapper &rhs) {
-                mpz = __mpz_struct{N, rhs.mpz._mp_size, &limbs[0]};
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = rhs.limbs[i];
-                }
-                return *this;
-        }
-        GmpWrapper(GmpWrapper &&rhs) : mpz{N, rhs.mpz._mp_size, &limbs[0]} {
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = rhs.limbs[i];
-                }
-        }
-        GmpWrapper &operator=(GmpWrapper &&rhs) {
-                mpz = __mpz_struct{N, rhs.mpz._mp_size, &limbs[0]};
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = rhs.limbs[i];
-                }
-                return *this;
-        }
-
-        constexpr bool is_zero() const { return mpz._mp_size == 0; }
-        constexpr bool is_negative() const { return mpz._mp_size < 0; }
-
-        constexpr void negate() { mpz._mp_size = -mpz._mp_size; }
-
-        constexpr void initialize() {
-                mpz._mp_alloc = N;
-                mpz._mp_size = 0;
-                mpz._mp_d = &limbs[0];
-                for (size_t i = 0; i < N; ++i) {
-                        limbs[i] = 0ull;
-                }
-        }
-
-        constexpr bool ptr_check() const { return (mpz._mp_d == &limbs[0]); }
-};
-
-using Gmp320 = GmpWrapper<5>;
-using Gmp640 = detail::GmpWrapper<10>;
-static_assert(sizeof(Gmp320) == 56);
-
-// Maximum/minimum value of precision-65 decimal number
-// (i.e., 99999999999999999999999999999999999999999999999999999999999999999)
-// If kMaxPrecision is changed, this value should be updated accordingly.
-constexpr auto kMaxGmpValue =
-        Gmp320(4, 0xffffffffffffffff, 0x4e3945ef7a253609, 0x1c7fc3908a8bef46, 0xf31627, 0x0);
-constexpr auto kMinGmpValue =
-        Gmp320(-4, 0xffffffffffffffff, 0x4e3945ef7a253609, 0x1c7fc3908a8bef46, 0xf31627, 0x0);
-constexpr auto kGmpValueMinus1 = Gmp320(-1, 0x1, 0x0, 0x0, 0x0, 0x0);
-constexpr auto kGmpValue5 = Gmp320(1, 0x5, 0x0, 0x0, 0x0, 0x0);
-constexpr auto kGmpValue10 = Gmp320(1, 0xa, 0x0, 0x0, 0x0, 0x0);
-// TODO add a static check using Singleton model at debug mode or unit test
+// std::abs() is not constexpr before c++23.
+template <IntegralType T>
+constexpr T type_abs(T n) {
+        return n < 0 ? -n : n;
+}
 
 constexpr int64_t get_int64_power10(int32_t scale) {
         /* clang-format off */
@@ -274,95 +170,110 @@ constexpr T get_integral_power10(int32_t scale) {
         }
 }
 
-inline Gmp320 *get_gmp320_power10(int32_t scale) {
+constexpr inline Gmp320 get_gmp320_power10(int32_t scale) {
         /* clang-format off */
-    static Gmp320 kPower10[] = {
-        /* 0 */  Gmp320(1, 0x1, 0x0, 0x0, 0x0, 0x0),
-        /* 1 */  Gmp320(1, 0xa, 0x0, 0x0, 0x0, 0x0),
-        /* 2 */  Gmp320(1, 0x64, 0x0, 0x0, 0x0, 0x0),
-        /* 3 */  Gmp320(1, 0x3e8, 0x0, 0x0, 0x0, 0x0),
-        /* 4 */  Gmp320(1, 0x2710, 0x0, 0x0, 0x0, 0x0),
-        /* 5 */  Gmp320(1, 0x186a0, 0x0, 0x0, 0x0, 0x0),
-        /* 6 */  Gmp320(1, 0xf4240, 0x0, 0x0, 0x0, 0x0),
-        /* 7 */  Gmp320(1, 0x989680, 0x0, 0x0, 0x0, 0x0),
-        /* 8 */  Gmp320(1, 0x5f5e100, 0x0, 0x0, 0x0, 0x0),
-        /* 9 */  Gmp320(1, 0x3b9aca00, 0x0, 0x0, 0x0, 0x0),
-        /* 10 */ Gmp320(1, 0x2540be400, 0x0, 0x0, 0x0, 0x0),
-        /* 11 */ Gmp320(1, 0x174876e800, 0x0, 0x0, 0x0, 0x0),
-        /* 12 */ Gmp320(1, 0xe8d4a51000, 0x0, 0x0, 0x0, 0x0),
-        /* 13 */ Gmp320(1, 0x9184e72a000, 0x0, 0x0, 0x0, 0x0),
-        /* 14 */ Gmp320(1, 0x5af3107a4000, 0x0, 0x0, 0x0, 0x0),
-        /* 15 */ Gmp320(1, 0x38d7ea4c68000, 0x0, 0x0, 0x0, 0x0),
-        /* 16 */ Gmp320(1, 0x2386f26fc10000, 0x0, 0x0, 0x0, 0x0),
-        /* 17 */ Gmp320(1, 0x16345785d8a0000, 0x0, 0x0, 0x0, 0x0),
-        /* 18 */ Gmp320(1, 0xde0b6b3a7640000, 0x0, 0x0, 0x0, 0x0),
-        /* 19 */ Gmp320(1, 0x8ac7230489e80000, 0x0, 0x0, 0x0, 0x0),
-        /* 20 */ Gmp320(2, 0x6bc75e2d63100000, 0x5, 0x0, 0x0, 0x0),
-        /* 21 */ Gmp320(2, 0x35c9adc5dea00000, 0x36, 0x0, 0x0, 0x0),
-        /* 22 */ Gmp320(2, 0x19e0c9bab2400000, 0x21e, 0x0, 0x0, 0x0),
-        /* 23 */ Gmp320(2, 0x2c7e14af6800000, 0x152d, 0x0, 0x0, 0x0),
-        /* 24 */ Gmp320(2, 0x1bcecceda1000000, 0xd3c2, 0x0, 0x0, 0x0),
-        /* 25 */ Gmp320(2, 0x161401484a000000, 0x84595, 0x0, 0x0, 0x0),
-        /* 26 */ Gmp320(2, 0xdcc80cd2e4000000, 0x52b7d2, 0x0, 0x0, 0x0),
-        /* 27 */ Gmp320(2, 0x9fd0803ce8000000, 0x33b2e3c, 0x0, 0x0, 0x0),
-        /* 28 */ Gmp320(2, 0x3e25026110000000, 0x204fce5e, 0x0, 0x0, 0x0),
-        /* 29 */ Gmp320(2, 0x6d7217caa0000000, 0x1431e0fae, 0x0, 0x0, 0x0),
-        /* 30 */ Gmp320(2, 0x4674edea40000000, 0xc9f2c9cd0, 0x0, 0x0, 0x0),
-        /* 31 */ Gmp320(2, 0xc0914b2680000000, 0x7e37be2022, 0x0, 0x0, 0x0),
-        /* 32 */ Gmp320(2, 0x85acef8100000000, 0x4ee2d6d415b, 0x0, 0x0, 0x0),
-        /* 33 */ Gmp320(2, 0x38c15b0a00000000, 0x314dc6448d93, 0x0, 0x0, 0x0),
-        /* 34 */ Gmp320(2, 0x378d8e6400000000, 0x1ed09bead87c0, 0x0, 0x0, 0x0),
-        /* 35 */ Gmp320(2, 0x2b878fe800000000, 0x13426172c74d82, 0x0, 0x0, 0x0),
-        /* 36 */ Gmp320(2, 0xb34b9f1000000000, 0xc097ce7bc90715, 0x0, 0x0, 0x0),
-        /* 37 */ Gmp320(2, 0xf436a000000000, 0x785ee10d5da46d9, 0x0, 0x0, 0x0),
-        /* 38 */ Gmp320(2, 0x98a224000000000, 0x4b3b4ca85a86c47a, 0x0, 0x0, 0x0),
-        /* 39 */ Gmp320(3, 0x5f65568000000000, 0xf050fe938943acc4, 0x2, 0x0, 0x0),
-        /* 40 */ Gmp320(3, 0xb9f5610000000000, 0x6329f1c35ca4bfab, 0x1d, 0x0, 0x0),
-    };
+        const Gmp320 kPower10[] = {
+            /* 0 */  Gmp320(1, 0x1, 0x0, 0x0, 0x0, 0x0),
+            /* 1 */  Gmp320(1, 0xa, 0x0, 0x0, 0x0, 0x0),
+            /* 2 */  Gmp320(1, 0x64, 0x0, 0x0, 0x0, 0x0),
+            /* 3 */  Gmp320(1, 0x3e8, 0x0, 0x0, 0x0, 0x0),
+            /* 4 */  Gmp320(1, 0x2710, 0x0, 0x0, 0x0, 0x0),
+            /* 5 */  Gmp320(1, 0x186a0, 0x0, 0x0, 0x0, 0x0),
+            /* 6 */  Gmp320(1, 0xf4240, 0x0, 0x0, 0x0, 0x0),
+            /* 7 */  Gmp320(1, 0x989680, 0x0, 0x0, 0x0, 0x0),
+            /* 8 */  Gmp320(1, 0x5f5e100, 0x0, 0x0, 0x0, 0x0),
+            /* 9 */  Gmp320(1, 0x3b9aca00, 0x0, 0x0, 0x0, 0x0),
+            /* 10 */ Gmp320(1, 0x2540be400, 0x0, 0x0, 0x0, 0x0),
+            /* 11 */ Gmp320(1, 0x174876e800, 0x0, 0x0, 0x0, 0x0),
+            /* 12 */ Gmp320(1, 0xe8d4a51000, 0x0, 0x0, 0x0, 0x0),
+            /* 13 */ Gmp320(1, 0x9184e72a000, 0x0, 0x0, 0x0, 0x0),
+            /* 14 */ Gmp320(1, 0x5af3107a4000, 0x0, 0x0, 0x0, 0x0),
+            /* 15 */ Gmp320(1, 0x38d7ea4c68000, 0x0, 0x0, 0x0, 0x0),
+            /* 16 */ Gmp320(1, 0x2386f26fc10000, 0x0, 0x0, 0x0, 0x0),
+            /* 17 */ Gmp320(1, 0x16345785d8a0000, 0x0, 0x0, 0x0, 0x0),
+            /* 18 */ Gmp320(1, 0xde0b6b3a7640000, 0x0, 0x0, 0x0, 0x0),
+            /* 19 */ Gmp320(1, 0x8ac7230489e80000, 0x0, 0x0, 0x0, 0x0),
+            /* 20 */ Gmp320(2, 0x6bc75e2d63100000, 0x5, 0x0, 0x0, 0x0),
+            /* 21 */ Gmp320(2, 0x35c9adc5dea00000, 0x36, 0x0, 0x0, 0x0),
+            /* 22 */ Gmp320(2, 0x19e0c9bab2400000, 0x21e, 0x0, 0x0, 0x0),
+            /* 23 */ Gmp320(2, 0x2c7e14af6800000, 0x152d, 0x0, 0x0, 0x0),
+            /* 24 */ Gmp320(2, 0x1bcecceda1000000, 0xd3c2, 0x0, 0x0, 0x0),
+            /* 25 */ Gmp320(2, 0x161401484a000000, 0x84595, 0x0, 0x0, 0x0),
+            /* 26 */ Gmp320(2, 0xdcc80cd2e4000000, 0x52b7d2, 0x0, 0x0, 0x0),
+            /* 27 */ Gmp320(2, 0x9fd0803ce8000000, 0x33b2e3c, 0x0, 0x0, 0x0),
+            /* 28 */ Gmp320(2, 0x3e25026110000000, 0x204fce5e, 0x0, 0x0, 0x0),
+            /* 29 */ Gmp320(2, 0x6d7217caa0000000, 0x1431e0fae, 0x0, 0x0, 0x0),
+            /* 30 */ Gmp320(2, 0x4674edea40000000, 0xc9f2c9cd0, 0x0, 0x0, 0x0),
+            /* 31 */ Gmp320(2, 0xc0914b2680000000, 0x7e37be2022, 0x0, 0x0, 0x0),
+            /* 32 */ Gmp320(2, 0x85acef8100000000, 0x4ee2d6d415b, 0x0, 0x0, 0x0),
+            /* 33 */ Gmp320(2, 0x38c15b0a00000000, 0x314dc6448d93, 0x0, 0x0, 0x0),
+            /* 34 */ Gmp320(2, 0x378d8e6400000000, 0x1ed09bead87c0, 0x0, 0x0, 0x0),
+            /* 35 */ Gmp320(2, 0x2b878fe800000000, 0x13426172c74d82, 0x0, 0x0, 0x0),
+            /* 36 */ Gmp320(2, 0xb34b9f1000000000, 0xc097ce7bc90715, 0x0, 0x0, 0x0),
+            /* 37 */ Gmp320(2, 0xf436a000000000, 0x785ee10d5da46d9, 0x0, 0x0, 0x0),
+            /* 38 */ Gmp320(2, 0x98a224000000000, 0x4b3b4ca85a86c47a, 0x0, 0x0, 0x0),
+            /* 39 */ Gmp320(3, 0x5f65568000000000, 0xf050fe938943acc4, 0x2, 0x0, 0x0),
+            /* 40 */ Gmp320(3, 0xb9f5610000000000, 0x6329f1c35ca4bfab, 0x1d, 0x0, 0x0),
+        };
         /* clang-format on */
         constexpr int64_t num_power10 = sizeof(kPower10) / sizeof(kPower10[0]);
         if (scale < 0 || scale >= num_power10) {
-                return nullptr;
+                return kGmpValueMinus1;
         }
-        return &kPower10[scale];
+        return kPower10[scale];
 }
 
-inline Gmp320 convert_int64_to_gmp(int64_t i64) {
+constexpr inline Gmp320 convert_int64_to_gmp(int64_t i64) {
         Gmp320 gmp;
-        mpz_set_si(&gmp.mpz, i64);
+        if (i64 == 0) {
+                gmp.mpz._mp_size = 0;
+        } else if (i64 > 0) {
+                gmp.mpz._mp_d[0] = i64;
+                gmp.mpz._mp_size = 1;
+        } else if (i64 < 0) {
+                if (i64 == INT64_MIN) {
+                        gmp.mpz._mp_d[0] = static_cast<uint64_t>(INT64_MAX) + 1;
+                } else {
+                        gmp.mpz._mp_d[0] = type_abs(i64);
+                }
+                gmp.mpz._mp_size = -1;
+        } else {
+                assert(false);
+        }
         return gmp;
 }
 
-constexpr void init_gmp_with_uint128(__mpz_struct *mpz, __uint128_t value) {
-        if (value == 0) {
+constexpr inline Gmp320 convert_uint128_to_gmp(__uint128_t u128) {
+        Gmp320 gmp;
+        auto *mpz = &gmp.mpz;
+        if (u128 == 0) {
                 mpz->_mp_size = 0;
-        } else if (value <= static_cast<__int128_t>(UINT64_MAX)) {
+        } else if (u128 > 0 && u128 <= static_cast<__uint128_t>(UINT64_MAX)) {
+                mpz->_mp_d[0] = reinterpret_cast<uint64_t *>(&u128)[0];
                 mpz->_mp_size = 1;
-                mpz->_mp_d[0] = reinterpret_cast<int64_t *>(&value)[0];
-        } else {
+        } else if (u128 > static_cast<__uint128_t>(UINT64_MAX)) {
+                mpz->_mp_d[0] = reinterpret_cast<uint64_t *>(&u128)[0];
+                mpz->_mp_d[1] = reinterpret_cast<uint64_t *>(&u128)[1];
                 mpz->_mp_size = 2;
-                mpz->_mp_d[0] = reinterpret_cast<int64_t *>(&value)[0];
-                mpz->_mp_d[1] = reinterpret_cast<int64_t *>(&value)[1];
+        } else {
+                __BIGNUM_ASSERT(false);
         }
+        return gmp;
 }
 
-inline Gmp320 convert_int128_to_gmp(__int128_t i128) {
-        Gmp320 gmp;
+constexpr inline Gmp320 convert_int128_to_gmp(__int128_t i128) {
         if (i128 >= 0) {
-                detail::init_gmp_with_uint128(&gmp.mpz, static_cast<__uint128_t>(i128));
-        } else if (i128 != detail::kInt128Min) {
-                i128 = -i128;
-                detail::init_gmp_with_uint128(&gmp.mpz, static_cast<__uint128_t>(i128));
-                gmp.negate();
-        } else {
-                assert(i128 == detail::kInt128Min);
-                i128 = -(i128 + 1);
-                Gmp320 intermediate;
-                detail::init_gmp_with_uint128(&intermediate.mpz, static_cast<__uint128_t>(i128));
-                intermediate.negate();
-
-                mpz_add(&gmp.mpz, &intermediate.mpz, &detail::kGmpValueMinus1.mpz);
+                return convert_uint128_to_gmp(static_cast<__uint128_t>(i128));
         }
+        Gmp320 gmp;
+        if (i128 != kInt128Min) {
+                __uint128_t positive_i128 = type_abs(i128);
+                gmp = convert_uint128_to_gmp(positive_i128);
+        } else {
+                __uint128_t positive_i128 = static_cast<__uint128_t>(kInt128Max) + 1;
+                gmp = convert_uint128_to_gmp(positive_i128);
+        }
+        gmp.mpz._mp_size = -gmp.mpz._mp_size;
         return gmp;
 }
 
@@ -383,7 +294,7 @@ inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, c
 
 template <typename T, typename U>
 inline void copy_gmp_to_gmp(T &dst, const U &src) {
-        int src_len = std::abs(src.mpz._mp_size);
+        int src_len = type_abs(src.mpz._mp_size);
         __BIGNUM_ASSERT(src_len <= dst.mpz._mp_alloc);
         for (int i = 0; i < src_len; ++i) {
                 dst.mpz._mp_d[i] = src.mpz._mp_d[i];
@@ -392,30 +303,6 @@ inline void copy_gmp_to_gmp(T &dst, const U &src) {
                 dst.mpz._mp_d[i] = 0;
         }
         dst.mpz._mp_size = src.mpz._mp_size;
-}
-
-template <IntegralType T>
-constexpr inline T type_max() {
-        if constexpr (std::is_same_v<T, __int128_t>) {
-                return detail::kInt128Max;
-        } else {
-                return std::numeric_limits<T>::max();
-        }
-}
-
-template <IntegralType T>
-constexpr inline T type_min() {
-        if constexpr (std::is_same_v<T, __int128_t>) {
-                return detail::kInt128Min;
-        } else {
-                return std::numeric_limits<T>::min();
-        }
-}
-
-// std::abs() is not constexpr before c++23.
-template <IntegralType T>
-constexpr T type_abs(T n) {
-        return n < 0 ? -n : n;
 }
 
 template <IntegralType T>
@@ -610,7 +497,7 @@ constexpr inline ErrCode decimal_mul_integral(T &res, int32_t &res_scale, T lhs,
                 res /= div_first_part;
         }
 
-        T mod_result = type_abs(res) % 10;
+        T mod_result = detail::type_abs(res) % 10;
         res /= 10;
 
         // round-half-up: round away from zero
@@ -664,6 +551,7 @@ constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
 
 std::string decimal64_to_string(int64_t v, int32_t scale);
 std::string decimal128_to_string(__int128_t v, int32_t scale);
+std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale);
 std::string decimal_general_to_string(const Gmp320 &v, int32_t scale);
 std::string decimal_general_to_string(const Gmp640 &v, int32_t scale);
 
@@ -735,7 +623,7 @@ class DecimalImpl final {
         constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
 
        public:
-        constexpr DecimalImpl() : m_i64(0), m_dtype_init(DType::kInt64), m_scale_init(0) {}
+        constexpr DecimalImpl() : m_i64(0), m_padding0{0}, m_dtype(DType::kInt64), m_scale(0) {}
 
         // Construction using integral value, without scale (scale=0).
         //
@@ -744,10 +632,11 @@ class DecimalImpl final {
         // which has a fixed scale data type. The scale of this class is dynamic and
         // stored within each object.
         template <SmallIntegralType U>
-        constexpr DecimalImpl(U i) : m_i64(i), m_dtype_init(DType::kInt64), m_scale_init(0) {}
+        constexpr DecimalImpl(U i) : m_i64(i), m_padding0{0}, m_dtype(DType::kInt64), m_scale(0) {}
 
         template <LargeIntegralType U>
-        constexpr DecimalImpl(U i) : m_i128(i), m_dtype_init(DType::kInt128), m_scale_init(0) {}
+        constexpr DecimalImpl(U i)
+                : m_i128(i), m_padding0{0}, m_dtype(DType::kInt128), m_scale(0) {}
 
         // Construction using floating point value.
         //
@@ -786,20 +675,20 @@ class DecimalImpl final {
         //
         // This interface would trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
-        constexpr DecimalImpl(std::string_view sv) {
+        constexpr DecimalImpl(std::string_view sv) : m_padding0{0} {
                 __BIGNUM_ASSERT(!assign(sv), "Invalid decimal string");
         }
-        constexpr DecimalImpl(const char *s) {
+        constexpr DecimalImpl(const char *s) : m_padding0{0} {
                 __BIGNUM_ASSERT(!assign(std::string_view(s)), "Invalid decimal string");
         }
 
-        DecimalImpl(const DecimalImpl &rhs) { copy(rhs); }
-        DecimalImpl(DecimalImpl &&rhs) { copy(rhs); }
-        DecimalImpl &operator=(const DecimalImpl &rhs) {
+        constexpr DecimalImpl(const DecimalImpl &rhs) : m_padding0{0} { copy(rhs); }
+        constexpr DecimalImpl(DecimalImpl &&rhs) : m_padding0{0} { copy(rhs); }
+        constexpr DecimalImpl &operator=(const DecimalImpl &rhs) {
                 copy(rhs);
                 return *this;
         }
-        DecimalImpl &operator=(DecimalImpl &&rhs) {
+        constexpr DecimalImpl &operator=(DecimalImpl &&rhs) {
                 copy(rhs);
                 return *this;
         }
@@ -824,7 +713,7 @@ class DecimalImpl final {
         }
 
         template <FloatingPointType U>
-        constexpr ErrCode assign(U &f);
+        /*constexpr*/ ErrCode assign(U &f);
 
         constexpr ErrCode assign(std::string_view sv);
 
@@ -1064,10 +953,10 @@ class DecimalImpl final {
         constexpr bool operator>(double f) const { return !(*this <= f); }
         constexpr bool operator>=(double f) const { return !(*this < f); }
 
-        void sanity_check() const;
+        constexpr void sanity_check() const;
 
        private:
-        void copy(const DecimalImpl &rhs) {
+        constexpr void copy(const DecimalImpl &rhs) {
                 m_dtype = rhs.m_dtype;
                 m_scale = rhs.m_scale;
                 if (m_dtype == DType::kInt64) {
@@ -1148,18 +1037,12 @@ class DecimalImpl final {
                                 int64_t m_i64;
                                 __int128_t m_i128;
                         };
-                        char _padding0[40];
-                        DType m_dtype_init;    // For initialization purpose only
-                        int32_t m_scale_init;  // For initialization purpose only
-                };
-
-                detail::Gmp320 m_gmp;
-
-                struct {
-                        char _padding2[56];
+                        char m_padding0[40];
                         DType m_dtype;
                         int32_t m_scale;
                 };
+
+                detail::Gmp320 m_gmp;
         };
 };
 using Decimal = DecimalImpl<>;
@@ -1167,7 +1050,7 @@ static_assert(sizeof(Decimal) == 64);
 
 template <typename T>
 template <FloatingPointType U>
-constexpr inline ErrCode DecimalImpl<T>::assign(U &v) {
+/*constexpr*/ inline ErrCode DecimalImpl<T>::assign(U &v) {
         std::ostringstream oss;
         if constexpr (std::is_same_v<U, float>) {
                 oss << std::fixed << std::setprecision(7) << v;
@@ -1287,15 +1170,16 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
 
                 significant_v128 = significant_v128 * scale_multiplier + least_significant_v128;
         }
-
-        m_i128 = (is_negative ? -significant_v128 : significant_v128);
         m_scale = scale;
 
-        if (scale <= 18 && m_i128 <= INT64_MAX && m_i128 >= INT64_MIN) {
+        // m_i128 = (is_negative ? -significant_v128 : significant_v128);
+        __int128_t res128 = (is_negative ? -significant_v128 : significant_v128);
+        if (scale <= 18 && res128 <= INT64_MAX && res128 >= INT64_MIN) {
                 m_dtype = DType::kInt64;
-                m_i64 = static_cast<int64_t>(m_i128);
+                m_i64 = static_cast<int64_t>(res128);
         } else {
                 m_dtype = DType::kInt128;
+                m_i128 = res128;
         }
         return kOk;
 }
@@ -1475,18 +1359,17 @@ constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(detail::Gmp320 l, int32_t l
                                                      detail::Gmp320 r, int32_t rscale) {
         init_internal_gmp();
         if (lscale > rscale) {
-                const detail::Gmp320 *pow = detail::get_gmp320_power10(lscale - rscale);
-                __BIGNUM_ASSERT(pow);
+                const detail::Gmp320 pow = detail::get_gmp320_power10(lscale - rscale);
 
                 detail::Gmp320 intermediate;
-                mpz_mul(&intermediate.mpz, &r.mpz, &pow->mpz);
+                mpz_mul(&intermediate.mpz, &r.mpz, &pow.mpz);
                 mpz_add(&m_gmp.mpz, &intermediate.mpz, &l.mpz);
 
         } else if (lscale < rscale) {
-                const detail::Gmp320 *pow = detail::get_gmp320_power10(rscale - lscale);
-                __BIGNUM_ASSERT(pow);
+                const detail::Gmp320 pow = detail::get_gmp320_power10(rscale - lscale);
+
                 detail::Gmp320 intermediate;
-                mpz_mul(&intermediate.mpz, &l.mpz, &pow->mpz);
+                mpz_mul(&intermediate.mpz, &l.mpz, &pow.mpz);
                 mpz_add(&m_gmp.mpz, &intermediate.mpz, &r.mpz);
         } else {
                 mpz_add(&m_gmp.mpz, &l.mpz, &r.mpz);
@@ -1654,7 +1537,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
 
         if (lscale + rscale > detail::kDecimalMaxScale) {
                 bool is_negative = res640.mpz._mp_size < 0;
-                res640.mpz._mp_size = std::abs(res640.mpz._mp_size);
+                res640.mpz._mp_size = detail::type_abs(res640.mpz._mp_size);
 
                 int32_t delta_scale = lscale + rscale - detail::kDecimalMaxScale;
                 // Need to do the rounding, so first div by (10 ^ (delta_scale - 1))
@@ -1839,13 +1722,11 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
                 return kOk;
         }
 
-        ErrCode err = kErr;
-
         bool l_negative = l320.is_negative();
-        l320.mpz._mp_size = std::abs(l320.mpz._mp_size);
+        l320.mpz._mp_size = detail::type_abs(l320.mpz._mp_size);
 
         bool r_negative = r320.is_negative();
-        r320.mpz._mp_size = std::abs(r320.mpz._mp_size);
+        r320.mpz._mp_size = detail::type_abs(r320.mpz._mp_size);
 
         bool result_negative = (l_negative != r_negative);
 
@@ -1862,10 +1743,10 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         //      }
         //    }
         //    res_scale = lscale + kDecimalDivIncrScale
-        const detail::Gmp320 *mul_rhs =
+        const detail::Gmp320 mul_rhs =
                 detail::get_gmp320_power10(rscale + detail::kDecimalDivIncrScale + 1);
         detail::Gmp640 newl;
-        mpz_mul(&newl.mpz, &l320.mpz, &mul_rhs->mpz);
+        mpz_mul(&newl.mpz, &l320.mpz, &mul_rhs.mpz);
 
         detail::Gmp640 res640;
         mpz_tdiv_q(&res640.mpz, &newl.mpz, &r320.mpz);
@@ -1873,7 +1754,8 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         if (lscale + detail::kDecimalDivIncrScale > detail::kDecimalMaxScale) {
                 int trim_scale = lscale + detail::kDecimalDivIncrScale - detail::kDecimalMaxScale;
                 detail::Gmp640 tmp;
-                mpz_tdiv_q(&tmp.mpz, &res640.mpz, &detail::get_gmp320_power10(trim_scale)->mpz);
+                detail::Gmp320 trim_scale_pow320 = detail::get_gmp320_power10(trim_scale);
+                mpz_tdiv_q(&tmp.mpz, &res640.mpz, &trim_scale_pow320.mpz);
                 res640 = tmp;
         }
 
@@ -1947,22 +1829,20 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
                 return kOk;
         }
 
-        ErrCode err = kErr;
-
         bool l_negative = l320.is_negative();
-        l320.mpz._mp_size = std::abs(l320.mpz._mp_size);
+        l320.mpz._mp_size = detail::type_abs(l320.mpz._mp_size);
 
         // Always mod by posititve number
-        r320.mpz._mp_size = std::abs(r320.mpz._mp_size);
+        r320.mpz._mp_size = detail::type_abs(r320.mpz._mp_size);
 
         // First align the scale of two numbers
         if (lscale < rscale) {
-                const detail::Gmp320 *mul_lhs = detail::get_gmp320_power10(rscale - lscale);
-                mpz_mul(&l320.mpz, &l320.mpz, &mul_lhs->mpz);
+                const detail::Gmp320 mul_lhs = detail::get_gmp320_power10(rscale - lscale);
+                mpz_mul(&l320.mpz, &l320.mpz, &mul_lhs.mpz);
                 lscale = rscale;
         } else if (lscale > rscale) {
-                const detail::Gmp320 *mul_rhs = detail::get_gmp320_power10(lscale - rscale);
-                mpz_mul(&r320.mpz, &r320.mpz, &mul_rhs->mpz);
+                const detail::Gmp320 mul_rhs = detail::get_gmp320_power10(lscale - rscale);
+                mpz_mul(&r320.mpz, &r320.mpz, &mul_rhs.mpz);
                 rscale = lscale;
         }
 
@@ -2088,13 +1968,15 @@ constexpr inline int DecimalImpl<T>::cmp_gmp_gmp(const detail::Gmp320 &l320, int
                 return detail::cmp_gmp(l320, r320);
         } else if (rscale > lscale) {
                 detail::Gmp640 newl;
-                mpz_mul(&newl.mpz, &l320.mpz, &(detail::get_gmp320_power10(rscale - lscale)->mpz));
+                detail::Gmp320 delta_scale_pow320 = detail::get_gmp320_power10(rscale - lscale);
+                mpz_mul(&newl.mpz, &l320.mpz, &(delta_scale_pow320.mpz));
 
                 return detail::cmp_gmp(newl, r320);
         } else {
                 assert(rscale < lscale);
                 detail::Gmp640 newr;
-                mpz_mul(&newr.mpz, &r320.mpz, &(detail::get_gmp320_power10(lscale - rscale)->mpz));
+                detail::Gmp320 delta_scale_pow320 = detail::get_gmp320_power10(lscale - rscale);
+                mpz_mul(&newr.mpz, &r320.mpz, &(delta_scale_pow320.mpz));
 
                 return detail::cmp_gmp(l320, newr);
         }
@@ -2188,7 +2070,7 @@ constexpr inline bool DecimalImpl<T>::operator<=(const DecimalImpl<T> &rhs) cons
 }
 
 template <typename T>
-inline void DecimalImpl<T>::sanity_check() const {
+constexpr inline void DecimalImpl<T>::sanity_check() const {
         __BIGNUM_ASSERT(m_scale >= 0 && m_scale <= kMaxScale);
         __BIGNUM_ASSERT(m_dtype != DType::kGeneral || m_gmp.ptr_check());
 }

@@ -91,7 +91,7 @@ std::string decimal128_to_string(__int128_t v, int32_t scale) {
         return decimal_unsigned_integral_to_string(uv, scale, is_negative);
 }
 
-static std::string decimal_general_to_string(const __mpz_struct *mpz, int32_t scale) {
+std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         if (mpz->_mp_size == 0) {
                 return "0";
         }
@@ -167,11 +167,11 @@ static std::string decimal_general_to_string(const __mpz_struct *mpz, int32_t sc
 }
 
 std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
-        return decimal_general_to_string(&(v.mpz), scale);
+        return mpz_to_string(&(v.mpz), scale);
 }
 
 std::string decimal_general_to_string(const Gmp640 &v, int32_t scale) {
-        return decimal_general_to_string(&(v.mpz), scale);
+        return mpz_to_string(&(v.mpz), scale);
 }
 }  // namespace detail
 
