@@ -7,650 +7,665 @@ namespace bignum {
 using namespace detail;
 
 enum class ArithOp {
-    ADD,
-    SUB,
-    MUL,
-    DIV,
-    MOD,
+        ADD,
+        SUB,
+        MUL,
+        DIV,
+        MOD,
 };
 struct DecimalArithmetic {
-    std::string lhs;
-    std::string rhs;
-    ArithOp op;
-    std::string result;
+        std::string lhs;
+        std::string rhs;
+        ArithOp op;
+        std::string result;
 };
 
 enum class CompareOp {
-    EQ,
-    NE,
-    LT,
-    LE,
-    GT,
-    GE,
+        EQ,
+        NE,
+        LT,
+        LE,
+        GT,
+        GE,
 };
 struct DecimalComparison {
-    std::string lhs;
-    std::string rhs;
-    CompareOp op;
-    bool result;
-    DecimalComparison(std::string lhs, std::string rhs, CompareOp op, bool result)
-        : lhs(lhs), rhs(rhs), op(op), result(result) {}
+        std::string lhs;
+        std::string rhs;
+        CompareOp op;
+        bool result;
+        DecimalComparison(std::string lhs, std::string rhs, CompareOp op, bool result)
+                : lhs(lhs), rhs(rhs), op(op), result(result) {}
 };
 
 class DecimalTest : public ::testing::Test {
-   protected:
-    void DoTestDecimalArithmetic(const std::vector<DecimalArithmetic> &calculations) {
-        for (const auto &cals : calculations) {
-            Decimal lhs(cals.lhs);
-            Decimal rhs(cals.rhs);
-            Decimal result;
-            switch (cals.op) {
-                case ArithOp::ADD:
-                    result = lhs + rhs;
-                    break;
-                case ArithOp::SUB:
-                    result = lhs - rhs;
-                    break;
-                case ArithOp::MUL:
-                    result = lhs * rhs;
-                    break;
-                case ArithOp::DIV:
-                    result = lhs / rhs;
-                    break;
-                case ArithOp::MOD:
-                    result = lhs % rhs;
-                    break;
-                default:
-                    __BIGNUM_ASSERT(false);
-                    break;
-            }
-            if (result.to_string() != cals.result) {
-                EXPECT_EQ(result.to_string(), cals.result);
-            }
+       protected:
+        void DoTestDecimalArithmetic(const std::vector<DecimalArithmetic> &calculations) {
+                for (const auto &cals : calculations) {
+                        Decimal lhs(cals.lhs);
+                        Decimal rhs(cals.rhs);
+                        Decimal result;
+                        switch (cals.op) {
+                                case ArithOp::ADD:
+                                        result = lhs + rhs;
+                                        break;
+                                case ArithOp::SUB:
+                                        result = lhs - rhs;
+                                        break;
+                                case ArithOp::MUL:
+                                        result = lhs * rhs;
+                                        break;
+                                case ArithOp::DIV:
+                                        result = lhs / rhs;
+                                        break;
+                                case ArithOp::MOD:
+                                        result = lhs % rhs;
+                                        break;
+                                default:
+                                        __BIGNUM_ASSERT(false);
+                                        break;
+                        }
+                        if (result.to_string() != cals.result) {
+                                EXPECT_EQ(result.to_string(), cals.result);
+                        }
+                }
         }
-    }
 
-    void DoTestDecimalComparison(const std::vector<DecimalComparison> &comparisons) {
-        for (const auto &comp : comparisons) {
-            Decimal lhs(comp.lhs);
-            Decimal rhs(comp.rhs);
-            bool result;
-            switch (comp.op) {
-                case CompareOp::EQ:
-                    result = lhs == rhs;
-                    break;
-                case CompareOp::NE:
-                    result = lhs != rhs;
-                    break;
-                case CompareOp::LT:
-                    result = lhs < rhs;
-                    break;
-                case CompareOp::LE:
-                    result = lhs <= rhs;
-                    break;
-                case CompareOp::GT:
-                    result = lhs > rhs;
-                    break;
-                case CompareOp::GE:
-                    result = lhs >= rhs;
-                    break;
-                default:
-                    __BIGNUM_ASSERT(false);
-                    break;
-            }
-            if (result != comp.result) {
-                std::cout << "Hello World\n";
-            }
-            if (result != comp.result) {
-                EXPECT_EQ(result, comp.result);
-            }
+        void DoTestDecimalComparison(const std::vector<DecimalComparison> &comparisons) {
+                for (const auto &comp : comparisons) {
+                        Decimal lhs(comp.lhs);
+                        Decimal rhs(comp.rhs);
+                        bool result;
+                        switch (comp.op) {
+                                case CompareOp::EQ:
+                                        result = lhs == rhs;
+                                        break;
+                                case CompareOp::NE:
+                                        result = lhs != rhs;
+                                        break;
+                                case CompareOp::LT:
+                                        result = lhs < rhs;
+                                        break;
+                                case CompareOp::LE:
+                                        result = lhs <= rhs;
+                                        break;
+                                case CompareOp::GT:
+                                        result = lhs > rhs;
+                                        break;
+                                case CompareOp::GE:
+                                        result = lhs >= rhs;
+                                        break;
+                                default:
+                                        __BIGNUM_ASSERT(false);
+                                        break;
+                        }
+                        if (result != comp.result) {
+                                std::cout << "Hello World\n";
+                        }
+                        if (result != comp.result) {
+                                EXPECT_EQ(result, comp.result);
+                        }
+                }
         }
-    }
 };
 
 TEST_F(DecimalTest, StringConversion) {
-    // Simple C string
-    EXPECT_EQ(Decimal("0").to_string(), "0");
-    EXPECT_EQ(Decimal("0.1").to_string(), "0.1");
-    EXPECT_EQ(Decimal("123.1").to_string(), "123.1");
-    EXPECT_EQ(Decimal("123.10").to_string(), "123.1");
-    EXPECT_EQ(Decimal("-123.10").to_string(), "-123.1");
-    EXPECT_EQ(Decimal("123.666").to_string(), "123.666");
-    EXPECT_EQ(Decimal("-123.666").to_string(), "-123.666");
-    EXPECT_EQ(Decimal("123.000").to_string(), "123");
-    EXPECT_EQ(Decimal("-123.000").to_string(), "-123");
+        // Simple C string
+        EXPECT_EQ(Decimal("0").to_string(), "0");
+        EXPECT_EQ(Decimal("0.1").to_string(), "0.1");
+        EXPECT_EQ(Decimal("123.1").to_string(), "123.1");
+        EXPECT_EQ(Decimal("123.10").to_string(), "123.1");
+        EXPECT_EQ(Decimal("-123.10").to_string(), "-123.1");
+        EXPECT_EQ(Decimal("123.666").to_string(), "123.666");
+        EXPECT_EQ(Decimal("-123.666").to_string(), "-123.666");
+        EXPECT_EQ(Decimal("123.000").to_string(), "123");
+        EXPECT_EQ(Decimal("-123.000").to_string(), "-123");
 
-    // Batch of c++ string
-    std::vector<std::string> dstrings = {
-        "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
-        "-44.11223455", "-999.11223455", "12456789",    "101.101",
+        // Batch of c++ string
+        std::vector<std::string> dstrings = {
+                "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
+                "-44.11223455", "-999.11223455", "12456789",    "101.101",
 
-    };
-    for (const auto &str : dstrings) {
-        EXPECT_EQ(Decimal(str).to_string(), str);
-    }
+        };
+        for (const auto &str : dstrings) {
+                EXPECT_EQ(Decimal(str).to_string(), str);
+        }
 
-    // Leading zero truncation
-    EXPECT_EQ(Decimal("000.1").to_string(), "0.1");
-    EXPECT_EQ(Decimal("00.0000").to_string(), "0");
-    EXPECT_EQ(Decimal("00.11223455").to_string(), "0.11223455");
-    EXPECT_EQ(Decimal("-00.11223455").to_string(), "-0.11223455");
-    EXPECT_EQ(Decimal("-00123.11223455").to_string(), "-123.11223455");
-    EXPECT_EQ(Decimal("-0044.11223455").to_string(), "-44.11223455");
-    EXPECT_EQ(Decimal("-000999.11223455").to_string(), "-999.11223455");
+        // Leading zero truncation
+        EXPECT_EQ(Decimal("000.1").to_string(), "0.1");
+        EXPECT_EQ(Decimal("00.0000").to_string(), "0");
+        EXPECT_EQ(Decimal("00.11223455").to_string(), "0.11223455");
+        EXPECT_EQ(Decimal("-00.11223455").to_string(), "-0.11223455");
+        EXPECT_EQ(Decimal("-00123.11223455").to_string(), "-123.11223455");
+        EXPECT_EQ(Decimal("-0044.11223455").to_string(), "-44.11223455");
+        EXPECT_EQ(Decimal("-000999.11223455").to_string(), "-999.11223455");
 
-    // trailing '0' omitted, but not those middle ones
-    EXPECT_EQ(Decimal("101.101").to_string(), "101.101");
-    EXPECT_EQ(Decimal("-101.101").to_string(), "-101.101");
-    EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
-    EXPECT_EQ(Decimal("-101.1010").to_string(), "-101.101");
-    EXPECT_EQ(Decimal("200.1000").to_string(), "200.1");
-    EXPECT_EQ(Decimal("-200.1000").to_string(), "-200.1");
-    EXPECT_EQ(Decimal("0.0000").to_string(), "0");
-    EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
+        // trailing '0' omitted, but not those middle ones
+        EXPECT_EQ(Decimal("101.101").to_string(), "101.101");
+        EXPECT_EQ(Decimal("-101.101").to_string(), "-101.101");
+        EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
+        EXPECT_EQ(Decimal("-101.1010").to_string(), "-101.101");
+        EXPECT_EQ(Decimal("200.1000").to_string(), "200.1");
+        EXPECT_EQ(Decimal("-200.1000").to_string(), "-200.1");
+        EXPECT_EQ(Decimal("0.0000").to_string(), "0");
+        EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
 }
 
 TEST_F(DecimalTest, Add) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"0.12345", "0.54321", ArithOp::ADD, "0.66666"},
-        {"123.456", "543.21", ArithOp::ADD, "666.666"},
-        {"444.32", "555.123", ArithOp::ADD, "999.443"},
-        {"2421341234.133", "123123123.123", ArithOp::ADD, "2544464357.256"},
-        {"-0.12345", "-0.54321", ArithOp::ADD, "-0.66666"},
-        {"-123.456", "-543.21", ArithOp::ADD, "-666.666"},
-        {"-444.32", "-555.123", ArithOp::ADD, "-999.443"},
-        {"-2421341234.133", "-123123123.123", ArithOp::ADD, "-2544464357.256"},
-        {"-0.12345", "0.54321", ArithOp::ADD, "0.41976"},
-        {"-123.456", "543.21", ArithOp::ADD, "419.754"},
-        {"-444.32", "555.123", ArithOp::ADD, "110.803"},
-        {"-2421341234.133", "123123123.123", ArithOp::ADD, "-2298218111.01"}};
-    DoTestDecimalArithmetic(calculations);
+        std::vector<DecimalArithmetic> calculations = {
+                {"0.12345", "0.54321", ArithOp::ADD, "0.66666"},
+                {"123.456", "543.21", ArithOp::ADD, "666.666"},
+                {"444.32", "555.123", ArithOp::ADD, "999.443"},
+                {"2421341234.133", "123123123.123", ArithOp::ADD, "2544464357.256"},
+                {"-0.12345", "-0.54321", ArithOp::ADD, "-0.66666"},
+                {"-123.456", "-543.21", ArithOp::ADD, "-666.666"},
+                {"-444.32", "-555.123", ArithOp::ADD, "-999.443"},
+                {"-2421341234.133", "-123123123.123", ArithOp::ADD, "-2544464357.256"},
+                {"-0.12345", "0.54321", ArithOp::ADD, "0.41976"},
+                {"-123.456", "543.21", ArithOp::ADD, "419.754"},
+                {"-444.32", "555.123", ArithOp::ADD, "110.803"},
+                {"-2421341234.133", "123123123.123", ArithOp::ADD, "-2298218111.01"}};
+        DoTestDecimalArithmetic(calculations);
 }
 
 TEST_F(DecimalTest, Sub) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"0.12345", "0.54321", ArithOp::SUB, "-0.41976"},
-        {"123.456", "543.21", ArithOp::SUB, "-419.754"},
-        {"444.32", "555.123", ArithOp::SUB, "-110.803"},
-        {"2421341234.133", "123123123.123", ArithOp::SUB, "2298218111.01"},
-        {"-0.12345", "-0.54321", ArithOp::SUB, "0.41976"},
-        {"-123.456", "-543.21", ArithOp::SUB, "419.754"},
-        {"-444.32", "-555.123", ArithOp::SUB, "110.803"},
-        {"-2421341234.133", "-123123123.123", ArithOp::SUB, "-2298218111.01"},
-        {"-0.12345", "0.54321", ArithOp::SUB, "-0.66666"},
-        {"-123.456", "543.21", ArithOp::SUB, "-666.666"},
-        {"-444.32", "555.123", ArithOp::SUB, "-999.443"},
-        {"-2421341234.133", "123123123.123", ArithOp::SUB, "-2544464357.256"}};
-    DoTestDecimalArithmetic(calculations);
+        std::vector<DecimalArithmetic> calculations = {
+                {"0.12345", "0.54321", ArithOp::SUB, "-0.41976"},
+                {"123.456", "543.21", ArithOp::SUB, "-419.754"},
+                {"444.32", "555.123", ArithOp::SUB, "-110.803"},
+                {"2421341234.133", "123123123.123", ArithOp::SUB, "2298218111.01"},
+                {"-0.12345", "-0.54321", ArithOp::SUB, "0.41976"},
+                {"-123.456", "-543.21", ArithOp::SUB, "419.754"},
+                {"-444.32", "-555.123", ArithOp::SUB, "110.803"},
+                {"-2421341234.133", "-123123123.123", ArithOp::SUB, "-2298218111.01"},
+                {"-0.12345", "0.54321", ArithOp::SUB, "-0.66666"},
+                {"-123.456", "543.21", ArithOp::SUB, "-666.666"},
+                {"-444.32", "555.123", ArithOp::SUB, "-999.443"},
+                {"-2421341234.133", "123123123.123", ArithOp::SUB, "-2544464357.256"}};
+        DoTestDecimalArithmetic(calculations);
 }
 
 TEST_F(DecimalTest, Mul) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"0.12345", "0.54321", ArithOp::MUL, "0.0670592745"},
-        {"123.456", "543.21", ArithOp::MUL, "67062.53376"},
-        {"444.32", "555.123", ArithOp::MUL, "246652.25136"},
-        {"2421341234.133", "123123123.123", ArithOp::MUL, "298123094892954129.157359"},
-        {"-0.12345", "-0.54321", ArithOp::MUL, "0.0670592745"},
-        {"-123.456", "-543.21", ArithOp::MUL, "67062.53376"},
-        {"-444.32", "-555.123", ArithOp::MUL, "246652.25136"},
-        {"-2421341234.133", "-123123123.123", ArithOp::MUL, "298123094892954129.157359"},
-        {"-0.12345", "0.54321", ArithOp::MUL, "-0.0670592745"},
-        {"-123.456", "543.21", ArithOp::MUL, "-67062.53376"},
-        {"-444.32", "555.123", ArithOp::MUL, "-246652.25136"},
-        {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}};
-    DoTestDecimalArithmetic(calculations);
+        std::vector<DecimalArithmetic> calculations = {
+                {"0.12345", "0.54321", ArithOp::MUL, "0.0670592745"},
+                {"123.456", "543.21", ArithOp::MUL, "67062.53376"},
+                {"444.32", "555.123", ArithOp::MUL, "246652.25136"},
+                {"2421341234.133", "123123123.123", ArithOp::MUL, "298123094892954129.157359"},
+                {"-0.12345", "-0.54321", ArithOp::MUL, "0.0670592745"},
+                {"-123.456", "-543.21", ArithOp::MUL, "67062.53376"},
+                {"-444.32", "-555.123", ArithOp::MUL, "246652.25136"},
+                {"-2421341234.133", "-123123123.123", ArithOp::MUL, "298123094892954129.157359"},
+                {"-0.12345", "0.54321", ArithOp::MUL, "-0.0670592745"},
+                {"-123.456", "543.21", ArithOp::MUL, "-67062.53376"},
+                {"-444.32", "555.123", ArithOp::MUL, "-246652.25136"},
+                {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"}};
+        DoTestDecimalArithmetic(calculations);
 }
 
 TEST_F(DecimalTest, StringConstructionOverflow) {
-    // String construction of some "large" and "small" values
-    {
-        constexpr static const char *kDecimalInt128MaxStr =
-            "99999999999999999999999999999999999999";
-        constexpr static const char *kDecimalInt128MinStr =
-            "-100000000000000000000000000000000000000";
-        Decimal dmax(kDecimalInt128MaxStr);
-        EXPECT_EQ(dmax.to_string(), kDecimalInt128MaxStr);
+        // String construction of some "large" and "small" values
+        {
+                constexpr static const char *kDecimalInt128MaxStr =
+                        "99999999999999999999999999999999999999";
+                constexpr static const char *kDecimalInt128MinStr =
+                        "-100000000000000000000000000000000000000";
+                Decimal dmax(kDecimalInt128MaxStr);
+                EXPECT_EQ(dmax.to_string(), kDecimalInt128MaxStr);
 
-        Decimal dmin(kDecimalInt128MinStr);
-        EXPECT_EQ(dmin.to_string(), kDecimalInt128MinStr);
-    }
+                Decimal dmin(kDecimalInt128MinStr);
+                EXPECT_EQ(dmin.to_string(), kDecimalInt128MinStr);
+        }
 
-    // 65 digits, should be OK
-    {
-        const char *PositiveLargeStr =
-            "99999999999999999999999999999999999999999999999999999999999999999";
-        const char *NegativeLargeStr =
-            "-99999999999999999999999999999999999999999999999999999999999999999";
-        Decimal maxv(PositiveLargeStr);
-        Decimal minv(NegativeLargeStr);
+        // 65 digits, should be OK
+        {
+                const char *PositiveLargeStr =
+                        "99999999999999999999999999999999999999999999999999999999999999999";
+                const char *NegativeLargeStr =
+                        "-99999999999999999999999999999999999999999999999999999999999999999";
+                Decimal maxv(PositiveLargeStr);
+                Decimal minv(NegativeLargeStr);
 
-        EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
-        EXPECT_EQ(minv.to_string(), NegativeLargeStr);
+                EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
+                EXPECT_EQ(minv.to_string(), NegativeLargeStr);
 
-        Decimal add_res = maxv + minv;
-        EXPECT_EQ(add_res, Decimal("0"));
-        EXPECT_EQ(add_res.to_string(), "0");
+                Decimal add_res = maxv + minv;
+                EXPECT_EQ(add_res, Decimal("0"));
+                EXPECT_EQ(add_res.to_string(), "0");
 
-        EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
 
-        Decimal div_res = maxv / minv;
-        EXPECT_EQ(div_res, Decimal("-1"));
-    }
+                Decimal div_res = maxv / minv;
+                EXPECT_EQ(div_res, Decimal("-1"));
+        }
 
-    // 69 digits, quick and simple, should be rejected.
-    {
-        const char *PositiveOverflowStr =
-            "100000000000000000000000000000000000000000000000000000000000000000000";
-        const char *NegativeOverflowStr =
-            "-100000000000000000000000000000000000000000000000000000000000000000000";
-        EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
+        // 69 digits, quick and simple, should be rejected.
+        {
+                const char *PositiveOverflowStr =
+                        "100000000000000000000000000000000000000000000000000000000000000000000";
+                const char *NegativeOverflowStr =
+                        "-100000000000000000000000000000000000000000000000000000000000000000000";
+                EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
 
-        Decimal dd;
-        ErrCode err;
-        err = dd.assign(PositiveOverflowStr);
-        EXPECT_TRUE(!!err);
-        err = dd.assign(NegativeOverflowStr);
-        EXPECT_TRUE(!!err);
-    }
+                Decimal dd;
+                ErrCode err;
+                err = dd.assign(PositiveOverflowStr);
+                EXPECT_TRUE(!!err);
+                err = dd.assign(NegativeOverflowStr);
+                EXPECT_TRUE(!!err);
+        }
 
-    // 65 digits, with non-zero scale=30 (max scale), should be OK
-    {
-        const char *PositiveLargeStr =
-            "99999999999999999999999999999999999.999999999999999999999999999999";
-        const char *NegativeLargeStr =
-            "-99999999999999999999999999999999999.999999999999999999999999999999";
-        Decimal maxv(PositiveLargeStr);
-        Decimal minv(NegativeLargeStr);
+        // 65 digits, with non-zero scale=30 (max scale), should be OK
+        {
+                const char *PositiveLargeStr =
+                        "99999999999999999999999999999999999.999999999999999999999999999999";
+                const char *NegativeLargeStr =
+                        "-99999999999999999999999999999999999.999999999999999999999999999999";
+                Decimal maxv(PositiveLargeStr);
+                Decimal minv(NegativeLargeStr);
 
-        EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
-        EXPECT_EQ(minv.to_string(), NegativeLargeStr);
+                EXPECT_EQ(maxv.to_string(), PositiveLargeStr);
+                EXPECT_EQ(minv.to_string(), NegativeLargeStr);
 
-        Decimal add_res = maxv + minv;
-        EXPECT_EQ(add_res, Decimal("0"));
-        EXPECT_EQ(add_res.to_string(), "0");
+                Decimal add_res = maxv + minv;
+                EXPECT_EQ(add_res, Decimal("0"));
+                EXPECT_EQ(add_res.to_string(), "0");
 
-        EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
 
-        Decimal div_res = maxv / minv;
-        EXPECT_EQ(div_res, Decimal("-1"));
-    }
+                Decimal div_res = maxv / minv;
+                EXPECT_EQ(div_res, Decimal("-1"));
+        }
 
-    // 65 digits, with scale>kDecimalMaxScale, should be rejected.
-    {
-        const char *PositiveLargeStr =
-            "9999999999999999999999999999999999.9999999999999999999999999999999";
-        const char *NegativeLargeStr =
-            "-9999999999999999999999999999999999.9999999999999999999999999999999";
-        EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
-    }
+        // 65 digits, with scale>kDecimalMaxScale, should be rejected.
+        {
+                const char *PositiveLargeStr =
+                        "9999999999999999999999999999999999.9999999999999999999999999999999";
+                const char *NegativeLargeStr =
+                        "-9999999999999999999999999999999999.9999999999999999999999999999999";
+                EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
+        }
 
-    // Invalid characters inside decimal string would trigger error.
-    EXPECT_EXIT(Decimal{"1234567890abcdef"}, testing::KilledBySignal(SIGABRT), "");
+        // Invalid characters inside decimal string would trigger error.
+        EXPECT_EXIT(Decimal{"1234567890abcdef"}, testing::KilledBySignal(SIGABRT), "");
 
-    // Trailing '.' is not acceptable.
-    EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
+        // Trailing '.' is not acceptable.
+        EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
 }
 
 TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
-    EXPECT_EQ(Decimal("101.1010").get_scale(), 3);
-    EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
-    EXPECT_EQ(Decimal("101.1010"), Decimal("101.101"));
+        EXPECT_EQ(Decimal("101.1010").get_scale(), 3);
+        EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
+        EXPECT_EQ(Decimal("101.1010"), Decimal("101.101"));
 
-    EXPECT_EQ(Decimal("-101.1010").get_scale(), 3);
-    EXPECT_EQ(Decimal("-101.1010").to_string(), "-101.101");
-    EXPECT_EQ(Decimal("-101.1010"), Decimal("-101.101"));
+        EXPECT_EQ(Decimal("-101.1010").get_scale(), 3);
+        EXPECT_EQ(Decimal("-101.1010").to_string(), "-101.101");
+        EXPECT_EQ(Decimal("-101.1010"), Decimal("-101.101"));
 
-    EXPECT_EQ(Decimal("123.0000").get_scale(), 0);
-    EXPECT_EQ(Decimal("123.0000").to_string(), "123");
-    EXPECT_EQ(Decimal("123.0000"), Decimal("123"));
+        EXPECT_EQ(Decimal("123.0000").get_scale(), 0);
+        EXPECT_EQ(Decimal("123.0000").to_string(), "123");
+        EXPECT_EQ(Decimal("123.0000"), Decimal("123"));
 
-    EXPECT_EQ(Decimal("-134.0000").get_scale(), 0);
-    EXPECT_EQ(Decimal("-134.0000").to_string(), "-134");
-    EXPECT_EQ(Decimal("-134.0000"), Decimal("-134"));
+        EXPECT_EQ(Decimal("-134.0000").get_scale(), 0);
+        EXPECT_EQ(Decimal("-134.0000").to_string(), "-134");
+        EXPECT_EQ(Decimal("-134.0000"), Decimal("-134"));
 
-    EXPECT_EQ(Decimal("0.0000").get_scale(), 0);
-    EXPECT_EQ(Decimal("0.0000").to_string(), "0");
-    EXPECT_EQ(Decimal("0.0000"), Decimal("0"));
+        EXPECT_EQ(Decimal("0.0000").get_scale(), 0);
+        EXPECT_EQ(Decimal("0.0000").to_string(), "0");
+        EXPECT_EQ(Decimal("0.0000"), Decimal("0"));
 
-    EXPECT_EQ(Decimal("-0.0000").get_scale(), 0);
-    EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
-    EXPECT_EQ(Decimal("-0.0000"), Decimal("-0"));
-    EXPECT_EQ(Decimal("-0.0000"), Decimal("0"));
+        EXPECT_EQ(Decimal("-0.0000").get_scale(), 0);
+        EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
+        EXPECT_EQ(Decimal("-0.0000"), Decimal("-0"));
+        EXPECT_EQ(Decimal("-0.0000"), Decimal("0"));
 }
 
 TEST_F(DecimalTest, Comparison) {
-    // Negative numbers, sorted DESC by its decimal values.
-    std::vector<std::string> negatives = {
-        "-0.11223455",    "-0.12345",        "-0.12346",      "-0.54321", "-44.11223455",
-        "-101.101",       "-101.1020",       "-123.11223455", "-123.456", "-123.666",
-        "-444.32",        "-444.33",         "-543.21",       "-555.123", "-999.11223455",
-        "-123123123.123", "-2421341234.133",
-    };
-    {
-        std::vector<DecimalComparison> compares;
-        for (size_t i = 0; i < negatives.size(); i++) {
-            for (size_t j = 0; j < negatives.size(); j++) {
-                // EQ
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::EQ, i == j));
-                // NE
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::NE, i != j));
-                // LT
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::LT, i > j));
-                // LE
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::LE, i >= j));
-                // GT
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::GT, i < j));
-                // GE
-                compares.push_back(
-                    DecimalComparison(negatives[i], negatives[j], CompareOp::GE, i <= j));
-            }
+        // Negative numbers, sorted DESC by its decimal values.
+        std::vector<std::string> negatives = {
+                "-0.11223455",    "-0.12345",        "-0.12346",      "-0.54321", "-44.11223455",
+                "-101.101",       "-101.1020",       "-123.11223455", "-123.456", "-123.666",
+                "-444.32",        "-444.33",         "-543.21",       "-555.123", "-999.11223455",
+                "-123123123.123", "-2421341234.133",
+        };
+        {
+                std::vector<DecimalComparison> compares;
+                for (size_t i = 0; i < negatives.size(); i++) {
+                        for (size_t j = 0; j < negatives.size(); j++) {
+                                // EQ
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::EQ, i == j));
+                                // NE
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::NE, i != j));
+                                // LT
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::LT, i > j));
+                                // LE
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::LE, i >= j));
+                                // GT
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::GT, i < j));
+                                // GE
+                                compares.push_back(DecimalComparison(negatives[i], negatives[j],
+                                                                     CompareOp::GE, i <= j));
+                        }
+                }
+                DoTestDecimalComparison(compares);
         }
-        DoTestDecimalComparison(compares);
-    }
 
-    std::vector<std::string> positives = {
-        "0",       "0.1",      "0.100001",      "0.11223455",     "0.12345", "0.54321",
-        "101.101", "123.1",    "123.456",       "123.666",        "444.32",  "543.21",
-        "555.123", "12456789", "123123123.123", "2421341234.133",
-    };
-    {
-        std::vector<DecimalComparison> compares;
-        for (size_t i = 0; i < positives.size(); i++) {
-            for (size_t j = 0; j < positives.size(); j++) {
-                // EQ
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::EQ, i == j));
-                // NE
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::NE, i != j));
-                // LT
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::LT, i < j));
-                // LE
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::LE, i <= j));
-                // GT
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::GT, i > j));
-                // GE
-                compares.push_back(
-                    DecimalComparison(positives[i], positives[j], CompareOp::GE, i >= j));
-            }
+        std::vector<std::string> positives = {
+                "0",       "0.1",      "0.100001",      "0.11223455",     "0.12345", "0.54321",
+                "101.101", "123.1",    "123.456",       "123.666",        "444.32",  "543.21",
+                "555.123", "12456789", "123123123.123", "2421341234.133",
+        };
+        {
+                std::vector<DecimalComparison> compares;
+                for (size_t i = 0; i < positives.size(); i++) {
+                        for (size_t j = 0; j < positives.size(); j++) {
+                                // EQ
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::EQ, i == j));
+                                // NE
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::NE, i != j));
+                                // LT
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::LT, i < j));
+                                // LE
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::LE, i <= j));
+                                // GT
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::GT, i > j));
+                                // GE
+                                compares.push_back(DecimalComparison(positives[i], positives[j],
+                                                                     CompareOp::GE, i >= j));
+                        }
+                }
+                DoTestDecimalComparison(compares);
         }
-        DoTestDecimalComparison(compares);
-    }
 
-    // Compare negative with positive numbers
-    {
-        std::vector<DecimalComparison> compares;
-        for (size_t i = 0; i < negatives.size(); i++) {
-            for (size_t j = 0; j < positives.size(); j++) {
-                // EQ
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::EQ, false));
-                // NE
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::NE, true));
-                // LT
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::LT, true));
-                // LE
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::LE, true));
-                // GT
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::GT, false));
-                // GE
-                compares.push_back(
-                    DecimalComparison(negatives[i], positives[j], CompareOp::GE, false));
-            }
+        // Compare negative with positive numbers
+        {
+                std::vector<DecimalComparison> compares;
+                for (size_t i = 0; i < negatives.size(); i++) {
+                        for (size_t j = 0; j < positives.size(); j++) {
+                                // EQ
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::EQ, false));
+                                // NE
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::NE, true));
+                                // LT
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::LT, true));
+                                // LE
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::LE, true));
+                                // GT
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::GT, false));
+                                // GE
+                                compares.push_back(DecimalComparison(negatives[i], positives[j],
+                                                                     CompareOp::GE, false));
+                        }
+                }
         }
-    }
 
-    // Compare positive with negative numbers
-    {
-        std::vector<DecimalComparison> compares;
-        for (size_t i = 0; i < positives.size(); i++) {
-            for (size_t j = 0; j < negatives.size(); j++) {
-                // EQ
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::EQ, false));
-                // NE
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::NE, true));
-                // LT
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::LT, false));
-                // LE
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::LE, false));
-                // GT
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::GT, true));
-                // GE
-                compares.push_back(
-                    DecimalComparison(positives[i], negatives[j], CompareOp::GE, true));
-            }
+        // Compare positive with negative numbers
+        {
+                std::vector<DecimalComparison> compares;
+                for (size_t i = 0; i < positives.size(); i++) {
+                        for (size_t j = 0; j < negatives.size(); j++) {
+                                // EQ
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::EQ, false));
+                                // NE
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::NE, true));
+                                // LT
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::LT, false));
+                                // LE
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::LE, false));
+                                // GT
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::GT, true));
+                                // GE
+                                compares.push_back(DecimalComparison(positives[i], negatives[j],
+                                                                     CompareOp::GE, true));
+                        }
+                }
         }
-    }
 }
 
 TEST_F(DecimalTest, ComparisonSpecial) {
-    // 0 v.s. -0
-    EXPECT_EQ((Decimal("0") == Decimal("-0")), true);
-    EXPECT_EQ((Decimal("0") < Decimal("-0")), false);
-    EXPECT_EQ((Decimal("0") <= Decimal("-0")), true);
-    EXPECT_EQ((Decimal("0") > Decimal("-0")), false);
-    EXPECT_EQ((Decimal("0") >= Decimal("-0")), true);
-    //----------------------------------------------
-    EXPECT_EQ((Decimal("0") == Decimal("-0.00")), true);
-    EXPECT_EQ((Decimal("0") < Decimal("-0.00")), false);
-    EXPECT_EQ((Decimal("0") <= Decimal("-0.00")), true);
-    EXPECT_EQ((Decimal("0") > Decimal("-0.00")), false);
-    EXPECT_EQ((Decimal("0") >= Decimal("-0.00")), true);
+        // 0 v.s. -0
+        EXPECT_EQ((Decimal("0") == Decimal("-0")), true);
+        EXPECT_EQ((Decimal("0") < Decimal("-0")), false);
+        EXPECT_EQ((Decimal("0") <= Decimal("-0")), true);
+        EXPECT_EQ((Decimal("0") > Decimal("-0")), false);
+        EXPECT_EQ((Decimal("0") >= Decimal("-0")), true);
+        //----------------------------------------------
+        EXPECT_EQ((Decimal("0") == Decimal("-0.00")), true);
+        EXPECT_EQ((Decimal("0") < Decimal("-0.00")), false);
+        EXPECT_EQ((Decimal("0") <= Decimal("-0.00")), true);
+        EXPECT_EQ((Decimal("0") > Decimal("-0.00")), false);
+        EXPECT_EQ((Decimal("0") >= Decimal("-0.00")), true);
 }
 
 TEST_F(DecimalTest, ScaleNarrowDownAfterMultiply) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"0.4", "0.5", ArithOp::MUL, "0.2"},    {"0.4", "0.6", ArithOp::MUL, "0.24"},
-        {"1.4", "1.5", ArithOp::MUL, "2.1"},    {"1.4", "1.6", ArithOp::MUL, "2.24"},
-        {"0.1", "0.1", ArithOp::MUL, "0.01"},   {"0.01", "0.1", ArithOp::MUL, "0.001"},
+        std::vector<DecimalArithmetic> calculations = {
+                {"0.4", "0.5", ArithOp::MUL, "0.2"},    {"0.4", "0.6", ArithOp::MUL, "0.24"},
+                {"1.4", "1.5", ArithOp::MUL, "2.1"},    {"1.4", "1.6", ArithOp::MUL, "2.24"},
+                {"0.1", "0.1", ArithOp::MUL, "0.01"},   {"0.01", "0.1", ArithOp::MUL, "0.001"},
 
-        {"0.40", "0.50", ArithOp::MUL, "0.2"},  {"0.40", "0.60", ArithOp::MUL, "0.24"},
-        {"1.40", "1.50", ArithOp::MUL, "2.1"},  {"1.40", "1.60", ArithOp::MUL, "2.24"},
-        {"0.10", "0.10", ArithOp::MUL, "0.01"}, {"0.010", "0.10", ArithOp::MUL, "0.001"},
+                {"0.40", "0.50", ArithOp::MUL, "0.2"},  {"0.40", "0.60", ArithOp::MUL, "0.24"},
+                {"1.40", "1.50", ArithOp::MUL, "2.1"},  {"1.40", "1.60", ArithOp::MUL, "2.24"},
+                {"0.10", "0.10", ArithOp::MUL, "0.01"}, {"0.010", "0.10", ArithOp::MUL, "0.001"},
 
-        {"10", "10", ArithOp::MUL, "100"},      {"11", "11", ArithOp::MUL, "121"}};
-    DoTestDecimalArithmetic(calculations);
+                {"10", "10", ArithOp::MUL, "100"},      {"11", "11", ArithOp::MUL, "121"}};
+        DoTestDecimalArithmetic(calculations);
 }
 
 TEST_F(DecimalTest, MulOverflowSignificantDigits) {
-    EXPECT_EXIT(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
-                testing::KilledBySignal(SIGABRT), "");
-    EXPECT_EXIT(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
-                testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
+                    testing::KilledBySignal(SIGABRT), "");
+        EXPECT_EXIT(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
+                    testing::KilledBySignal(SIGABRT), "");
 
-    // overflow
-    {
-        const char *str1 = "1000000000000000000000000000000000";
-        Decimal d1{str1};
-        EXPECT_EXIT(d1 * d1, testing::KilledBySignal(SIGABRT), "");
-        const char *str2 = "-1000000000000000000000000000000000";
-        Decimal d2{str2};
-        EXPECT_EXIT(d2 * d2, testing::KilledBySignal(SIGABRT), "");
-    }
+        // overflow
+        {
+                const char *str1 = "1000000000000000000000000000000000";
+                Decimal d1{str1};
+                EXPECT_EXIT(d1 * d1, testing::KilledBySignal(SIGABRT), "");
+                const char *str2 = "-1000000000000000000000000000000000";
+                Decimal d2{str2};
+                EXPECT_EXIT(d2 * d2, testing::KilledBySignal(SIGABRT), "");
+        }
 
-    // not overflow
-    {
-        const char *str1 = "100000000000000000000000000000000";
-        Decimal d1{str1};
-        EXPECT_EQ((d1 * d1).to_string(),
-                  "10000000000000000000000000000000000000000000000000000000000000000");
-        const char *str2 = "-100000000000000000000000000000000";
-        Decimal d2{str2};
-        EXPECT_EQ((d2 * d2).to_string(),
-                  "10000000000000000000000000000000000000000000000000000000000000000");
-    }
+        // not overflow
+        {
+                const char *str1 = "100000000000000000000000000000000";
+                Decimal d1{str1};
+                EXPECT_EQ((d1 * d1).to_string(),
+                          "10000000000000000000000000000000000000000000000000000000000000000");
+                const char *str2 = "-100000000000000000000000000000000";
+                Decimal d2{str2};
+                EXPECT_EQ((d2 * d2).to_string(),
+                          "10000000000000000000000000000000000000000000000000000000000000000");
+        }
 }
 
 TEST_F(DecimalTest, MulOverflowLeastSignificantDigits) {
-    {
-        Decimal d1("1.123456789123456789123456789555");
-        EXPECT_EQ((d1 * d1).to_string(), "1.262155157027587256793019357528");
-        EXPECT_EQ((d1 * -d1).to_string(), "-1.262155157027587256793019357528");
-        EXPECT_EQ((-d1 * d1).to_string(), "-1.262155157027587256793019357528");
-    }
+        {
+                Decimal d1("1.123456789123456789123456789555");
+                EXPECT_EQ((d1 * d1).to_string(), "1.262155157027587256793019357528");
+                EXPECT_EQ((d1 * -d1).to_string(), "-1.262155157027587256793019357528");
+                EXPECT_EQ((-d1 * d1).to_string(), "-1.262155157027587256793019357528");
+        }
 
-    {
-        Decimal d1("1.100000000000001");
-        EXPECT_EQ((d1 * d1).to_string(), "1.210000000000002200000000000001");
-        EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000002200000000000001");
-        EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000002200000000000001");
-    }
-    {
-        Decimal d1("1.1000000000000016");
-        EXPECT_EQ((d1 * d1).to_string(), "1.210000000000003520000000000003");
-        EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000003520000000000003");
-        EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000003520000000000003");
-    }
-    {
-        Decimal d1("1.1888888888888886");
-        EXPECT_EQ((d1 * d1).to_string(), "1.41345679012345610320987654321");
-        EXPECT_EQ((d1 * -d1).to_string(), "-1.41345679012345610320987654321");
-        EXPECT_EQ((-d1 * d1).to_string(), "-1.41345679012345610320987654321");
-    }
-    {
-        Decimal d1("1.134567900547654");
-        EXPECT_EQ((d1 * d1).to_string(), "1.287244320953111297713124903716");
-        EXPECT_EQ((d1 * -d1).to_string(), "-1.287244320953111297713124903716");
-        EXPECT_EQ((-d1 * d1).to_string(), "-1.287244320953111297713124903716");
-    }
+        {
+                Decimal d1("1.100000000000001");
+                EXPECT_EQ((d1 * d1).to_string(), "1.210000000000002200000000000001");
+                EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000002200000000000001");
+                EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000002200000000000001");
+        }
+        {
+                Decimal d1("1.1000000000000016");
+                EXPECT_EQ((d1 * d1).to_string(), "1.210000000000003520000000000003");
+                EXPECT_EQ((d1 * -d1).to_string(), "-1.210000000000003520000000000003");
+                EXPECT_EQ((-d1 * d1).to_string(), "-1.210000000000003520000000000003");
+        }
+        {
+                Decimal d1("1.1888888888888886");
+                EXPECT_EQ((d1 * d1).to_string(), "1.41345679012345610320987654321");
+                EXPECT_EQ((d1 * -d1).to_string(), "-1.41345679012345610320987654321");
+                EXPECT_EQ((-d1 * d1).to_string(), "-1.41345679012345610320987654321");
+        }
+        {
+                Decimal d1("1.134567900547654");
+                EXPECT_EQ((d1 * d1).to_string(), "1.287244320953111297713124903716");
+                EXPECT_EQ((d1 * -d1).to_string(), "-1.287244320953111297713124903716");
+                EXPECT_EQ((-d1 * d1).to_string(), "-1.287244320953111297713124903716");
+        }
 }
 
 TEST_F(DecimalTest, Div) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"1", "3", ArithOp::DIV, "0.3333"},
-        {"100000", "3.33", ArithOp::DIV, "30030.03"},
-        {"999999", "3.33", ArithOp::DIV, "300300"},
-        {"123456", "3.33", ArithOp::DIV, "37073.8739"},
+        std::vector<DecimalArithmetic> calculations = {
+                {"1", "3", ArithOp::DIV, "0.3333"},
+                {"100000", "3.33", ArithOp::DIV, "30030.03"},
+                {"999999", "3.33", ArithOp::DIV, "300300"},
+                {"123456", "3.33", ArithOp::DIV, "37073.8739"},
 
-        {"-1", "3", ArithOp::DIV, "-0.3333"},
-        {"-100000", "3.33", ArithOp::DIV, "-30030.03"},
-        {"-999999", "3.33", ArithOp::DIV, "-300300"},
-        {"-123456", "3.33", ArithOp::DIV, "-37073.8739"},
+                {"-1", "3", ArithOp::DIV, "-0.3333"},
+                {"-100000", "3.33", ArithOp::DIV, "-30030.03"},
+                {"-999999", "3.33", ArithOp::DIV, "-300300"},
+                {"-123456", "3.33", ArithOp::DIV, "-37073.8739"},
 
-        {"-1", "-3", ArithOp::DIV, "0.3333"},
-        {"-100000", "-3.33", ArithOp::DIV, "30030.03"},
-        {"-999999", "-3.33", ArithOp::DIV, "300300"},
-        {"-123456", "-3.33", ArithOp::DIV, "37073.8739"},
+                {"-1", "-3", ArithOp::DIV, "0.3333"},
+                {"-100000", "-3.33", ArithOp::DIV, "30030.03"},
+                {"-999999", "-3.33", ArithOp::DIV, "300300"},
+                {"-123456", "-3.33", ArithOp::DIV, "37073.8739"},
 
-        {"1.00001", "3", ArithOp::DIV, "0.333336667"},
-        {"100000.00001", "3.33", ArithOp::DIV, "30030.030033033"},
-        {"999999.00001", "3.33", ArithOp::DIV, "300300.000003003"},
-        {"123456.00001", "3.33", ArithOp::DIV, "37073.873876877"},
+                {"1.00001", "3", ArithOp::DIV, "0.333336667"},
+                {"100000.00001", "3.33", ArithOp::DIV, "30030.030033033"},
+                {"999999.00001", "3.33", ArithOp::DIV, "300300.000003003"},
+                {"123456.00001", "3.33", ArithOp::DIV, "37073.873876877"},
 
-        {"-1.00001", "3", ArithOp::DIV, "-0.333336667"},
-        {"-100000.00001", "3.33", ArithOp::DIV, "-30030.030033033"},
-        {"-999999.00001", "3.33", ArithOp::DIV, "-300300.000003003"},
-        {"-123456.00001", "3.33", ArithOp::DIV, "-37073.873876877"},
+                {"-1.00001", "3", ArithOp::DIV, "-0.333336667"},
+                {"-100000.00001", "3.33", ArithOp::DIV, "-30030.030033033"},
+                {"-999999.00001", "3.33", ArithOp::DIV, "-300300.000003003"},
+                {"-123456.00001", "3.33", ArithOp::DIV, "-37073.873876877"},
 
-        {"1.57565", "3", ArithOp::DIV, "0.525216667"},
-        {"100000.57565", "3.33", ArithOp::DIV, "30030.202897898"},
-        {"999999.57565", "3.33", ArithOp::DIV, "300300.172867868"},
-        {"123456.57565", "3.33", ArithOp::DIV, "37074.046741742"},
+                {"1.57565", "3", ArithOp::DIV, "0.525216667"},
+                {"100000.57565", "3.33", ArithOp::DIV, "30030.202897898"},
+                {"999999.57565", "3.33", ArithOp::DIV, "300300.172867868"},
+                {"123456.57565", "3.33", ArithOp::DIV, "37074.046741742"},
 
-        {"-1.57565", "3", ArithOp::DIV, "-0.525216667"},
-        {"-100000.57565", "3.33", ArithOp::DIV, "-30030.202897898"},
-        {"-999999.57565", "3.33", ArithOp::DIV, "-300300.172867868"},
-        {"-123456.57565", "3.33", ArithOp::DIV, "-37074.046741742"},
+                {"-1.57565", "3", ArithOp::DIV, "-0.525216667"},
+                {"-100000.57565", "3.33", ArithOp::DIV, "-30030.202897898"},
+                {"-999999.57565", "3.33", ArithOp::DIV, "-300300.172867868"},
+                {"-123456.57565", "3.33", ArithOp::DIV, "-37074.046741742"},
 
-        {"-1.57565", "-3", ArithOp::DIV, "0.525216667"},
-        {"-100000.57565", "-3.33", ArithOp::DIV, "30030.202897898"},
-        {"-999999.57565", "-3.33", ArithOp::DIV, "300300.172867868"},
-        {"-123456.57565", "-3.33", ArithOp::DIV, "37074.046741742"},
+                {"-1.57565", "-3", ArithOp::DIV, "0.525216667"},
+                {"-100000.57565", "-3.33", ArithOp::DIV, "30030.202897898"},
+                {"-999999.57565", "-3.33", ArithOp::DIV, "300300.172867868"},
+                {"-123456.57565", "-3.33", ArithOp::DIV, "37074.046741742"},
 
-        // DIV -1
+                // DIV -1
 
-        {"1", "-1", ArithOp::DIV, "-1"},
-        {"100000", "-1", ArithOp::DIV, "-100000"},
-        {"999999", "-1", ArithOp::DIV, "-999999"},
-        {"123456", "-1", ArithOp::DIV, "-123456"},
+                {"1", "-1", ArithOp::DIV, "-1"},
+                {"100000", "-1", ArithOp::DIV, "-100000"},
+                {"999999", "-1", ArithOp::DIV, "-999999"},
+                {"123456", "-1", ArithOp::DIV, "-123456"},
 
-        {"-1", "-1", ArithOp::DIV, "1"},
-        {"-100000", "-1", ArithOp::DIV, "100000"},
-        {"-999999", "-1", ArithOp::DIV, "999999"},
-        {"-123456", "-1", ArithOp::DIV, "123456"},
+                {"-1", "-1", ArithOp::DIV, "1"},
+                {"-100000", "-1", ArithOp::DIV, "100000"},
+                {"-999999", "-1", ArithOp::DIV, "999999"},
+                {"-123456", "-1", ArithOp::DIV, "123456"},
 
-        {"1.00001", "-1", ArithOp::DIV, "-1.00001"},
-        {"100000.00001", "-1", ArithOp::DIV, "-100000.00001"},
-        {"999999.00001", "-1", ArithOp::DIV, "-999999.00001"},
-        {"123456.00001", "-1", ArithOp::DIV, "-123456.00001"},
+                {"1.00001", "-1", ArithOp::DIV, "-1.00001"},
+                {"100000.00001", "-1", ArithOp::DIV, "-100000.00001"},
+                {"999999.00001", "-1", ArithOp::DIV, "-999999.00001"},
+                {"123456.00001", "-1", ArithOp::DIV, "-123456.00001"},
 
-        {"-1.00001", "-1", ArithOp::DIV, "1.00001"},
-        {"-100000.00001", "-1", ArithOp::DIV, "100000.00001"},
-        {"-999999.00001", "-1", ArithOp::DIV, "999999.00001"},
-        {"-123456.00001", "-1", ArithOp::DIV, "123456.00001"},
+                {"-1.00001", "-1", ArithOp::DIV, "1.00001"},
+                {"-100000.00001", "-1", ArithOp::DIV, "100000.00001"},
+                {"-999999.00001", "-1", ArithOp::DIV, "999999.00001"},
+                {"-123456.00001", "-1", ArithOp::DIV, "123456.00001"},
 
-        {"1.57565", "-1", ArithOp::DIV, "-1.57565"},
-        {"100000.57565", "-1", ArithOp::DIV, "-100000.57565"},
-        {"999999.57565", "-1", ArithOp::DIV, "-999999.57565"},
-        {"123456.57565", "-1", ArithOp::DIV, "-123456.57565"},
+                {"1.57565", "-1", ArithOp::DIV, "-1.57565"},
+                {"100000.57565", "-1", ArithOp::DIV, "-100000.57565"},
+                {"999999.57565", "-1", ArithOp::DIV, "-999999.57565"},
+                {"123456.57565", "-1", ArithOp::DIV, "-123456.57565"},
 
-        {"-1.57565", "-1", ArithOp::DIV, "1.57565"},
-        {"-100000.57565", "-1", ArithOp::DIV, "100000.57565"},
-        {"-999999.57565", "-1", ArithOp::DIV, "999999.57565"},
-        {"-123456.57565", "-1", ArithOp::DIV, "123456.57565"},
+                {"-1.57565", "-1", ArithOp::DIV, "1.57565"},
+                {"-100000.57565", "-1", ArithOp::DIV, "100000.57565"},
+                {"-999999.57565", "-1", ArithOp::DIV, "999999.57565"},
+                {"-123456.57565", "-1", ArithOp::DIV, "123456.57565"},
 
-        {"1.5756533334441", "3", ArithOp::DIV, "0.5252177778147"},
-        {"30030.202898898933", "3.33", ArithOp::DIV, "9018.0789486182981982"},
-        {"100000.111111111111111", "3.33", ArithOp::DIV, "30030.0633967300633966967"},
-        {"999999.111111111111111", "3.33", ArithOp::DIV, "300300.0333667000333666667"},
-        {"123456.111111111111111", "3.33", ArithOp::DIV, "37073.9072405739072405405"},
+                {"1.5756533334441", "3", ArithOp::DIV, "0.5252177778147"},
+                {"30030.202898898933", "3.33", ArithOp::DIV, "9018.0789486182981982"},
+                {"100000.111111111111111", "3.33", ArithOp::DIV, "30030.0633967300633966967"},
+                {"999999.111111111111111", "3.33", ArithOp::DIV, "300300.0333667000333666667"},
+                {"123456.111111111111111", "3.33", ArithOp::DIV, "37073.9072405739072405405"},
 
-        {"1.5756533334441", "-3", ArithOp::DIV, "-0.5252177778147"},
-        {"30030.202898898933", "-3.33", ArithOp::DIV, "-9018.0789486182981982"},
-        {"100000.111111111111111", "-3.33", ArithOp::DIV, "-30030.0633967300633966967"},
-        {"999999.111111111111111", "-3.33", ArithOp::DIV, "-300300.0333667000333666667"},
-        {"123456.111111111111111", "-3.33", ArithOp::DIV, "-37073.9072405739072405405"},
+                {"1.5756533334441", "-3", ArithOp::DIV, "-0.5252177778147"},
+                {"30030.202898898933", "-3.33", ArithOp::DIV, "-9018.0789486182981982"},
+                {"100000.111111111111111", "-3.33", ArithOp::DIV, "-30030.0633967300633966967"},
+                {"999999.111111111111111", "-3.33", ArithOp::DIV, "-300300.0333667000333666667"},
+                {"123456.111111111111111", "-3.33", ArithOp::DIV, "-37073.9072405739072405405"},
 
-        {"-1.5756533334441", "-3", ArithOp::DIV, "0.5252177778147"},
-        {"-30030.202898898933", "-3.33", ArithOp::DIV, "9018.0789486182981982"},
-        {"-100000.111111111111111", "-3.33", ArithOp::DIV, "30030.0633967300633966967"},
-        {"-999999.111111111111111", "-3.33", ArithOp::DIV, "300300.0333667000333666667"},
-        {"-123456.111111111111111", "-3.33", ArithOp::DIV, "37073.9072405739072405405"},
+                {"-1.5756533334441", "-3", ArithOp::DIV, "0.5252177778147"},
+                {"-30030.202898898933", "-3.33", ArithOp::DIV, "9018.0789486182981982"},
+                {"-100000.111111111111111", "-3.33", ArithOp::DIV, "30030.0633967300633966967"},
+                {"-999999.111111111111111", "-3.33", ArithOp::DIV, "300300.0333667000333666667"},
+                {"-123456.111111111111111", "-3.33", ArithOp::DIV, "37073.9072405739072405405"},
 
-        // Maxscale exceeded, rounding back to kMaxScale
-        {"     1.57565333344415555555599999988", "3.33", ArithOp::DIV, "0.473169169202449115782582582547"},
-        {" 30030.20289889893315555555599999988", "3.33", ArithOp::DIV, "9018.078948618298244911578378378342"},
-        {"100000.11111111111111155555599999988", "3.33", ArithOp::DIV, "30030.063396730063396863530330330294"},
-        {"999999.11111111111111155555599999988", "3.33", ArithOp::DIV, "300300.033366700033366833500300300264"},
-        {"123456.11111111111111155555599999988", "3.33", ArithOp::DIV, "37073.907240573907240707374174174138"},
+                // Maxscale exceeded, rounding back to kMaxScale
+                {"     1.57565333344415555555599999988", "3.33", ArithOp::DIV,
+                 "0.473169169202449115782582582547"},
+                {" 30030.20289889893315555555599999988", "3.33", ArithOp::DIV,
+                 "9018.078948618298244911578378378342"},
+                {"100000.11111111111111155555599999988", "3.33", ArithOp::DIV,
+                 "30030.063396730063396863530330330294"},
+                {"999999.11111111111111155555599999988", "3.33", ArithOp::DIV,
+                 "300300.033366700033366833500300300264"},
+                {"123456.11111111111111155555599999988", "3.33", ArithOp::DIV,
+                 "37073.907240573907240707374174174138"},
 
-        {"     1.57565333344415555555599999988", "-3.33", ArithOp::DIV, "-0.473169169202449115782582582547"},
-        {" 30030.20289889893315555555599999988", "-3.33", ArithOp::DIV, "-9018.078948618298244911578378378342"},
-        {"100000.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-30030.063396730063396863530330330294"},
-        {"999999.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-300300.033366700033366833500300300264"},
-        {"123456.11111111111111155555599999988", "-3.33", ArithOp::DIV, "-37073.907240573907240707374174174138"},
+                {"     1.57565333344415555555599999988", "-3.33", ArithOp::DIV,
+                 "-0.473169169202449115782582582547"},
+                {" 30030.20289889893315555555599999988", "-3.33", ArithOp::DIV,
+                 "-9018.078948618298244911578378378342"},
+                {"100000.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "-30030.063396730063396863530330330294"},
+                {"999999.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "-300300.033366700033366833500300300264"},
+                {"123456.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "-37073.907240573907240707374174174138"},
 
-        {"    -1.57565333344415555555599999988", "-3.33", ArithOp::DIV, "0.473169169202449115782582582547"},
-        {"-30030.20289889893315555555599999988", "-3.33", ArithOp::DIV, "9018.078948618298244911578378378342"},
-        {"-100000.11111111111111155555599999988", "-3.33", ArithOp::DIV, "30030.063396730063396863530330330294"},
-        {"-999999.11111111111111155555599999988", "-3.33", ArithOp::DIV, "300300.033366700033366833500300300264"},
-        {"-123456.11111111111111155555599999988", "-3.33", ArithOp::DIV, "37073.907240573907240707374174174138"},
-    };
-    DoTestDecimalArithmetic(calculations);
+                {"    -1.57565333344415555555599999988", "-3.33", ArithOp::DIV,
+                 "0.473169169202449115782582582547"},
+                {"-30030.20289889893315555555599999988", "-3.33", ArithOp::DIV,
+                 "9018.078948618298244911578378378342"},
+                {"-100000.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "30030.063396730063396863530330330294"},
+                {"-999999.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "300300.033366700033366833500300300264"},
+                {"-123456.11111111111111155555599999988", "-3.33", ArithOp::DIV,
+                 "37073.907240573907240707374174174138"},
+        };
+        DoTestDecimalArithmetic(calculations);
 
-    // Divison by zero
-    EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
+        // Divison by zero
+        EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
 
 #if 0
@@ -736,250 +751,256 @@ TEST_F(DecimalTest, Mod) {
 #endif
 
 TEST_F(DecimalTest, DiffSignCompare) {
-    std::vector<DecimalComparison> compares = {
-        {"123.001", "-432.12", CompareOp::EQ, false}, {"123.001", "-432.12", CompareOp::NE, true},
-        {"123.001", "-432.12", CompareOp::LT, false}, {"123.001", "-432.12", CompareOp::LE, false},
-        {"123.001", "-432.12", CompareOp::GT, true},  {"123.001", "-432.12", CompareOp::GE, true},
-    };
-    DoTestDecimalComparison(compares);
+        std::vector<DecimalComparison> compares = {
+                {"123.001", "-432.12", CompareOp::EQ, false},
+                {"123.001", "-432.12", CompareOp::NE, true},
+                {"123.001", "-432.12", CompareOp::LT, false},
+                {"123.001", "-432.12", CompareOp::LE, false},
+                {"123.001", "-432.12", CompareOp::GT, true},
+                {"123.001", "-432.12", CompareOp::GE, true},
+        };
+        DoTestDecimalComparison(compares);
 }
 
 TEST_F(DecimalTest, DiffScaleSameSignCompare) {
-    std::vector<DecimalComparison> compares = {
-        // (30,3) v.s. (19,16)
-        //  -> (30+13,3) v.s. (19,16) -> left hand side overflow
-        //    -> left side have larger significant part
-        //       -> if left is negative, left is smaller
-        //       -> else vice versa.
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::EQ, false},
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::NE, true},
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LT, false},
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LE, false},
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GT, true},
-        {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GE, true},
+        std::vector<DecimalComparison> compares = {
+                // (30,3) v.s. (19,16)
+                //  -> (30+13,3) v.s. (19,16) -> left hand side overflow
+                //    -> left side have larger significant part
+                //       -> if left is negative, left is smaller
+                //       -> else vice versa.
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::EQ, false},
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::NE, true},
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LT, false},
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LE, false},
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GT, true},
+                {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GE, true},
 
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::EQ, false},
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::NE, true},
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LT, true},
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LE, true},
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GT, false},
-        {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GE, false},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::EQ, false},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::NE, true},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LT, true},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LE, true},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GT, false},
+                {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GE, false},
 
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::EQ, false},
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::NE, true},
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LT, true},
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LE, true},
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GT, false},
-        {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GE, false},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::EQ, false},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::NE, true},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LT, true},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LE, true},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GT, false},
+                {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GE, false},
 
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::EQ, false},
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::NE, true},
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LT, false},
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LE, false},
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GT, true},
-        {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GE, true},
-    };
-    DoTestDecimalComparison(compares);
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::EQ, false},
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::NE, true},
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LT, false},
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LE, false},
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GT, true},
+                {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GE, true},
+        };
+        DoTestDecimalComparison(compares);
 }
 
 TEST_F(DecimalTest, LargeValueAddOverflow) {
-    {
-        const char *PositiveLargeStr =
-            "99999999999999999999999999999999999.999999999999999999999999999999";
-        Decimal d0(PositiveLargeStr);
-        Decimal d1(PositiveLargeStr);
-        EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
-    }
+        {
+                const char *PositiveLargeStr =
+                        "99999999999999999999999999999999999.999999999999999999999999999999";
+                Decimal d0(PositiveLargeStr);
+                Decimal d1(PositiveLargeStr);
+                EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+        }
 
-    {
-        const char *NegativeLargeStr =
-            "-99999999999999999999999999999999999.999999999999999999999999999999";
-        Decimal d0(NegativeLargeStr);
-        Decimal d1(NegativeLargeStr);
-        EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
-        EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
-    }
+        {
+                const char *NegativeLargeStr =
+                        "-99999999999999999999999999999999999.999999999999999999999999999999";
+                Decimal d0(NegativeLargeStr);
+                Decimal d1(NegativeLargeStr);
+                EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+        }
 }
 
 TEST_F(DecimalTest, Int128AddOverflow) {
-    __int128_t res128 = 0;
-    ErrCode err = kOk;
+        __int128_t res128 = 0;
+        ErrCode err = kOk;
 
-    __int128_t i128max = kInt128Max;
-    err = detail::safe_add(res128, i128max, i128max);
-    EXPECT_TRUE(!!err);
+        __int128_t i128max = kInt128Max;
+        err = detail::safe_add(res128, i128max, i128max);
+        EXPECT_TRUE(!!err);
 
-    __int128_t i128min = kInt128Min;
-    err = detail::safe_add(res128, i128min, i128min);
-    EXPECT_TRUE(!!err);
+        __int128_t i128min = kInt128Min;
+        err = detail::safe_add(res128, i128min, i128min);
+        EXPECT_TRUE(!!err);
 }
 
 TEST_F(DecimalTest, safe_mul_int128) {
-    __int128_t res128 = 0;
-    ErrCode err = kOk;
+        __int128_t res128 = 0;
+        ErrCode err = kOk;
 
-    // +  vs  +, non-overflow
-    err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(456));
-    EXPECT_TRUE(!err);
-    // +  vs  +, overflow
-    err = detail::safe_mul(res128, kInt128Max, kInt128Max);
-    EXPECT_TRUE(!!err);
-    // +  vs  -, non-overflow
-    err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(-456));
-    EXPECT_TRUE(!err);
-    // +  vs  -, overflow
-    err = detail::safe_mul(res128, kInt128Max, kInt128Min);
-    EXPECT_TRUE(!!err);
-    // -  vs  +, non-overflow
-    err = detail::safe_mul(res128, static_cast<__int128_t>(-123), static_cast<__int128_t>(456));
-    EXPECT_TRUE(!err);
-    // -  vs  +, overflow
-    err = detail::safe_mul(res128, kInt128Min, kInt128Max);
-    EXPECT_TRUE(!!err);
-    // -  vs  -, non-overflow
-    err = detail::safe_mul(res128, static_cast<__int128_t>(-123), static_cast<__int128_t>(-456));
-    EXPECT_TRUE(!err);
-    // -  vs  -, overflow
-    err = detail::safe_mul(res128, kInt128Min, kInt128Min);
-    EXPECT_TRUE(!!err);
+        // +  vs  +, non-overflow
+        err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(456));
+        EXPECT_TRUE(!err);
+        // +  vs  +, overflow
+        err = detail::safe_mul(res128, kInt128Max, kInt128Max);
+        EXPECT_TRUE(!!err);
+        // +  vs  -, non-overflow
+        err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(-456));
+        EXPECT_TRUE(!err);
+        // +  vs  -, overflow
+        err = detail::safe_mul(res128, kInt128Max, kInt128Min);
+        EXPECT_TRUE(!!err);
+        // -  vs  +, non-overflow
+        err = detail::safe_mul(res128, static_cast<__int128_t>(-123), static_cast<__int128_t>(456));
+        EXPECT_TRUE(!err);
+        // -  vs  +, overflow
+        err = detail::safe_mul(res128, kInt128Min, kInt128Max);
+        EXPECT_TRUE(!!err);
+        // -  vs  -, non-overflow
+        err = detail::safe_mul(res128, static_cast<__int128_t>(-123),
+                               static_cast<__int128_t>(-456));
+        EXPECT_TRUE(!err);
+        // -  vs  -, overflow
+        err = detail::safe_mul(res128, kInt128Min, kInt128Min);
+        EXPECT_TRUE(!!err);
 }
 
 TEST_F(DecimalTest, int128_to_string) {
-    EXPECT_EQ(detail::decimal128_to_string(0, 0), "0");
-    EXPECT_EQ(detail::decimal128_to_string(123, 0), "123");
-    EXPECT_EQ(detail::decimal128_to_string(-123, 0), "-123");
-    EXPECT_EQ(detail::decimal128_to_string(kInt128Max, 0), "170141183460469231731687303715884105727");
-    EXPECT_EQ(detail::decimal128_to_string(kInt128Min, 0), "-170141183460469231731687303715884105728");
+        EXPECT_EQ(detail::decimal128_to_string(0, 0), "0");
+        EXPECT_EQ(detail::decimal128_to_string(123, 0), "123");
+        EXPECT_EQ(detail::decimal128_to_string(-123, 0), "-123");
+        EXPECT_EQ(detail::decimal128_to_string(kInt128Max, 0),
+                  "170141183460469231731687303715884105727");
+        EXPECT_EQ(detail::decimal128_to_string(kInt128Min, 0),
+                  "-170141183460469231731687303715884105728");
 }
 
 TEST_F(DecimalTest, InitializeDecimalWithEmptyString) {
-    Decimal d0("");
-    Decimal d1("");
-    EXPECT_EQ(d0, d1);
-    EXPECT_EQ(d0 + d1, d0);
-    EXPECT_EQ(d0 + d1, d1);
+        Decimal d0("");
+        Decimal d1("");
+        EXPECT_EQ(d0, d1);
+        EXPECT_EQ(d0 + d1, d0);
+        EXPECT_EQ(d0 + d1, d1);
 }
 
 TEST_F(DecimalTest, TrailingDot) {
-    Decimal d0;
-    ErrCode err;
+        Decimal d0;
+        ErrCode err;
 
-    err = d0.assign("123.0");
-    EXPECT_TRUE(!err);
+        err = d0.assign("123.0");
+        EXPECT_TRUE(!err);
 
-    err = d0.assign("123.");
-    EXPECT_TRUE(err);
+        err = d0.assign("123.");
+        EXPECT_TRUE(err);
 }
 
 TEST_F(DecimalTest, LargePartOverflow) {
-    Decimal d0;
-    ErrCode err;
+        Decimal d0;
+        ErrCode err;
 
-    // Significant digits overflow
-    err = d0.assign("1234567890123456789012345679899999999999999999999999012345678901.11");
-    EXPECT_TRUE(err);
+        // Significant digits overflow
+        err = d0.assign("1234567890123456789012345679899999999999999999999999012345678901.11");
+        EXPECT_TRUE(err);
 
-    // Least significant digits overflow
-    err = d0.assign("11.12345678901234567890123456789012345678901");
-    EXPECT_TRUE(err);
+        // Least significant digits overflow
+        err = d0.assign("11.12345678901234567890123456789012345678901");
+        EXPECT_TRUE(err);
 }
 
 TEST_F(DecimalTest, InvalidCharacters) {
-    Decimal d0;
-    ErrCode err;
+        Decimal d0;
+        ErrCode err;
 
-    // Invalid character in significant part.
-    err = d0.assign("12345678901abc.11");
-    EXPECT_TRUE(err);
+        // Invalid character in significant part.
+        err = d0.assign("12345678901abc.11");
+        EXPECT_TRUE(err);
 
-    // Invalid character in least significant part.
-    err = d0.assign("11.1234567014444abc");
-    EXPECT_TRUE(err);
+        // Invalid character in least significant part.
+        err = d0.assign("11.1234567014444abc");
+        EXPECT_TRUE(err);
 }
 
 TEST_F(DecimalTest, DecimalAddSubResultTrailingLeastSignificantZero) {
-    ErrCode err;
+        ErrCode err;
 
-    Decimal d0{"124.5"};
-    Decimal d1{"123.5"};
-    Decimal d2 = d0 + d1;
-    EXPECT_EQ(d2.to_string(), "248.0"); // Add operation does not trim trailing zero
+        Decimal d0{"124.5"};
+        Decimal d1{"123.5"};
+        Decimal d2 = d0 + d1;
+        EXPECT_EQ(d2.to_string(), "248.0");  // Add operation does not trim trailing zero
 
-    Decimal d3 = d0 - d1;
-    EXPECT_EQ(d3.to_string(), "1.0");
+        Decimal d3 = d0 - d1;
+        EXPECT_EQ(d3.to_string(), "1.0");
 
-    err = d0.assign("-124.5");
-    EXPECT_TRUE(!err);
-    err = d1.assign("123.5");
-    EXPECT_TRUE(!err);
-    d2 = d0 + d1;
-    EXPECT_EQ(d2.to_string(), "-1.0");
+        err = d0.assign("-124.5");
+        EXPECT_TRUE(!err);
+        err = d1.assign("123.5");
+        EXPECT_TRUE(!err);
+        d2 = d0 + d1;
+        EXPECT_EQ(d2.to_string(), "-1.0");
 
-    d3 = d0 - d1;
-    EXPECT_EQ(d3.to_string(), "-248.0");
+        d3 = d0 - d1;
+        EXPECT_EQ(d3.to_string(), "-248.0");
 }
 
 // Decimal multiply as int128 overflow, but the intermediate result could be held in gmp array.
 TEST_F(DecimalTest, DecimalMulAsInt128Overflow) {
-    {
-        Decimal d0{"10000000000.9999999999999999"};
-        Decimal d1{"10000000000.9999999999999999"};
-        Decimal d2 = d0 * d1;
-        EXPECT_EQ(d2.to_string(), "100000000020000000000.9999979999999998");
-    }
+        {
+                Decimal d0{"10000000000.9999999999999999"};
+                Decimal d1{"10000000000.9999999999999999"};
+                Decimal d2 = d0 * d1;
+                EXPECT_EQ(d2.to_string(), "100000000020000000000.9999979999999998");
+        }
 
-    {
-        Decimal d0{"10000000000.0000000000000004"};
-        Decimal d1{"10000000000.0000000000000005"};
-        Decimal d2 = d0 * d1;
-        EXPECT_EQ(d2.to_string(), "100000000000000000000.000009");
-    }
-    {
-        // Test 5 -> 1 carry.
-        Decimal d0{"10000000000.7777777777777777"};
-        Decimal d1{"10000000000.7777777777777777"};
-        Decimal d2 = d0 * d1;
-        EXPECT_EQ(d2.to_string(), "100000000015555555556.160492271604938150617283950617");
-    }
+        {
+                Decimal d0{"10000000000.0000000000000004"};
+                Decimal d1{"10000000000.0000000000000005"};
+                Decimal d2 = d0 * d1;
+                EXPECT_EQ(d2.to_string(), "100000000000000000000.000009");
+        }
+        {
+                // Test 5 -> 1 carry.
+                Decimal d0{"10000000000.7777777777777777"};
+                Decimal d1{"10000000000.7777777777777777"};
+                Decimal d2 = d0 * d1;
+                EXPECT_EQ(d2.to_string(), "100000000015555555556.160492271604938150617283950617");
+        }
 }
 
 TEST_F(DecimalTest, StaticCastToString) {
-    // Simple C string
-    EXPECT_EQ(static_cast<std::string>(Decimal("0")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("0.1")), "0.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("123.1")), "123.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("123.666")), "123.666");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-123.666")), "-123.666");
+        // Simple C string
+        EXPECT_EQ(static_cast<std::string>(Decimal("0")), "0");
+        EXPECT_EQ(static_cast<std::string>(Decimal("0.1")), "0.1");
+        EXPECT_EQ(static_cast<std::string>(Decimal("123.1")), "123.1");
+        EXPECT_EQ(static_cast<std::string>(Decimal("123.666")), "123.666");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-123.666")), "-123.666");
 
-    // Batch of c++ string
-    std::vector<std::string> dstrings = {
-        "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
-        "-44.11223455", "-999.11223455", "12456789",    "101.101",
+        // Batch of c++ string
+        std::vector<std::string> dstrings = {
+                "0.1",          "0.11223455",    "-0.11223455", "-123.11223455",
+                "-44.11223455", "-999.11223455", "12456789",    "101.101",
 
-    };
-    for (const auto &str : dstrings) {
-        EXPECT_EQ(static_cast<std::string>(Decimal(str)), str);
-    }
+        };
+        for (const auto &str : dstrings) {
+                EXPECT_EQ(static_cast<std::string>(Decimal(str)), str);
+        }
 
-    // Leading zero truncation
-    EXPECT_EQ(static_cast<std::string>(Decimal("000.1")), "0.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("00.0000")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("00.11223455")), "0.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-00.11223455")), "-0.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-00123.11223455")), "-123.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-0044.11223455")), "-44.11223455");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-000999.11223455")), "-999.11223455");
+        // Leading zero truncation
+        EXPECT_EQ(static_cast<std::string>(Decimal("000.1")), "0.1");
+        EXPECT_EQ(static_cast<std::string>(Decimal("00.0000")), "0");
+        EXPECT_EQ(static_cast<std::string>(Decimal("00.11223455")), "0.11223455");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-00.11223455")), "-0.11223455");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-00123.11223455")), "-123.11223455");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-0044.11223455")), "-44.11223455");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-000999.11223455")), "-999.11223455");
 
-    // trailing '0' omitted, but not those middle ones
-    EXPECT_EQ(static_cast<std::string>(Decimal("101.101")), "101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-101.101")), "-101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("101.1010")), "101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-101.1010")), "-101.101");
-    EXPECT_EQ(static_cast<std::string>(Decimal("200.1000")), "200.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-200.1000")), "-200.1");
-    EXPECT_EQ(static_cast<std::string>(Decimal("0.0000")), "0");
-    EXPECT_EQ(static_cast<std::string>(Decimal("-0.0000")), "0");
+        // trailing '0' omitted, but not those middle ones
+        EXPECT_EQ(static_cast<std::string>(Decimal("101.101")), "101.101");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-101.101")), "-101.101");
+        EXPECT_EQ(static_cast<std::string>(Decimal("101.1010")), "101.101");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-101.1010")), "-101.101");
+        EXPECT_EQ(static_cast<std::string>(Decimal("200.1000")), "200.1");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-200.1000")), "-200.1");
+        EXPECT_EQ(static_cast<std::string>(Decimal("0.0000")), "0");
+        EXPECT_EQ(static_cast<std::string>(Decimal("-0.0000")), "0");
 }
 
 #if 0
@@ -2644,7 +2665,6 @@ TEST_F(DecimalTest, int256_to_string) {
               "-57896044618658097711785492504343953926634992332820282019728792003956564819968");
 }
 #endif
-
 
 // TODO test string initialization with leading space or leading zero
 }  // namespace bignum

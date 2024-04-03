@@ -10,34 +10,34 @@ namespace detail {
 // This function is used to trigger a compile-time assertion if the condition is not met in case
 // of constexpr context.
 inline void constexpr_evaluation_failure_marker() {
-    throw std::runtime_error("constexpr evaluation failed");
+        throw std::runtime_error("constexpr evaluation failed");
 }
 }  // namespace detail
 }  // namespace bignum
 
 #define __BIGNUM_GET_MACRO_2(_1, _2, NAME, ...) NAME
 
-#define __BIGNUM_ASSERT_1(condition)                                   \
-    do {                                                               \
-        if (!(condition)) {                                            \
-            if (std::is_constant_evaluated()) {                        \
-                bignum::detail::constexpr_evaluation_failure_marker(); \
-            } else {                                                   \
-                std::abort();                                          \
-            }                                                          \
-        }                                                              \
-    } while (0)
+#define __BIGNUM_ASSERT_1(condition)                                                   \
+        do {                                                                           \
+                if (!(condition)) {                                                    \
+                        if (std::is_constant_evaluated()) {                            \
+                                bignum::detail::constexpr_evaluation_failure_marker(); \
+                        } else {                                                       \
+                                std::abort();                                          \
+                        }                                                              \
+                }                                                                      \
+        } while (0)
 
-#define __BIGNUM_ASSERT_2(condition, msg)                              \
-    do {                                                               \
-        if (!(condition)) {                                            \
-            if (std::is_constant_evaluated()) {                        \
-                bignum::detail::constexpr_evaluation_failure_marker(); \
-            } else {                                                   \
-                std::abort();                                          \
-            }                                                          \
-        }                                                              \
-    } while (0)
+#define __BIGNUM_ASSERT_2(condition, msg)                                              \
+        do {                                                                           \
+                if (!(condition)) {                                                    \
+                        if (std::is_constant_evaluated()) {                            \
+                                bignum::detail::constexpr_evaluation_failure_marker(); \
+                        } else {                                                       \
+                                std::abort();                                          \
+                        }                                                              \
+                }                                                                      \
+        } while (0)
 
 #define __BIGNUM_ASSERT(...) \
-    __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_ASSERT_2, __BIGNUM_ASSERT_1)(__VA_ARGS__)
+        __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_ASSERT_2, __BIGNUM_ASSERT_1)(__VA_ARGS__)
