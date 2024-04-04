@@ -668,87 +668,85 @@ TEST_F(DecimalTest, Div) {
         EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
 
-#if 0
 TEST_F(DecimalTest, Mod) {
-    std::vector<DecimalArithmetic> calculations = {
-        {"1", "3", ArithOp::MOD, "1"},
-        {"100000", "3.33", ArithOp::MOD, "0.1"},
-        {"999999", "3.33", ArithOp::MOD, "0"},
-        {"123456", "3.33", ArithOp::MOD, "2.91"},
-        {"-1", "3", ArithOp::MOD, "-1"},
-        {"-100000", "3.33", ArithOp::MOD, "-0.1"},
-        {"-999999", "3.33", ArithOp::MOD, "0"},
-        {"-123456", "3.33", ArithOp::MOD, "-2.91"},
-        {"-1", "-3", ArithOp::MOD, "-1"},
-        {"-100000", "-3.33", ArithOp::MOD, "-0.1"},
-        {"-999999", "-3.33", ArithOp::MOD, "0"},
-        {"-123456", "-3.33", ArithOp::MOD, "-2.91"},
-        {"1.00001", "3", ArithOp::MOD, "1.00001"},
-        {"100000.00001", "3.33", ArithOp::MOD, "0.10001"},
-        {"999999.00001", "3.33", ArithOp::MOD, "0.00001"},
-        {"123456.00001", "3.33", ArithOp::MOD, "2.91001"},
-        {"-1.00001", "3", ArithOp::MOD, "-1.00001"},
-        {"-100000.00001", "3.33", ArithOp::MOD, "-0.10001"},
-        {"-999999.00001", "3.33", ArithOp::MOD, "-0.00001"},
-        {"-123456.00001", "3.33", ArithOp::MOD, "-2.91001"},
-        {"1.57565", "3", ArithOp::MOD, "1.57565"},
-        {"100000.57565", "3.33", ArithOp::MOD, "0.67565"},
-        {"999999.57565", "3.33", ArithOp::MOD, "0.57565"},
-        {"123456.57565", "3.33", ArithOp::MOD, "0.15565"},
-        {"-1.57565", "3", ArithOp::MOD, "-1.57565"},
-        {"-100000.57565", "3.33", ArithOp::MOD, "-0.67565"},
-        {"-999999.57565", "3.33", ArithOp::MOD, "-0.57565"},
-        {"-123456.57565", "3.33", ArithOp::MOD, "-0.15565"},
-        {"-1.57565", "-3", ArithOp::MOD, "-1.57565"},
-        {"-100000.57565", "-3.33", ArithOp::MOD, "-0.67565"},
-        {"-999999.57565", "-3.33", ArithOp::MOD, "-0.57565"},
-        {"-123456.57565", "-3.33", ArithOp::MOD, "-0.15565"},
-        {"1", "-1", ArithOp::MOD, "0"},
-        {"100000", "-1", ArithOp::MOD, "0"},
-        {"999999", "-1", ArithOp::MOD, "0"},
-        {"123456", "-1", ArithOp::MOD, "0"},
-        {"-1", "-1", ArithOp::MOD, "0"},
-        {"-100000", "-1", ArithOp::MOD, "0"},
-        {"-999999", "-1", ArithOp::MOD, "0"},
-        {"-123456", "-1", ArithOp::MOD, "0"},
-        {"1.00001", "-1", ArithOp::MOD, "0.00001"},
-        {"100000.00001", "-1", ArithOp::MOD, "0.00001"},
-        {"999999.00001", "-1", ArithOp::MOD, "0.00001"},
-        {"123456.00001", "-1", ArithOp::MOD, "0.00001"},
-        {"-1.00001", "-1", ArithOp::MOD, "-0.00001"},
-        {"-100000.00001", "-1", ArithOp::MOD, "-0.00001"},
-        {"-999999.00001", "-1", ArithOp::MOD, "-0.00001"},
-        {"-123456.00001", "-1", ArithOp::MOD, "-0.00001"},
-        {"1.57565", "-1", ArithOp::MOD, "0.57565"},
-        {"100000.57565", "-1", ArithOp::MOD, "0.57565"},
-        {"999999.57565", "-1", ArithOp::MOD, "0.57565"},
-        {"123456.57565", "-1", ArithOp::MOD, "0.57565"},
-        {"-1.57565", "-1", ArithOp::MOD, "-0.57565"},
-        {"-100000.57565", "-1", ArithOp::MOD, "-0.57565"},
-        {"-999999.57565", "-1", ArithOp::MOD, "-0.57565"},
-        {"-123456.57565", "-1", ArithOp::MOD, "-0.57565"},
-        {"1.5756533334441", "3", ArithOp::MOD, "1.5756533334441"},
-        {"30030.202898898933", "3.33", ArithOp::MOD, "0.262898898933"},
-        {"100000.111111111111111", "3.33", ArithOp::MOD, "0.211111111111111"},
-        {"999999.111111111111111", "3.33", ArithOp::MOD, "0.111111111111111"},
-        {"123456.111111111111111", "3.33", ArithOp::MOD, "3.021111111111111"},
-        {"1.5756533334441", "-3", ArithOp::MOD, "1.5756533334441"},
-        {"30030.202898898933", "-3.33", ArithOp::MOD, "0.262898898933"},
-        {"100000.111111111111111", "-3.33", ArithOp::MOD, "0.211111111111111"},
-        {"999999.111111111111111", "-3.33", ArithOp::MOD, "0.111111111111111"},
-        {"123456.111111111111111", "-3.33", ArithOp::MOD, "3.021111111111111"},
-        {"-1.5756533334441", "-3", ArithOp::MOD, "-1.5756533334441"},
-        {"-30030.202898898933", "-3.33", ArithOp::MOD, "-0.262898898933"},
-        {"-100000.111111111111111", "-3.33", ArithOp::MOD, "-0.211111111111111"},
-        {"-999999.111111111111111", "-3.33", ArithOp::MOD, "-0.111111111111111"},
-        {"-123456.111111111111111", "-3.33", ArithOp::MOD, "-3.021111111111111"},
-    };
-    DoTestDecimalArithmetic(calculations);
+        std::vector<DecimalArithmetic> calculations = {
+                {"1", "3", ArithOp::MOD, "1"},
+                {"100000", "3.33", ArithOp::MOD, "0.1"},
+                {"999999", "3.33", ArithOp::MOD, "0"},
+                {"123456", "3.33", ArithOp::MOD, "2.91"},
+                {"-1", "3", ArithOp::MOD, "-1"},
+                {"-100000", "3.33", ArithOp::MOD, "-0.1"},
+                {"-999999", "3.33", ArithOp::MOD, "0"},
+                {"-123456", "3.33", ArithOp::MOD, "-2.91"},
+                {"-1", "-3", ArithOp::MOD, "-1"},
+                {"-100000", "-3.33", ArithOp::MOD, "-0.1"},
+                {"-999999", "-3.33", ArithOp::MOD, "0"},
+                {"-123456", "-3.33", ArithOp::MOD, "-2.91"},
+                {"1.00001", "3", ArithOp::MOD, "1.00001"},
+                {"100000.00001", "3.33", ArithOp::MOD, "0.10001"},
+                {"999999.00001", "3.33", ArithOp::MOD, "0.00001"},
+                {"123456.00001", "3.33", ArithOp::MOD, "2.91001"},
+                {"-1.00001", "3", ArithOp::MOD, "-1.00001"},
+                {"-100000.00001", "3.33", ArithOp::MOD, "-0.10001"},
+                {"-999999.00001", "3.33", ArithOp::MOD, "-0.00001"},
+                {"-123456.00001", "3.33", ArithOp::MOD, "-2.91001"},
+                {"1.57565", "3", ArithOp::MOD, "1.57565"},
+                {"100000.57565", "3.33", ArithOp::MOD, "0.67565"},
+                {"999999.57565", "3.33", ArithOp::MOD, "0.57565"},
+                {"123456.57565", "3.33", ArithOp::MOD, "0.15565"},
+                {"-1.57565", "3", ArithOp::MOD, "-1.57565"},
+                {"-100000.57565", "3.33", ArithOp::MOD, "-0.67565"},
+                {"-999999.57565", "3.33", ArithOp::MOD, "-0.57565"},
+                {"-123456.57565", "3.33", ArithOp::MOD, "-0.15565"},
+                {"-1.57565", "-3", ArithOp::MOD, "-1.57565"},
+                {"-100000.57565", "-3.33", ArithOp::MOD, "-0.67565"},
+                {"-999999.57565", "-3.33", ArithOp::MOD, "-0.57565"},
+                {"-123456.57565", "-3.33", ArithOp::MOD, "-0.15565"},
+                {"1", "-1", ArithOp::MOD, "0"},
+                {"100000", "-1", ArithOp::MOD, "0"},
+                {"999999", "-1", ArithOp::MOD, "0"},
+                {"123456", "-1", ArithOp::MOD, "0"},
+                {"-1", "-1", ArithOp::MOD, "0"},
+                {"-100000", "-1", ArithOp::MOD, "0"},
+                {"-999999", "-1", ArithOp::MOD, "0"},
+                {"-123456", "-1", ArithOp::MOD, "0"},
+                {"1.00001", "-1", ArithOp::MOD, "0.00001"},
+                {"100000.00001", "-1", ArithOp::MOD, "0.00001"},
+                {"999999.00001", "-1", ArithOp::MOD, "0.00001"},
+                {"123456.00001", "-1", ArithOp::MOD, "0.00001"},
+                {"-1.00001", "-1", ArithOp::MOD, "-0.00001"},
+                {"-100000.00001", "-1", ArithOp::MOD, "-0.00001"},
+                {"-999999.00001", "-1", ArithOp::MOD, "-0.00001"},
+                {"-123456.00001", "-1", ArithOp::MOD, "-0.00001"},
+                {"1.57565", "-1", ArithOp::MOD, "0.57565"},
+                {"100000.57565", "-1", ArithOp::MOD, "0.57565"},
+                {"999999.57565", "-1", ArithOp::MOD, "0.57565"},
+                {"123456.57565", "-1", ArithOp::MOD, "0.57565"},
+                {"-1.57565", "-1", ArithOp::MOD, "-0.57565"},
+                {"-100000.57565", "-1", ArithOp::MOD, "-0.57565"},
+                {"-999999.57565", "-1", ArithOp::MOD, "-0.57565"},
+                {"-123456.57565", "-1", ArithOp::MOD, "-0.57565"},
+                {"1.5756533334441", "3", ArithOp::MOD, "1.5756533334441"},
+                {"30030.202898898933", "3.33", ArithOp::MOD, "0.262898898933"},
+                {"100000.111111111111111", "3.33", ArithOp::MOD, "0.211111111111111"},
+                {"999999.111111111111111", "3.33", ArithOp::MOD, "0.111111111111111"},
+                {"123456.111111111111111", "3.33", ArithOp::MOD, "3.021111111111111"},
+                {"1.5756533334441", "-3", ArithOp::MOD, "1.5756533334441"},
+                {"30030.202898898933", "-3.33", ArithOp::MOD, "0.262898898933"},
+                {"100000.111111111111111", "-3.33", ArithOp::MOD, "0.211111111111111"},
+                {"999999.111111111111111", "-3.33", ArithOp::MOD, "0.111111111111111"},
+                {"123456.111111111111111", "-3.33", ArithOp::MOD, "3.021111111111111"},
+                {"-1.5756533334441", "-3", ArithOp::MOD, "-1.5756533334441"},
+                {"-30030.202898898933", "-3.33", ArithOp::MOD, "-0.262898898933"},
+                {"-100000.111111111111111", "-3.33", ArithOp::MOD, "-0.211111111111111"},
+                {"-999999.111111111111111", "-3.33", ArithOp::MOD, "-0.111111111111111"},
+                {"-123456.111111111111111", "-3.33", ArithOp::MOD, "-3.021111111111111"},
+        };
+        DoTestDecimalArithmetic(calculations);
 
-    // Modulo by zero
-    EXPECT_EXIT(Decimal{"1.01"} % Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
+        // Modulo by zero
+        EXPECT_EXIT(Decimal{"1.01"} % Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
-#endif
 
 TEST_F(DecimalTest, DiffSignCompare) {
         std::vector<DecimalComparison> compares = {
@@ -1453,6 +1451,204 @@ TEST_F(DecimalTest, ConstExprMul) {
         }
 }
 
+TEST_F(DecimalTest, ConstExprCompare) {
+        // {"123.001", "-432.12", CompareOp::EQ, false}, {"123.001", "-432.12", CompareOp::NE,
+        // true},
+        // {"123.001", "-432.12", CompareOp::LT, false}, {"123.001", "-432.12", CompareOp::LE,
+        // false},
+        // {"123.001", "-432.12", CompareOp::GT, true},  {"123.001", "-432.12", CompareOp::GE,
+        // true},
+        {
+                constexpr Decimal d0("123.001");
+                constexpr Decimal d1("-432.12");
+                constexpr bool b0 = d0 == d1;
+                constexpr bool b1 = d0 != d1;
+                constexpr bool b2 = d0 < d1;
+                constexpr bool b3 = d0 <= d1;
+                constexpr bool b4 = d0 > d1;
+                constexpr bool b5 = d0 >= d1;
+                EXPECT_EQ(b0, false);
+                EXPECT_EQ(b1, true);
+                EXPECT_EQ(b2, false);
+                EXPECT_EQ(b3, false);
+                EXPECT_EQ(b4, true);
+                EXPECT_EQ(b5, true);
+        }
+}
+
+TEST_F(DecimalTest, ConstExprCompare_2) {
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::EQ, false},
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::NE, true},
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LT, false},
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LE, false},
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GT, true},
+        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GE, true},
+        {
+                constexpr Decimal d0("999999999999999999999999999.001");
+                constexpr Decimal d1("432.1234567891234567");
+                constexpr bool b0 = d0 == d1;
+                constexpr bool b1 = d0 != d1;
+                constexpr bool b2 = d0 < d1;
+                constexpr bool b3 = d0 <= d1;
+                constexpr bool b4 = d0 > d1;
+                constexpr bool b5 = d0 >= d1;
+                EXPECT_EQ(b0, false);
+                EXPECT_EQ(b1, true);
+                EXPECT_EQ(b2, false);
+                EXPECT_EQ(b3, false);
+                EXPECT_EQ(b4, true);
+                EXPECT_EQ(b5, true);
+        }
+
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::EQ, false},
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::NE, true},
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LT, true},
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LE, true},
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GT, false},
+        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GE, false},
+        {
+                constexpr Decimal d0("432.1234567891234567");
+                constexpr Decimal d1("999999999999999999999999999.001");
+                constexpr bool b0 = d0 == d1;
+                constexpr bool b1 = d0 != d1;
+                constexpr bool b2 = d0 < d1;
+                constexpr bool b3 = d0 <= d1;
+                constexpr bool b4 = d0 > d1;
+                constexpr bool b5 = d0 >= d1;
+                EXPECT_EQ(b0, false);
+                EXPECT_EQ(b1, true);
+                EXPECT_EQ(b2, true);
+                EXPECT_EQ(b3, true);
+                EXPECT_EQ(b4, false);
+                EXPECT_EQ(b5, false);
+        }
+
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::EQ, false},
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::NE, true},
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LT, true},
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LE, true},
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GT, false},
+        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GE, false},
+        {
+                constexpr Decimal d0("-999999999999999999999999999.001");
+                constexpr Decimal d1("-432.1234567891234567");
+                constexpr bool b0 = d0 == d1;
+                constexpr bool b1 = d0 != d1;
+                constexpr bool b2 = d0 < d1;
+                constexpr bool b3 = d0 <= d1;
+                constexpr bool b4 = d0 > d1;
+                constexpr bool b5 = d0 >= d1;
+                EXPECT_EQ(b0, false);
+                EXPECT_EQ(b1, true);
+                EXPECT_EQ(b2, true);
+                EXPECT_EQ(b3, true);
+                EXPECT_EQ(b4, false);
+                EXPECT_EQ(b5, false);
+        }
+
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::EQ, false},
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::NE, true},
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LT, false},
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LE, false},
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GT, true},
+        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GE, true},
+        {
+                constexpr Decimal d0("-432.1234567891234567");
+                constexpr Decimal d1("-999999999999999999999999999.001");
+                constexpr bool b0 = d0 == d1;
+                constexpr bool b1 = d0 != d1;
+                constexpr bool b2 = d0 < d1;
+                constexpr bool b3 = d0 <= d1;
+                constexpr bool b4 = d0 > d1;
+                constexpr bool b5 = d0 >= d1;
+                EXPECT_EQ(b0, false);
+                EXPECT_EQ(b1, true);
+                EXPECT_EQ(b2, false);
+                EXPECT_EQ(b3, false);
+                EXPECT_EQ(b4, true);
+                EXPECT_EQ(b5, true);
+        }
+}
+
+TEST_F(DecimalTest, string_initialize_with_leading_space) {
+        constexpr Decimal d0("  123.456");
+        constexpr Decimal d1("123.456");
+        EXPECT_EQ(d0, d1);
+        constexpr Decimal d2 = d0 + d1;
+        constexpr Decimal d3("246.912");
+        EXPECT_EQ(d2, d3);
+}
+
+TEST_F(DecimalTest, string_initialize_with_trailing_space) {
+        constexpr Decimal d0("123.456  ");
+        constexpr Decimal d1("123.456");
+        EXPECT_EQ(d0, d1);
+        constexpr Decimal d2 = d0 + d1;
+        constexpr Decimal d3("246.912");
+        EXPECT_EQ(d2, d3);
+}
+
+TEST_F(DecimalTest, string_initialize_with_leading_space_no_constexpr) {
+        Decimal d0("  123.456");
+        Decimal d1("123.456");
+        EXPECT_EQ(d0, d1);
+        Decimal d2 = d0 + d1;
+        Decimal d3("246.912");
+        EXPECT_EQ(d2, d3);
+}
+
+TEST_F(DecimalTest, string_initialize_with_trailing_space_no_constexpr) {
+        Decimal d0("123.456  ");
+        Decimal d1("123.456");
+        EXPECT_EQ(d0, d1);
+        Decimal d2 = d0 + d1;
+        Decimal d3("246.912");
+        EXPECT_EQ(d2, d3);
+}
+
+TEST_F(DecimalTest, string_initialize_with_leading_traling_zero) {
+        {
+                constexpr Decimal d0("000123.456");
+                constexpr Decimal d1("0000.456");
+                constexpr Decimal d2("-000123.000");
+                constexpr Decimal d3("-0.000");
+                constexpr Decimal d4("-0.123");
+
+                EXPECT_EQ(d0.to_string(), "123.456");
+                EXPECT_EQ(d1.to_string(), "0.456");
+                EXPECT_EQ(d2.to_string(), "-123");
+                EXPECT_EQ(d3.to_string(), "0");
+                EXPECT_EQ(d4.to_string(), "-0.123");
+        }
+
+        {
+                Decimal d0("000123999999999999999999999999999999999999.4569");
+                Decimal d1("000099999999999.456999999999999999999999999999");
+                Decimal d2("-00012388888888.000000000000000000000000000000");
+                Decimal d3("-000000000000000.000000000000000000000000000000");
+                Decimal d4("-00000000000000000.123444444444444444444444444444");
+
+                EXPECT_EQ(d0.to_string(), "123999999999999999999999999999999999999.4569");
+                EXPECT_EQ(d1.to_string(), "99999999999.456999999999999999999999999999");
+                EXPECT_EQ(d2.to_string(), "-12388888888");
+                EXPECT_EQ(d3.to_string(), "0");
+                EXPECT_EQ(d4.to_string(), "-0.123444444444444444444444444444");
+        }
+}
+
+// Non-accept table string:
+//      ".123"
+//      "-.123"
+//      ".123..."
+//      "-.123..."
+TEST_F(DecimalTest, non_accept_table_string) {
+        Decimal d0;
+        EXPECT_TRUE(!!d0.assign(".123"));
+        EXPECT_TRUE(!!d0.assign("-.123"));
+        EXPECT_TRUE(!!d0.assign(".123999999999999999999999999999"));
+        EXPECT_TRUE(!!d0.assign("-.123999999999999999999999999999"));
+}
+
 #if 0
 TEST_F(DecimalTest, ConstExprMod) {
     //=------------------------------------------
@@ -1956,128 +2152,7 @@ TEST_F(DecimalTest, ConstExprMod) {
         EXPECT_EQ(d2.to_string(), "-3.021111111111111");
     }
 }
-#endif
 
-TEST_F(DecimalTest, ConstExprCompare) {
-        // {"123.001", "-432.12", CompareOp::EQ, false}, {"123.001", "-432.12", CompareOp::NE,
-        // true},
-        // {"123.001", "-432.12", CompareOp::LT, false}, {"123.001", "-432.12", CompareOp::LE,
-        // false},
-        // {"123.001", "-432.12", CompareOp::GT, true},  {"123.001", "-432.12", CompareOp::GE,
-        // true},
-        {
-                constexpr Decimal d0("123.001");
-                constexpr Decimal d1("-432.12");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
-                EXPECT_EQ(b0, false);
-                EXPECT_EQ(b1, true);
-                EXPECT_EQ(b2, false);
-                EXPECT_EQ(b3, false);
-                EXPECT_EQ(b4, true);
-                EXPECT_EQ(b5, true);
-        }
-}
-
-TEST_F(DecimalTest, ConstExprCompare_2) {
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::EQ, false},
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::NE, true},
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LT, false},
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LE, false},
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GT, true},
-        // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GE, true},
-        {
-                constexpr Decimal d0("999999999999999999999999999.001");
-                constexpr Decimal d1("432.1234567891234567");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
-                EXPECT_EQ(b0, false);
-                EXPECT_EQ(b1, true);
-                EXPECT_EQ(b2, false);
-                EXPECT_EQ(b3, false);
-                EXPECT_EQ(b4, true);
-                EXPECT_EQ(b5, true);
-        }
-
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::EQ, false},
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::NE, true},
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LT, true},
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::LE, true},
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GT, false},
-        // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GE, false},
-        {
-                constexpr Decimal d0("432.1234567891234567");
-                constexpr Decimal d1("999999999999999999999999999.001");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
-                EXPECT_EQ(b0, false);
-                EXPECT_EQ(b1, true);
-                EXPECT_EQ(b2, true);
-                EXPECT_EQ(b3, true);
-                EXPECT_EQ(b4, false);
-                EXPECT_EQ(b5, false);
-        }
-
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::EQ, false},
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::NE, true},
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LT, true},
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::LE, true},
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GT, false},
-        // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GE, false},
-        {
-                constexpr Decimal d0("-999999999999999999999999999.001");
-                constexpr Decimal d1("-432.1234567891234567");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
-                EXPECT_EQ(b0, false);
-                EXPECT_EQ(b1, true);
-                EXPECT_EQ(b2, true);
-                EXPECT_EQ(b3, true);
-                EXPECT_EQ(b4, false);
-                EXPECT_EQ(b5, false);
-        }
-
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::EQ, false},
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::NE, true},
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LT, false},
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::LE, false},
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GT, true},
-        // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GE, true},
-        {
-                constexpr Decimal d0("-432.1234567891234567");
-                constexpr Decimal d1("-999999999999999999999999999.001");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
-                EXPECT_EQ(b0, false);
-                EXPECT_EQ(b1, true);
-                EXPECT_EQ(b2, false);
-                EXPECT_EQ(b3, false);
-                EXPECT_EQ(b4, true);
-                EXPECT_EQ(b5, true);
-        }
-}
-
-#if 0
 TEST_F(DecimalTest, Int256AddOverflow) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
@@ -2092,7 +2167,7 @@ TEST_F(DecimalTest, Int256AddOverflow) {
     EXPECT_TRUE(!!err);
 
     // Non-overflow cases
-    int256_t i256val = 123;
+    // int256_t i256val = 123;
     err = safe_add_int256(res256, i256val, i256val);
     EXPECT_TRUE(!err);
 }
@@ -2693,6 +2768,4 @@ TEST_F(DecimalTest, large_num_constexpr_init_failure) {
 //}
 
 #endif
-
-// TODO test string initialization with leading space or leading zero
 }  // namespace bignum

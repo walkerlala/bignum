@@ -72,8 +72,22 @@ constexpr inline T type_min() {
 
 // std::abs() is not constexpr before c++23.
 template <IntegralType T>
-constexpr T type_abs(T n) {
+constexpr T constexpr_abs(T n) {
         return n < 0 ? -n : n;
+}
+
+// std::min(l, r) does not accept cases like "int vs int64_t" nor "long long int vs int64_t",
+// which is noisy.
+template <IntegralType T, IntegralType U>
+constexpr auto constexpr_min(T a, U b) -> std::conditional_t<(sizeof(T) >= sizeof(U)), T, U> {
+        static_assert(std::is_signed_v<T> == std::is_signed_v<U>);
+        return a < b ? a : b;
+}
+
+template <IntegralType T, IntegralType U>
+constexpr auto constexpr_max(T a, U b) -> std::conditional_t<(sizeof(T) >= sizeof(U)), T, U> {
+        static_assert(std::is_signed_v<T> == std::is_signed_v<U>);
+        return a > b ? a : b;
 }
 
 constexpr int64_t get_int64_power10(int32_t scale) {
@@ -234,7 +248,7 @@ constexpr inline Gmp320 convert_int64_to_gmp(int64_t i64) {
                 if (i64 == INT64_MIN) {
                         gmp.mpz._mp_d[0] = static_cast<uint64_t>(INT64_MAX) + 1;
                 } else {
-                        gmp.mpz._mp_d[0] = type_abs(i64);
+                        gmp.mpz._mp_d[0] = constexpr_abs(i64);
                 }
                 gmp.mpz._mp_size = -1;
         } else {
@@ -267,7 +281,7 @@ constexpr inline Gmp320 convert_int128_to_gmp(__int128_t i128) {
         }
         Gmp320 gmp;
         if (i128 != kInt128Min) {
-                __uint128_t positive_i128 = type_abs(i128);
+                __uint128_t positive_i128 = constexpr_abs(i128);
                 gmp = convert_uint128_to_gmp(positive_i128);
         } else {
                 __uint128_t positive_i128 = static_cast<__uint128_t>(kInt128Max) + 1;
@@ -294,7 +308,7 @@ inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, c
 
 template <typename T, typename U>
 inline void copy_gmp_to_gmp(T &dst, const U &src) {
-        int src_len = type_abs(src.mpz._mp_size);
+        int src_len = constexpr_abs(src.mpz._mp_size);
         __BIGNUM_ASSERT(src_len <= dst.mpz._mp_alloc);
         for (int i = 0; i < src_len; ++i) {
                 dst.mpz._mp_d[i] = src.mpz._mp_d[i];
@@ -497,7 +511,7 @@ constexpr inline ErrCode decimal_mul_integral(T &res, int32_t &res_scale, T lhs,
                 res /= div_first_part;
         }
 
-        T mod_result = detail::type_abs(res) % 10;
+        T mod_result = detail::constexpr_abs(res) % 10;
         res /= 10;
 
         // round-half-up: round away from zero
@@ -1070,6 +1084,16 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
                 ptr++;
         }
 
+        // skip trailing space
+        while (ptr < end && end[-1] == ' ') {
+                end--;
+        }
+
+        // skip leading zeros, until the last one or the one before decimal point
+        while (ptr + 1 < end && *ptr == '0' && ptr[1] != '.') {
+                ptr++;
+        }
+
         const size_t slen = end - ptr;
         if (!slen) {
                 assign(0ll);
@@ -1101,7 +1125,8 @@ template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const char *end) {
         // Caller guarantees that
         //   - string is not empty;
-        //   - trailing spaces are removed;
+        //   - leading/trailing spaces are removed;
+        //  - leading zeros are removed, unless it is the only digit or the one before decimal point
         //   - string is not too long to fit into int128_t.
         const size_t slen = end - start;
         const char *ptr = start;
@@ -1112,13 +1137,18 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
                 is_negative = true;
                 ptr++;
         }
+        const char *digit_start = ptr;
 
         const char *pdot = std::find(ptr, end, '.');
         __BIGNUM_ASSERT(pdot <= end);
         bool has_dot = (pdot < end);
 
-        // The '.' character could not be at the very end, i.e., '1234.' is not
-        // acceptable.
+        if (has_dot && pdot == digit_start) {
+                // ".123" and "-.123" are not acceptable.
+                return kInvalidArgument;
+        }
+
+        // The '.' character could not be at the very end, i.e., '1234.' is not acceptable.
         if (has_dot && (pdot + 1 >= end)) {
                 return kInvalidArgument;
         }
@@ -1135,6 +1165,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
         // 123.1000 -> 123.1
         // 123.000 -> 123
         if (has_dot) {
+                // trim continuous trailing '0'
                 while (end > pdot + 1 && *(end - 1) == '0') {
                         end--;
                 }
@@ -1205,7 +1236,8 @@ template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, const char *end) {
         // Caller guarantees that
         //  - string is not empty;
-        //  - trailing spaces are removed;
+        //  - leading/trailing spaces are removed;
+        //  - leading zeros are removed, unless it is the only digit or the one before decimal point
         const size_t slen = end - start;
         assert(slen);
         const char *ptr = start;
@@ -1222,6 +1254,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
                 is_negative = true;
                 ptr++;
         }
+        const char *digit_start = ptr;
 
         // Copy all the digits out into a buffer, to be initialized by mpn_set_str.
         // Leading zeros are skipped.
@@ -1229,20 +1262,16 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
         char buf[kMaxPrecision + 1] = {0};
         char *pbuf = buf;
         const char *pdot = nullptr;
-        bool met_non_zero_significant = false;
         for (; ptr < end; ++ptr) {
                 int pv = *ptr;
-                if (pv == '0' && !met_non_zero_significant) {
-                        continue;
-                }
-                if (!met_non_zero_significant) {
-                        met_non_zero_significant = true;
-                }
                 if (pv == '.') {
                         pdot = ptr;
+                        // ".0123" and "-.0123" are not acceptable.
+                        if (pdot == digit_start) {
+                                return kInvalidArgument;
+                        }
                         continue;
-                }
-                if (pv < '0' || pv > '9') {
+                } else if (pv < '0' || pv > '9') {
                         return kInvalidArgument;
                 }
                 *pbuf++ = detail::gmp_digit_value_tab[pv];
@@ -1292,7 +1321,7 @@ constexpr inline DecimalImpl<T>::operator double() const {
                 int scale = m_scale;
                 __BIGNUM_ASSERT(scale >= 0);
                 while (scale > 0) {
-                        int s = std::min(scale, 38);
+                        int s = detail::constexpr_min(scale, 38);
                         __int128_t scale_div = detail::get_int128_power10(s);
                         res /= static_cast<double>(scale_div);
                         scale -= s;
@@ -1375,7 +1404,7 @@ constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(detail::Gmp320 l, int32_t l
                 mpz_add(&m_gmp.mpz, &l.mpz, &r.mpz);
         }
         m_dtype = DType::kGeneral;
-        m_scale = std::max(lscale, rscale);
+        m_scale = detail::constexpr_max(lscale, rscale);
 
         // Check whether the result exceed maximum value of precision kMaxPrecision
         if (detail::check_gmp_out_of_range(m_gmp, detail::kMinGmpValue, detail::kMaxGmpValue)) {
@@ -1537,7 +1566,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
 
         if (lscale + rscale > detail::kDecimalMaxScale) {
                 bool is_negative = res640.mpz._mp_size < 0;
-                res640.mpz._mp_size = detail::type_abs(res640.mpz._mp_size);
+                res640.mpz._mp_size = detail::constexpr_abs(res640.mpz._mp_size);
 
                 int32_t delta_scale = lscale + rscale - detail::kDecimalMaxScale;
                 // Need to do the rounding, so first div by (10 ^ (delta_scale - 1))
@@ -1723,10 +1752,10 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         }
 
         bool l_negative = l320.is_negative();
-        l320.mpz._mp_size = detail::type_abs(l320.mpz._mp_size);
+        l320.mpz._mp_size = detail::constexpr_abs(l320.mpz._mp_size);
 
         bool r_negative = r320.is_negative();
-        r320.mpz._mp_size = detail::type_abs(r320.mpz._mp_size);
+        r320.mpz._mp_size = detail::constexpr_abs(r320.mpz._mp_size);
 
         bool result_negative = (l_negative != r_negative);
 
@@ -1781,7 +1810,8 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         init_internal_gmp();
         detail::copy_gmp_to_gmp(m_gmp, res640);
         m_dtype = DType::kGeneral;
-        m_scale = std::min(detail::kDecimalMaxScale, lscale + detail::kDecimalDivIncrScale);
+        m_scale = detail::constexpr_min(detail::kDecimalMaxScale,
+                                        lscale + detail::kDecimalDivIncrScale);
         sanity_check();
         return kOk;
 }
@@ -1830,10 +1860,10 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
         }
 
         bool l_negative = l320.is_negative();
-        l320.mpz._mp_size = detail::type_abs(l320.mpz._mp_size);
+        l320.mpz._mp_size = detail::constexpr_abs(l320.mpz._mp_size);
 
         // Always mod by posititve number
-        r320.mpz._mp_size = detail::type_abs(r320.mpz._mp_size);
+        r320.mpz._mp_size = detail::constexpr_abs(r320.mpz._mp_size);
 
         // First align the scale of two numbers
         if (lscale < rscale) {
@@ -1848,7 +1878,7 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
 
         // Get the exact divide result (no fractional part)
         detail::Gmp320 quotient;
-        mpz_tdiv_r(&quotient.mpz, &l320.mpz, &r320.mpz);
+        mpz_tdiv_q(&quotient.mpz, &l320.mpz, &r320.mpz);
 
         // remainer is l320 - quotient * r320
         detail::Gmp320 qr;

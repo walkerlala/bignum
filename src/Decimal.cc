@@ -106,16 +106,18 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         // Considering that scale might be equal to the number digits, e.g., 0.12345,
         // where scale is 5, we need to add 1 more digit for the leading 0.
         // So this is 101.
-        constexpr size_t buf_size = 101;
+        constexpr int64_t buf_size = 101;
         char buf[buf_size] = {0};
 
         bool is_negative = (mpz->_mp_size < 0);
         int x_size = std::abs(mpz->_mp_size);
+        // str_size greater than scale: 1.123 -> str_size=4, scale=3
+        // str_size equal to scale: 0.123 -> str_size=3, scale=3
+        // str_size less than scale: 0.001 -> str_size=1, scale=3
         int64_t str_size = mpn_get_str((unsigned char *)buf, /*base*/ 10, mpz->_mp_d, x_size);
-        __BIGNUM_ASSERT(str_size > 0 && str_size <= 77);
-        __BIGNUM_ASSERT(str_size >= scale);
+        __BIGNUM_ASSERT(str_size > 0 && str_size < buf_size);
 
-        /* Convert result to printable chars.  */
+        // Convert result to printable chars
         char res_buf[buf_size] = {0};
         const char *const res_buf_end = res_buf + buf_size;
         char *p = res_buf;
@@ -129,8 +131,7 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
                 return static_cast<char>(chr);
         };
 
-        int64_t num_most_significant_digits = str_size - scale;
-        int64_t num_least_significant_digits = scale;
+        int64_t num_most_significant_digits = constexpr_max(0, str_size - scale);
         if (num_most_significant_digits == 0) {
                 *p++ = '0';
                 __BIGNUM_ASSERT(p < res_buf_end);
@@ -140,8 +141,16 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
                         __BIGNUM_ASSERT(p < res_buf_end);
                 }
         }
-        if (num_least_significant_digits > 0) {
+
+        if (scale > 0) {
                 *p++ = '.';
+                char *pdot = p - 1;
+
+                int64_t least_significant_leading_zeros = constexpr_max(0, scale - str_size);
+                for (int64_t i = 0; i < least_significant_leading_zeros; i++) {
+                        *p++ = '0';
+                        __BIGNUM_ASSERT(p < res_buf_end);
+                }
 
                 for (int64_t i = num_most_significant_digits; i < str_size; i++) {
                         *p++ = to_printable(buf[i]);
@@ -149,8 +158,6 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
                 }
 
                 // Trim trailing '0'
-                char *pdot = p - (str_size - num_most_significant_digits) - 1;
-                assert(*pdot == '.');
                 for (; p > pdot + 1; p--) {
                         if (*(p - 1) != '0') {
                                 break;
