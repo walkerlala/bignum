@@ -1,9 +1,15 @@
 #pragma once
 
+#include <cassert>
 #include <cstdlib>
 #include <exception>
 #include <stdexcept>
 #include <type_traits>
+
+// The bignum library leverage some gcc/clang builtin functions
+// and use long/long long/int64_t interchangably.
+static_assert(sizeof(long) == 8);
+static_assert(sizeof(long long) == 8);
 
 namespace bignum {
 // This function is used to trigger a compile-time assertion if the condition is not met in case

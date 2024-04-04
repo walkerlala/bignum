@@ -2,6 +2,7 @@ scripts/GenerateGmpPow10
 scripts/GenerateGmpPow10Test
 scripts/test_gmp
 
+venv/
 build/
 install/
 extra/gmp/gmp-6.3.0/

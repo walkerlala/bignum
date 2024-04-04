@@ -8,8 +8,8 @@ SET(GMP_VERSION 6.3.0)
 SET(GMP_DIR         "${CMAKE_SOURCE_DIR}/extra/gmp/")
 SET(GMP_TAR_BALL    "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}.tar.xz")
 SET(GMP_SOURCE_DIR  "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}/")
-SET(GMP_BUILD_DIR   "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}/build")
-SET(GMP_INSTALL_DIR "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}/install")
+SET(GMP_BUILD_DIR   "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}/gmp_build")
+SET(GMP_INSTALL_DIR "${CMAKE_SOURCE_DIR}/extra/gmp/gmp-${GMP_VERSION}/gmp_install")
 
 # Decompress source files
 EXECUTE_PROCESS(
@@ -34,11 +34,9 @@ ExternalProject_Add(gmp_external
 )
 
 ADD_LIBRARY(gmp_static_lib OBJECT IMPORTED)
-SET_TARGET_PROPERTIES(gmp_static_lib PROPERTIES LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.a")
 ADD_DEPENDENCIES(gmp_static_lib gmp_external)
 
 ADD_LIBRARY(gmp_shared_lib SHARED IMPORTED)
-SET_TARGET_PROPERTIES(gmp_shared_lib PROPERTIES LOCATION "${GMP_INSTALL_DIR}/lib/libgmp.so")
 ADD_DEPENDENCIES(gmp_shared_lib gmp_external)
 
 SET(GMP_INCLUDE_DIR "${GMP_INSTALL_DIR}/include" CACHE STRING "gmp include directory")

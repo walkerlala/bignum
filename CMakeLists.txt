@@ -93,6 +93,18 @@ install(TARGETS bignum
     INCLUDES DESTINATION include
 )
 
+# decimal_calculator
+add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/DecimalCalculator.cc)
+target_link_libraries(decimal_calculator bignum)
+target_include_directories(decimal_calculator PRIVATE ${PROJECT_ROOT}/src)
+target_include_directories(decimal_calculator PRIVATE ${GMP_INCLUDE_DIR})
+install(TARGETS decimal_calculator
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+    INCLUDES DESTINATION include
+)
+
 if (BIGNUM_BUILD_TESTS)
     add_executable(unittest
         ${PROJECT_ROOT}/tests/op.cc

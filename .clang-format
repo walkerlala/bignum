@@ -58,7 +58,7 @@ ConstructorInitializerIndentWidth: 8
 ContinuationIndentWidth: 8
 Cpp11BracedListStyle: true
 DeriveLineEnding: true
-DerivePointerAlignment: true
+#DerivePointerAlignment: true
 DisableFormat:   false
 ExperimentalAutoDetectBinPacking: false
 FixNamespaceComments: true
@@ -66,7 +66,7 @@ ForEachMacros:
   - foreach
   - Q_FOREACH
   - BOOST_FOREACH
-IncludeBlocks:   Regroup
+#IncludeBlocks:   Regroup
 IncludeCategories:
   - Regex:           '^<ext/.*\.h>'
     Priority:        2
@@ -106,7 +106,7 @@ PenaltyBreakString: 1000
 PenaltyBreakTemplateDeclaration: 10
 PenaltyExcessCharacter: 1000000
 PenaltyReturnTypeOnItsOwnLine: 200
-PointerAlignment: Left
+#PointerAlignment: Left
 RawStringFormats:
   - Language:        Cpp
     Delimiters:
@@ -168,5 +168,4 @@ UseTab:          Never
 # changed
 DerivePointerAlignment: false
 PointerAlignment: Right
-Standard:        Cpp11
 IncludeBlocks:   Preserve

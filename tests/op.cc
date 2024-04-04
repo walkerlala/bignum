@@ -1649,6 +1649,11 @@ TEST_F(DecimalTest, non_accept_table_string) {
         EXPECT_TRUE(!!d0.assign("-.123999999999999999999999999999"));
 }
 
+//=-------------------------------------------------------------------
+// These are test cases that hit bugs or corner cases as time goes by
+//=-------------------------------------------------------------------
+TEST_F(DecimalTest, bug001) {}
+
 #if 0
 TEST_F(DecimalTest, ConstExprMod) {
     //=------------------------------------------

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Assert.h"
+#include "Assertion.h"
 #include "ErrCode.h"
 
 #include <array>
@@ -19,12 +19,12 @@
 
 namespace bignum {
 template <typename T>
-concept IntegralType = ((std::is_integral_v<T> && std::is_signed_v<T>) ||
-                        std::is_same_v<T, __int128_t>);
+concept IntegralType =
+        ((std::is_integral_v<T> && std::is_signed_v<T>) || std::is_same_v<T, __int128_t>);
 
 template <typename T>
-concept UnsignedIntegralType = ((std::is_integral_v<T> || std::is_same_v<T, __int128_t>) ||
-                                !std::is_signed_v<T>);
+concept UnsignedIntegralType =
+        ((std::is_integral_v<T> || std::is_same_v<T, __int128_t>) || !std::is_signed_v<T>);
 
 // integral type that is at most 64bits
 template <typename T>
@@ -38,6 +38,8 @@ concept LargeIntegralType = IntegralType<T> && sizeof(T) == 16;
 template <typename T>
 concept FloatingPointType =
         std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, long double>;
+
+// TODO implement op for ostream
 
 namespace detail {
 constexpr int32_t kDecimalMaxScale = 30;
@@ -398,7 +400,7 @@ constexpr inline ErrCode safe_mul(T &res, T lhs, T rhs) {
         // to this expression and it will always return false.
         // So we use the following expression to detect overflow.
         if constexpr (sizeof(T) <= 8) {
-                int64_t i64res = 0;
+                long i64res = 0;
                 if (__builtin_smull_overflow(lhs, rhs, &i64res)) {
                         return kErr;
                 }
