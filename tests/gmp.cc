@@ -10,21 +10,17 @@ class GmpTest : public ::testing::Test {};
 
 TEST_F(GmpTest, gmp_constant) {
         auto gmp_max = kMaxGmpValue;
-        ASSERT_EQ(mpz_to_string(&gmp_max.mpz, /*scale*/ 0),
-                  "99999999999999999999999999999999999999999999999999999999999999999");
+        ASSERT_EQ(my_mpz_to_string(&gmp_max.mpz, /*scale*/ 0),
+                  "99999999999999999999999999999999999999999999999999999999999999999999999999999999"
+                  "9999999999999999");
 
         auto gmp_min = kMinGmpValue;
-        ASSERT_EQ(mpz_to_string(&gmp_min.mpz, /*scale*/ 0),
-                  "-99999999999999999999999999999999999999999999999999999999999999999");
+        ASSERT_EQ(my_mpz_to_string(&gmp_min.mpz, /*scale*/ 0),
+                  "-9999999999999999999999999999999999999999999999999999999999999999999999999999999"
+                  "99999999999999999");
 
         auto gmp_minus1 = kGmpValueMinus1;
-        ASSERT_EQ(mpz_to_string(&gmp_minus1.mpz, /*scale*/ 0), "-1");
-
-        auto gmp_v5 = kGmpValue5;
-        ASSERT_EQ(mpz_to_string(&gmp_v5.mpz, /*scale*/ 0), "5");
-
-        auto gmp_v10 = kGmpValue10;
-        ASSERT_EQ(mpz_to_string(&gmp_v10.mpz, /*scale*/ 0), "10");
+        ASSERT_EQ(my_mpz_to_string(&gmp_minus1.mpz, /*scale*/ 0), "-1");
 
         const char *gmp_pow_values[] = {
                 /* 0  */ "1",
@@ -71,7 +67,7 @@ TEST_F(GmpTest, gmp_constant) {
         };
         for (int i = 0; i < 41; i++) {
                 auto gmp_v = get_gmp320_power10(i);
-                ASSERT_EQ(mpz_to_string(&gmp_v.mpz, /*scale*/ 0), gmp_pow_values[i]);
+                ASSERT_EQ(my_mpz_to_string(&gmp_v.mpz, /*scale*/ 0), gmp_pow_values[i]);
         }
 }
 
@@ -123,10 +119,10 @@ TEST_F(GmpTest, init_gmp_with_int64_bignum) {
                 Gmp320 gmp_good;
                 mpz_set_si(&gmp_good.mpz, i64);
 
-                Gmp320 gmp_test = convert_int64_to_gmp(i64);
+                Gmp320 gmp_test = conv_64_to_gmp320(i64);
 
                 ASSERT_EQ(gmp_good, gmp_test);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "100");
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "100");
         }
 
         {
@@ -135,10 +131,10 @@ TEST_F(GmpTest, init_gmp_with_int64_bignum) {
                 Gmp320 gmp_good;
                 mpz_set_si(&gmp_good.mpz, i64);
 
-                Gmp320 gmp_test = convert_int64_to_gmp(i64);
+                Gmp320 gmp_test = conv_64_to_gmp320(i64);
 
                 ASSERT_EQ(gmp_good, gmp_test);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-100");
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-100");
         }
 
         {
@@ -147,10 +143,10 @@ TEST_F(GmpTest, init_gmp_with_int64_bignum) {
                 Gmp320 gmp_good;
                 mpz_set_si(&gmp_good.mpz, i64);
 
-                Gmp320 gmp_test = convert_int64_to_gmp(i64);
+                Gmp320 gmp_test = conv_64_to_gmp320(i64);
 
                 ASSERT_EQ(gmp_good, gmp_test);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-9223372036854775808");
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-9223372036854775808");
         }
 
         {
@@ -159,49 +155,49 @@ TEST_F(GmpTest, init_gmp_with_int64_bignum) {
                 Gmp320 gmp_good;
                 mpz_set_si(&gmp_good.mpz, i64);
 
-                Gmp320 gmp_test = convert_int64_to_gmp(i64);
+                Gmp320 gmp_test = conv_64_to_gmp320(i64);
 
                 ASSERT_EQ(gmp_good, gmp_test);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "9223372036854775807");
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "9223372036854775807");
         }
 }
 
 TEST_F(GmpTest, init_gmp_with_int128) {
         {
                 __int128_t i128 = 100;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "100");
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "100");
         }
 
         {
                 __int128_t i128 = -100;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-100");
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-100");
         }
 
         {
                 __int128_t i128 = INT64_MIN;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-9223372036854775808");
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "-9223372036854775808");
         }
 
         {
                 __int128_t i128 = INT64_MAX;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "9223372036854775807");
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0), "9223372036854775807");
         }
 
         {
                 __int128_t i128 = kInt128Min;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0),
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0),
                           "-170141183460469231731687303715884105728");
         }
 
         {
                 __int128_t i128 = kInt128Max;
-                Gmp320 gmp_test = convert_int128_to_gmp(i128);
-                ASSERT_EQ(mpz_to_string(&gmp_test.mpz, /*scale*/ 0),
+                Gmp320 gmp_test = conv_128_to_gmp320(i128);
+                ASSERT_EQ(my_mpz_to_string(&gmp_test.mpz, /*scale*/ 0),
                           "170141183460469231731687303715884105727");
         }
 }

@@ -53,7 +53,7 @@ const unsigned char gmp_digit_value_tab[] =
 
 // A helper class for 'Decimal' to store the actual limbs of gmp integer and its __mpz_struct
 //
-// For a mpz integer of kDecimalMaxPrecision=65, only 4 limbs is needed at most.
+// For a mpz integer of kDecimalMaxPrecision=96, only 4 limbs is needed at most.
 // However, considering the alignment and padding of the 'Decimal' class (__int128_t is 16 bytes
 // aligned), the memory footprint of a 'Decimal' is the same even if we use 5 limbs.
 template <size_t N>
@@ -133,16 +133,12 @@ using Gmp320 = GmpWrapper<5>;
 using Gmp640 = detail::GmpWrapper<10>;
 static_assert(sizeof(Gmp320) == 56);
 
-// Maximum/minimum value of precision-65 decimal number
-// (i.e., 99999999999999999999999999999999999999999999999999999999999999999)
+// Maximum/minimum value of precision-96 decimal number
 // If kMaxPrecision is changed, this value should be updated accordingly.
-constexpr auto kMaxGmpValue =
-        Gmp320(4, 0xffffffffffffffff, 0x4e3945ef7a253609, 0x1c7fc3908a8bef46, 0xf31627, 0x0);
-constexpr auto kMinGmpValue =
-        Gmp320(-4, 0xffffffffffffffff, 0x4e3945ef7a253609, 0x1c7fc3908a8bef46, 0xf31627, 0x0);
+constexpr auto kMaxGmpValue = Gmp320(5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b,
+                                     0x62e7f4a779f5080f, 0x77d9d58b62cd8a51);
+constexpr auto kMinGmpValue = Gmp320(-5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b,
+                                     0x62e7f4a779f5080f, 0x77d9d58b62cd8a51);
 constexpr auto kGmpValueMinus1 = Gmp320(-1, 0x1, 0x0, 0x0, 0x0, 0x0);
-constexpr auto kGmpValue5 = Gmp320(1, 0x5, 0x0, 0x0, 0x0, 0x0);
-constexpr auto kGmpValue10 = Gmp320(1, 0xa, 0x0, 0x0, 0x0, 0x0);
-// TODO add a static check using Singleton model at debug mode or unit test
 }  // namespace detail
 }  // namespace bignum

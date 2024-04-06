@@ -19,12 +19,12 @@
 
 namespace bignum {
 template <typename T>
-concept IntegralType =
-        ((std::is_integral_v<T> && std::is_signed_v<T>) || std::is_same_v<T, __int128_t>);
+concept IntegralType = ((std::is_integral_v<T> && std::is_signed_v<T>) ||
+                        std::is_same_v<T, __int128_t>);
 
 template <typename T>
-concept UnsignedIntegralType =
-        ((std::is_integral_v<T> || std::is_same_v<T, __int128_t>) || !std::is_signed_v<T>);
+concept UnsignedIntegralType = ((std::is_integral_v<T> || std::is_same_v<T, __int128_t>) ||
+                                !std::is_signed_v<T>);
 
 // integral type that is at most 64bits
 template <typename T>
@@ -43,16 +43,18 @@ concept FloatingPointType =
 
 namespace detail {
 constexpr int32_t kDecimalMaxScale = 30;
-constexpr int32_t kDecimalMaxPrecision = 65;
+constexpr int32_t kDecimalMaxPrecision = 96;
 constexpr int32_t kDecimalDivIncrScale = 4;
 
 constexpr __int128_t kInt128Max = (static_cast<__int128_t>(INT64_MAX) << 64) | UINT64_MAX;
 constexpr __int128_t kInt128Min = static_cast<__int128_t>(INT64_MIN) << 64;
 
 constexpr const char *kDecimalMaxStr =
-        "99999999999999999999999999999999999999999999999999999999999999999";
+        "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+        "999999";
 constexpr const char *kDecimalMinStr =
-        "-99999999999999999999999999999999999999999999999999999999999999999";
+        "-99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
+        "9999999";
 
 template <IntegralType T>
 constexpr inline T type_max() {
@@ -74,12 +76,12 @@ constexpr inline T type_min() {
 
 // std::abs() is not constexpr before c++23.
 template <IntegralType T>
-constexpr T constexpr_abs(T n) {
+constexpr auto constexpr_abs(T n) -> std::make_unsigned_t<T> {
         return n < 0 ? -n : n;
 }
 
 // std::min(l, r) does not accept cases like "int vs int64_t" nor "long long int vs int64_t",
-// which is noisy.
+// which is noisy. So we roll our own.
 template <IntegralType T, IntegralType U>
 constexpr auto constexpr_min(T a, U b) -> std::conditional_t<(sizeof(T) >= sizeof(U)), T, U> {
         static_assert(std::is_signed_v<T> == std::is_signed_v<U>);
@@ -94,28 +96,28 @@ constexpr auto constexpr_max(T a, U b) -> std::conditional_t<(sizeof(T) >= sizeo
 
 constexpr int64_t get_int64_power10(int32_t scale) {
         /* clang-format off */
-    constexpr int64_t kPower10[] = {
-        /* 0  */ 1LL,
-        /* 1  */ 10LL,
-        /* 2  */ 100LL,
-        /* 3  */ 1000LL,
-        /* 4  */ 10000LL,
-        /* 5  */ 100000LL,
-        /* 6  */ 1000000LL,
-        /* 7  */ 10000000LL,
-        /* 8  */ 100000000LL,
-        /* 9  */ 1000000000LL,
-        /* 10 */ 10000000000LL,
-        /* 11 */ 100000000000LL,
-        /* 12 */ 1000000000000LL,
-        /* 13 */ 10000000000000LL,
-        /* 14 */ 100000000000000LL,
-        /* 15 */ 1000000000000000LL,
-        /* 16 */ 10000000000000000LL,
-        /* 17 */ 100000000000000000LL,
-        /* 18 */ 1000000000000000000LL,
-        /* 19 would be too large to fit into a int64_t */
-    };
+        constexpr int64_t kPower10[] = {
+            /* 0  */ 1LL,
+            /* 1  */ 10LL,
+            /* 2  */ 100LL,
+            /* 3  */ 1000LL,
+            /* 4  */ 10000LL,
+            /* 5  */ 100000LL,
+            /* 6  */ 1000000LL,
+            /* 7  */ 10000000LL,
+            /* 8  */ 100000000LL,
+            /* 9  */ 1000000000LL,
+            /* 10 */ 10000000000LL,
+            /* 11 */ 100000000000LL,
+            /* 12 */ 1000000000000LL,
+            /* 13 */ 10000000000000LL,
+            /* 14 */ 100000000000000LL,
+            /* 15 */ 1000000000000000LL,
+            /* 16 */ 10000000000000000LL,
+            /* 17 */ 100000000000000000LL,
+            /* 18 */ 1000000000000000000LL,
+            /* 19 would be too large to fit into a int64_t */
+        };
         /* clang-format on */
         constexpr int64_t num_power10 = sizeof(kPower10) / sizeof(kPower10[0]);
         if (scale < 0 || scale >= num_power10) {
@@ -126,47 +128,47 @@ constexpr int64_t get_int64_power10(int32_t scale) {
 
 constexpr __int128_t get_int128_power10(int32_t scale) {
         /* clang-format off */
-    constexpr __int128_t kPower10[] = {
-        /* 0  */ static_cast<__int128_t>(1LL),
-        /* 1  */ static_cast<__int128_t>(10LL),
-        /* 2  */ static_cast<__int128_t>(100LL),
-        /* 3  */ static_cast<__int128_t>(1000LL),
-        /* 4  */ static_cast<__int128_t>(10000LL),
-        /* 5  */ static_cast<__int128_t>(100000LL),
-        /* 6  */ static_cast<__int128_t>(1000000LL),
-        /* 7  */ static_cast<__int128_t>(10000000LL),
-        /* 8  */ static_cast<__int128_t>(100000000LL),
-        /* 9  */ static_cast<__int128_t>(1000000000LL),
-        /* 10 */ static_cast<__int128_t>(10000000000LL),
-        /* 11 */ static_cast<__int128_t>(100000000000LL),
-        /* 12 */ static_cast<__int128_t>(1000000000000LL),
-        /* 13 */ static_cast<__int128_t>(10000000000000LL),
-        /* 14 */ static_cast<__int128_t>(100000000000000LL),
-        /* 15 */ static_cast<__int128_t>(1000000000000000LL),
-        /* 16 */ static_cast<__int128_t>(10000000000000000LL),
-        /* 17 */ static_cast<__int128_t>(100000000000000000LL),
-        /* 18 */ static_cast<__int128_t>(1000000000000000000LL),
-        /* 19 */ static_cast<__int128_t>(1000000000000000000LL) * 10LL,
-        /* 20 */ static_cast<__int128_t>(1000000000000000000LL) * 100LL,
-        /* 21 */ static_cast<__int128_t>(1000000000000000000LL) * 1000LL,
-        /* 22 */ static_cast<__int128_t>(1000000000000000000LL) * 10000LL,
-        /* 23 */ static_cast<__int128_t>(1000000000000000000LL) * 100000LL,
-        /* 24 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000LL,
-        /* 25 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000LL,
-        /* 26 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000LL,
-        /* 27 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000LL,
-        /* 28 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000LL,
-        /* 29 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000LL,
-        /* 30 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000LL,
-        /* 31 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000000LL,
-        /* 32 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000000LL,
-        /* 33 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000LL,
-        /* 34 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000000000LL,
-        /* 35 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000000000LL,
-        /* 36 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL,
-        /* 37 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL * 10LL,
-        /* 38 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL * 100LL,
-    };
+        constexpr __int128_t kPower10[] = {
+            /* 0  */ static_cast<__int128_t>(1LL),
+            /* 1  */ static_cast<__int128_t>(10LL),
+            /* 2  */ static_cast<__int128_t>(100LL),
+            /* 3  */ static_cast<__int128_t>(1000LL),
+            /* 4  */ static_cast<__int128_t>(10000LL),
+            /* 5  */ static_cast<__int128_t>(100000LL),
+            /* 6  */ static_cast<__int128_t>(1000000LL),
+            /* 7  */ static_cast<__int128_t>(10000000LL),
+            /* 8  */ static_cast<__int128_t>(100000000LL),
+            /* 9  */ static_cast<__int128_t>(1000000000LL),
+            /* 10 */ static_cast<__int128_t>(10000000000LL),
+            /* 11 */ static_cast<__int128_t>(100000000000LL),
+            /* 12 */ static_cast<__int128_t>(1000000000000LL),
+            /* 13 */ static_cast<__int128_t>(10000000000000LL),
+            /* 14 */ static_cast<__int128_t>(100000000000000LL),
+            /* 15 */ static_cast<__int128_t>(1000000000000000LL),
+            /* 16 */ static_cast<__int128_t>(10000000000000000LL),
+            /* 17 */ static_cast<__int128_t>(100000000000000000LL),
+            /* 18 */ static_cast<__int128_t>(1000000000000000000LL),
+            /* 19 */ static_cast<__int128_t>(1000000000000000000LL) * 10LL,
+            /* 20 */ static_cast<__int128_t>(1000000000000000000LL) * 100LL,
+            /* 21 */ static_cast<__int128_t>(1000000000000000000LL) * 1000LL,
+            /* 22 */ static_cast<__int128_t>(1000000000000000000LL) * 10000LL,
+            /* 23 */ static_cast<__int128_t>(1000000000000000000LL) * 100000LL,
+            /* 24 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000LL,
+            /* 25 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000LL,
+            /* 26 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000LL,
+            /* 27 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000LL,
+            /* 28 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000LL,
+            /* 29 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000LL,
+            /* 30 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000LL,
+            /* 31 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000000LL,
+            /* 32 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000000LL,
+            /* 33 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000LL,
+            /* 34 */ static_cast<__int128_t>(1000000000000000000LL) * 10000000000000000LL,
+            /* 35 */ static_cast<__int128_t>(1000000000000000000LL) * 100000000000000000LL,
+            /* 36 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL,
+            /* 37 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL * 10LL,
+            /* 38 */ static_cast<__int128_t>(1000000000000000000LL) * 1000000000000000000LL * 100LL,
+        };
         /* clang-format on */
         constexpr int64_t num_power10 = sizeof(kPower10) / sizeof(kPower10[0]);
         if (scale < 0 || scale >= num_power10) {
@@ -239,12 +241,12 @@ constexpr inline Gmp320 get_gmp320_power10(int32_t scale) {
         return kPower10[scale];
 }
 
-constexpr inline Gmp320 convert_int64_to_gmp(int64_t i64) {
+constexpr inline Gmp320 conv_64_to_gmp320(int64_t i64) {
         Gmp320 gmp;
         if (i64 == 0) {
                 gmp.mpz._mp_size = 0;
         } else if (i64 > 0) {
-                gmp.mpz._mp_d[0] = i64;
+                gmp.mpz._mp_d[0] = static_cast<uint64_t>(i64);
                 gmp.mpz._mp_size = 1;
         } else if (i64 < 0) {
                 if (i64 == INT64_MIN) {
@@ -277,10 +279,11 @@ constexpr inline Gmp320 convert_uint128_to_gmp(__uint128_t u128) {
         return gmp;
 }
 
-constexpr inline Gmp320 convert_int128_to_gmp(__int128_t i128) {
+constexpr inline Gmp320 conv_128_to_gmp320(__int128_t i128) {
         if (i128 >= 0) {
                 return convert_uint128_to_gmp(static_cast<__uint128_t>(i128));
         }
+
         Gmp320 gmp;
         if (i128 != kInt128Min) {
                 __uint128_t positive_i128 = constexpr_abs(i128);
@@ -309,7 +312,7 @@ inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, c
 }
 
 template <typename T, typename U>
-inline void copy_gmp_to_gmp(T &dst, const U &src) {
+constexpr inline void copy_gmp_to_gmp(T &dst, const U &src) {
         int src_len = constexpr_abs(src.mpz._mp_size);
         __BIGNUM_ASSERT(src_len <= dst.mpz._mp_alloc);
         for (int i = 0; i < src_len; ++i) {
@@ -319,6 +322,22 @@ inline void copy_gmp_to_gmp(T &dst, const U &src) {
                 dst.mpz._mp_d[i] = 0;
         }
         dst.mpz._mp_size = src.mpz._mp_size;
+}
+
+constexpr inline Gmp640 conv_64_to_gmp640(int64_t i64) {
+        Gmp320 res320 = conv_64_to_gmp320(i64);
+
+        Gmp640 res640;
+        copy_gmp_to_gmp(res640, res320);
+        return res640;
+}
+
+constexpr inline Gmp640 conv_128_to_gmp640(__int128_t i128) {
+        Gmp320 res320 = conv_128_to_gmp320(i128);
+
+        Gmp640 res640;
+        copy_gmp_to_gmp(res640, res320);
+        return res640;
 }
 
 template <IntegralType T>
@@ -333,7 +352,12 @@ constexpr int cmp_integral(T a, T b) {
 }
 
 // Used for decimal comparision where internal integer representation 'a' and 'b' has the same
-// scale, but 'a' or 'b' has "trailing delta value".
+// scale, but 'a' or 'b' might has "trailing delta value".
+//
+// A "trailing delta value" take effect when a==b. For example, the original value of "a" is 1.234
+// and the original value of "b" is 1.23455555. To compare these 2 decimal values, the original
+// "b" is cast to "1234" with scale=3 and have a "delta value" of 55555.
+// So now a==b, but the "delta value" of "b" is not zero, so "b" win.
 template <IntegralType T>
 constexpr int cmp_integral_with_delta(T a, T b, int lr_delta) {
         // lr_delta == 0: a has delta value
@@ -565,18 +589,18 @@ constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
         return kOk;
 }
 
-std::string decimal64_to_string(int64_t v, int32_t scale);
-std::string decimal128_to_string(__int128_t v, int32_t scale);
-std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale);
-std::string decimal_general_to_string(const Gmp320 &v, int32_t scale);
-std::string decimal_general_to_string(const Gmp640 &v, int32_t scale);
+std::string decimal_64_to_string(int64_t v, int32_t scale);
+std::string decimal_128_to_string(__int128_t v, int32_t scale);
+std::string my_mpz_to_string(const __mpz_struct *mpz, int32_t scale);
+std::string decimal_gmp_to_string(const Gmp320 &v, int32_t scale);
+std::string decimal_gmp_to_string(const Gmp640 &v, int32_t scale);
 
 }  // namespace detail
 
 //=-----------------------------------------------------------------------------
 // Big decimal implementation similar to MySQL's DECIMAL data type in execution layer.
 //
-//   - Maximum precision (i.e., maximum total number of digits) is 65 and maximum scale
+//   - Maximum precision (i.e., maximum total number of digits) is 96 and maximum scale
 //     (i.e., maximum number of digits after the decimal point) is 30.
 //
 //   - Unlike a "DECIMAL" column in database, where you have to specify the precision and
@@ -607,8 +631,8 @@ std::string decimal_general_to_string(const Gmp640 &v, int32_t scale);
 //     rounded towards zero. So 1.5 would be rounded to 2,
 //     and -1.5 would be rounded to -2.
 //
-//     Note that the maxinum precision is 65, so if the input value has more
-//     than 65 digits after rounding to scale=7 or scale=16, error or assertion
+//     Note that the maxinum precision is 96, so if the input value has more
+//     than 96 digits after rounding to scale=7 or scale=16, error or assertion
 //     would also be triggered.
 //
 //     For initializing with const value, it is recommended to use const string
@@ -756,7 +780,7 @@ class DecimalImpl final {
         //
         // Decimal arithmetic operators, e.g., '+', '-', '*', '/', cannot return error code on
         // overflow, so if overflow they trigger assertion. The is reasonable because Decimal is to
-        // used for representing "exact" values such as money, where, precision=65 is large enough
+        // used for representing "exact" values such as money, where, precision=96 is large enough
         // for most cases and overflow is not expected.
         //
         // For explicit error handling, use the "add(..)", "sub(..)", "mul(..)", "div(..)"
@@ -972,6 +996,13 @@ class DecimalImpl final {
         constexpr void sanity_check() const;
 
        private:
+        template <typename U>
+        constexpr void store_gmp_value(const U &gv) {
+                init_internal_gmp();
+                detail::copy_gmp_to_gmp(m_gmp, gv);
+                m_dtype = DType::kGmp;
+        }
+
         constexpr void copy(const DecimalImpl &rhs) {
                 m_dtype = rhs.m_dtype;
                 m_scale = rhs.m_scale;
@@ -980,12 +1011,13 @@ class DecimalImpl final {
                 } else if (m_dtype == DType::kInt128) {
                         m_i128 = rhs.m_i128;
                 } else {
-                        m_gmp = rhs.m_gmp;
+                        assert(m_dtype == DType::kGmp);
+                        store_gmp_value(rhs.m_gmp);
                 }
         }
 
-        constexpr ErrCode assign_str128(const char *start, const char *end);
-        constexpr ErrCode assign_str_general(const char *start, const char *end);
+        constexpr ErrCode assign_str_128(const char *start, const char *end);
+        constexpr ErrCode assign_str_gmp(const char *start, const char *end);
 
         constexpr void init_internal_gmp();
         constexpr void negate();
@@ -1036,7 +1068,7 @@ class DecimalImpl final {
         enum class DType : uint8_t {
                 kInt64 = 0,
                 kInt128 = 1,
-                kGeneral = 2,
+                kGmp = 2,
         };
 
         // If a decimal is small enough, we would try to store it in int64_t so that
@@ -1065,6 +1097,32 @@ using Decimal = DecimalImpl<>;
 static_assert(sizeof(Decimal) == 64);
 
 template <typename T>
+constexpr void DecimalImpl<T>::init_internal_gmp() {
+        m_gmp.initialize();
+}
+
+template <typename T>
+constexpr void DecimalImpl<T>::negate() {
+        if (m_dtype == DType::kInt64) {
+                if (m_i64 == INT64_MIN) {
+                        m_dtype = DType::kInt128;
+                        m_i128 = -static_cast<__int128_t>(m_i64);
+                } else {
+                        m_i64 = -m_i64;
+                }
+        } else if (m_dtype == DType::kInt128) {
+                if (m_i128 == detail::kInt128Min) {
+                        store_gmp_value(detail::conv_128_to_gmp320(m_i128));
+                } else {
+                        m_i128 = -m_i128;
+                }
+        } else {
+                assert(m_dtype == DType::kGmp);
+                m_gmp.negate();
+        }
+}
+
+template <typename T>
 template <FloatingPointType U>
 /*constexpr*/ inline ErrCode DecimalImpl<T>::assign(U &v) {
         std::ostringstream oss;
@@ -1091,7 +1149,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
                 end--;
         }
 
-        // skip leading zeros, until the last one or the one before decimal point
+        // skip leading zeros, except for zeros that is the only digit or the ones before decimal
+        // point.
         while (ptr + 1 < end && *ptr == '0' && ptr[1] != '.') {
                 ptr++;
         }
@@ -1105,15 +1164,16 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
         // A int64_t can represent at most 18 digits fully. 19 digits might not fit
         // into int64_t. A int128_t can represent at most 38 digits fully. 39 digits
         // might not fit into int128_t.
+        //
+        // For int64_t/int128_t, convert it into int128_t and then see whether it fits
+        // into a int64_t at the final stage. There is no `assign_str64()` because
+        // it is no necessary: the procedure of converting a string into a integer is
+        // much more expensive than casting a int128_t into a int64_t.
         ErrCode err = kOk;
         if ((ptr[0] == '-' && slen <= 39) || slen <= 38) {
-                // Convert it into int128_t and then see whether it fits into a int64_t.
-                // There is no assign_str64() because it is no necessary: the process of
-                // converting a string into a integral is much more expensive than casting
-                // a int128_t into a int64_t.
-                err = assign_str128(ptr, end);
+                err = assign_str_128(ptr, end);
         } else {
-                err = assign_str_general(ptr, end);
+                err = assign_str_gmp(ptr, end);
         }
         if (err) {
                 return err;
@@ -1124,15 +1184,18 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const char *end) {
+constexpr inline ErrCode DecimalImpl<T>::assign_str_128(const char *start, const char *end) {
         // Caller guarantees that
         //   - string is not empty;
         //   - leading/trailing spaces are removed;
-        //  - leading zeros are removed, unless it is the only digit or the one before decimal point
-        //   - string is not too long to fit into int128_t.
-        const size_t slen = end - start;
+        //  - leading zeros are removed, except for zeros that is the only digit or the ones before
+        //    decimal point
+        //  - string is short enough to fit into int128_t. So we don't need to check overflow here.
+        //    (have to check for invalid characters, though)
+        // Note that trailing zeros are not removed.
+        [[maybe_unused]] const size_t slen = end - start;
         const char *ptr = start;
-        assert(slen && ((ptr[0] == '-' && slen <= 39) || slen <= 38));
+        assert(slen > 0 && ((ptr[0] == '-' && slen <= 39) || slen <= 38));
 
         bool is_negative = false;
         if (*ptr == '-') {
@@ -1142,23 +1205,24 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
         const char *digit_start = ptr;
 
         const char *pdot = std::find(ptr, end, '.');
-        __BIGNUM_ASSERT(pdot <= end);
-        bool has_dot = (pdot < end);
-
-        if (has_dot && pdot == digit_start) {
-                // ".123" and "-.123" are not acceptable.
-                return kInvalidArgument;
+        if (pdot >= end) {
+                pdot = nullptr;
+        }
+        if (pdot) {
+                if (pdot == digit_start) {
+                        // ".123" and "-.123" are not acceptable.
+                        return kInvalidArgument;
+                } else if (pdot + 1 >= end) {
+                        // The '.' character could not be at the very end,
+                        // i.e., '1234.' is not acceptable.
+                        return kInvalidArgument;
+                }
         }
 
-        // The '.' character could not be at the very end, i.e., '1234.' is not acceptable.
-        if (has_dot && (pdot + 1 >= end)) {
-                return kInvalidArgument;
-        }
-
-        // Already limit number of digits above, so the significant digits could not
+        // Already limit number of digits in caller, so the significant digits could not
         // overflow. But the significant part might still contains invalid chacters.
         __int128_t significant_v128 = 0;
-        ErrCode err = detail::convert_str_to_int128(significant_v128, ptr, pdot);
+        ErrCode err = detail::convert_str_to_int128(significant_v128, ptr, (pdot ? pdot : end));
         if (err) {
                 return err;
         }
@@ -1166,34 +1230,32 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
         // Trailing '0' truncation:
         // 123.1000 -> 123.1
         // 123.000 -> 123
-        if (has_dot) {
+        if (pdot) {
                 // trim continuous trailing '0'
-                while (end > pdot + 1 && *(end - 1) == '0') {
-                        end--;
+                const char *pz = end - 1;
+                while (pz > pdot && *pz == '0') {
+                        --pz;
                 }
 
-                if (pdot + 1 >= end) {
-                        has_dot = false;
+                if (pz == pdot) {
                         end = pdot;
+                        pdot = nullptr;
                 } else {
-                        has_dot = true;
+                        end = pz + 1;
                 }
         }
 
         int32_t scale = 0;
-        if (has_dot) {
+        if (pdot) {
                 scale = end - (pdot + 1);
-                // Already limit number of digits above, so __int128_t can always represent
-                // all digits. However, the scale might still overflow if the # of least
-                // significant digits is more than 30.
+                // Num of least significant digits cannot overflow kMaxScale
                 if (scale > kMaxScale) {
                         return kDecimalScaleOverflow;
                 }
 
                 __int128_t least_significant_v128 = 0;
-                // Already limit number of digits above, so the least significant digits
-                // could not overflow. But the least significant part might still contains,
-                // like, invalid chacters.
+                // Least significant digits would not overflow __int128_t, but might contains
+                // invalid characters.
                 err = detail::convert_str_to_int128(least_significant_v128, pdot + 1, end);
                 if (err) {
                         return err;
@@ -1205,9 +1267,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
         }
         m_scale = scale;
 
-        // m_i128 = (is_negative ? -significant_v128 : significant_v128);
         __int128_t res128 = (is_negative ? -significant_v128 : significant_v128);
-        if (scale <= 18 && res128 <= INT64_MAX && res128 >= INT64_MIN) {
+        if (res128 <= INT64_MAX && res128 >= INT64_MIN) {
                 m_dtype = DType::kInt64;
                 m_i64 = static_cast<int64_t>(res128);
         } else {
@@ -1218,30 +1279,15 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str128(const char *start, const 
 }
 
 template <typename T>
-constexpr void DecimalImpl<T>::init_internal_gmp() {
-        m_gmp.initialize();
-}
-
-template <typename T>
-constexpr void DecimalImpl<T>::negate() {
-        if (m_dtype == DType::kInt64) {
-                m_i64 = -m_i64;
-        } else if (m_dtype == DType::kInt128) {
-                m_i128 = -m_i128;
-        } else {
-                __BIGNUM_ASSERT(m_dtype == DType::kGeneral);
-                m_gmp.negate();
-        }
-}
-
-template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, const char *end) {
+constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const char *end) {
         // Caller guarantees that
         //  - string is not empty;
         //  - leading/trailing spaces are removed;
-        //  - leading zeros are removed, unless it is the only digit or the one before decimal point
+        //  - leading zeros are removed, except for zeros that is the only digit or the ones before
+        //    decimal point
+        // Note that trailing zeros are not removed.
         const size_t slen = end - start;
-        assert(slen);
+        assert(slen > 0);
         const char *ptr = start;
 
         if (slen > kMaxPrecision + 1 + 1) {
@@ -1258,7 +1304,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
         }
         const char *digit_start = ptr;
 
-        // Copy all the digits out into a buffer, to be initialized by mpn_set_str.
+        // Copy all the digits out into a buffer for subsequent mpn_set_str().
         // Leading zeros are skipped.
         // At most kMaxPrecision digits. +1 for the '\0'.
         char buf[kMaxPrecision + 1] = {0};
@@ -1268,8 +1314,14 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
                 int pv = *ptr;
                 if (pv == '.') {
                         pdot = ptr;
-                        // ".0123" and "-.0123" are not acceptable.
                         if (pdot == digit_start) {
+                                // ".0123" and "-.0123" are not acceptable.
+                                return kInvalidArgument;
+                        } else if (pdot + 1 >= end) {
+                                // The '.' character could not be at the very end,
+                                // i.e., '1234.' is not acceptable.
+                                return kInvalidArgument;
+                        } else if (end - (pdot + 1) > kMaxScale) {
                                 return kInvalidArgument;
                         }
                         continue;
@@ -1285,46 +1337,62 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_general(const char *start, c
                         return kInvalidArgument;
                 }
         }
+
+        // Trailing '0' truncation:
+        // 123.1000 -> 123.1
+        // 123.000 -> 123
+        if (pdot) {
+                unsigned char zero_val = detail::gmp_digit_value_tab[static_cast<int>('0')];
+                const char *pz = end - 1;
+                while (pz > pdot && *pz == zero_val) {
+                        --pz;
+                }
+
+                if (pz == pdot) {
+                        end = pdot;
+                        pdot = nullptr;
+                } else {
+                        end = pz + 1;
+                }
+        }
+
         scale = pdot ? end - (pdot + 1) : 0;
 
         init_internal_gmp();
         int64_t xsize = mpn_set_str(m_gmp.mpz._mp_d, (unsigned char *)buf, num_digits, /*base*/ 10);
         m_gmp.mpz._mp_size = (is_negative ? -xsize : xsize);
 
-        m_dtype = DType::kGeneral;
+        m_dtype = DType::kGmp;
         m_scale = scale;
-        if (m_scale > kMaxScale) {
-                return kInvalidArgument;
-        }
-
         return kOk;
 }
 
 template <typename T>
 inline std::string DecimalImpl<T>::to_string() const {
         if (m_dtype == DType::kInt64) {
-                return detail::decimal64_to_string(m_i64, m_scale);
+                return detail::decimal_64_to_string(m_i64, m_scale);
         } else if (m_dtype == DType::kInt128) {
-                return detail::decimal128_to_string(m_i128, m_scale);
+                return detail::decimal_128_to_string(m_i128, m_scale);
         } else {
-                return detail::decimal_general_to_string(m_gmp, m_scale);
+                assert(m_dtype == DType::kGmp);
+                return detail::decimal_gmp_to_string(m_gmp, m_scale);
         }
 }
 
 template <typename T>
 constexpr inline DecimalImpl<T>::operator double() const {
+        int scale = m_scale;
+        __BIGNUM_ASSERT(scale >= 0);
         if (m_dtype == DType::kInt64) {
-                return static_cast<double>(m_i64) / detail::get_int128_power10(m_scale);
+                return static_cast<double>(m_i64) / detail::get_int128_power10(scale);
         } else if (m_dtype == DType::kInt128) {
-                return static_cast<double>(m_i128) / detail::get_int128_power10(m_scale);
+                return static_cast<double>(m_i128) / detail::get_int128_power10(scale);
         } else {
+                assert(m_dtype == DType::kGmp);
                 double res = mpz_get_d(&m_gmp.mpz);
-
-                int scale = m_scale;
-                __BIGNUM_ASSERT(scale >= 0);
                 while (scale > 0) {
-                        int s = detail::constexpr_min(scale, 38);
-                        __int128_t scale_div = detail::get_int128_power10(s);
+                        int s = detail::constexpr_min(scale, 18);
+                        int64_t scale_div = detail::get_int64_power10(s);
                         res /= static_cast<double>(scale_div);
                         scale -= s;
                 }
@@ -1339,7 +1407,8 @@ constexpr inline bool DecimalImpl<T>::is_negative() const {
         } else if (m_dtype == DType::kInt128) {
                 return m_i128 < 0;
         } else {
-                return mpz_sgn(&m_gmp.mpz) < 0;
+                assert(m_dtype == DType::kGmp);
+                return m_gmp.is_negative();
         }
 }
 
@@ -1350,6 +1419,7 @@ constexpr inline DecimalImpl<T>::operator bool() const {
         } else if (m_dtype == DType::kInt128) {
                 return m_i128 != 0;
         } else {
+                assert(m_dtype == DType::kGmp);
                 bool is_zero = (m_gmp.mpz._mp_size == 0);
                 return !is_zero;
         }
@@ -1388,31 +1458,31 @@ constexpr inline ErrCode DecimalImpl<T>::add_i128_i128(__int128_t l128, int32_t 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(detail::Gmp320 l, int32_t lscale,
                                                      detail::Gmp320 r, int32_t rscale) {
-        init_internal_gmp();
+        detail::Gmp640 res640;
         if (lscale > rscale) {
                 const detail::Gmp320 pow = detail::get_gmp320_power10(lscale - rscale);
 
-                detail::Gmp320 intermediate;
+                detail::Gmp640 intermediate;
                 mpz_mul(&intermediate.mpz, &r.mpz, &pow.mpz);
-                mpz_add(&m_gmp.mpz, &intermediate.mpz, &l.mpz);
+                mpz_add(&res640.mpz, &intermediate.mpz, &l.mpz);
 
         } else if (lscale < rscale) {
                 const detail::Gmp320 pow = detail::get_gmp320_power10(rscale - lscale);
 
-                detail::Gmp320 intermediate;
+                detail::Gmp640 intermediate;
                 mpz_mul(&intermediate.mpz, &l.mpz, &pow.mpz);
-                mpz_add(&m_gmp.mpz, &intermediate.mpz, &r.mpz);
+                mpz_add(&res640.mpz, &intermediate.mpz, &r.mpz);
         } else {
-                mpz_add(&m_gmp.mpz, &l.mpz, &r.mpz);
+                mpz_add(&res640.mpz, &l.mpz, &r.mpz);
         }
-        m_dtype = DType::kGeneral;
-        m_scale = detail::constexpr_max(lscale, rscale);
 
         // Check whether the result exceed maximum value of precision kMaxPrecision
-        if (detail::check_gmp_out_of_range(m_gmp, detail::kMinGmpValue, detail::kMaxGmpValue)) {
+        if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
                 return kDecimalAddSubOverflow;
         }
 
+        store_gmp_value(res640);
+        m_scale = detail::constexpr_max(lscale, rscale);
         return kOk;
 }
 
@@ -1445,13 +1515,13 @@ constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = add_gmp_gmp(detail::convert_int64_to_gmp(m_i64), m_scale,
-                                          detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        err = add_gmp_gmp(detail::conv_64_to_gmp320(m_i64), m_scale,
+                                          detail::conv_128_to_gmp320(rhs.m_i128), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return kOk;
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        return add_gmp_gmp(detail::convert_int64_to_gmp(m_i64), m_scale, rhs.m_gmp,
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        return add_gmp_gmp(detail::conv_64_to_gmp320(m_i64), m_scale, rhs.m_gmp,
                                            rhs.m_scale);
 
                 } else {
@@ -1466,8 +1536,8 @@ constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = add_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                          detail::convert_int64_to_gmp(rhs.m_i64), rhs.m_scale);
+                        err = add_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale,
+                                          detail::conv_64_to_gmp320(rhs.m_i64), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return kOk;
 
@@ -1477,29 +1547,29 @@ constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = add_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                          detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        err = add_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale,
+                                          detail::conv_128_to_gmp320(rhs.m_i128), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return kOk;
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        return add_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                           rhs.m_gmp, rhs.m_scale);
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        return add_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale, rhs.m_gmp,
+                                           rhs.m_scale);
 
                 } else {
                         __BIGNUM_ASSERT(false);
                         return kErr;
                 }
-        } else if (m_dtype == DType::kGeneral) {
+        } else if (m_dtype == DType::kGmp) {
                 if (rhs.m_dtype == DType::kInt64) {
-                        return add_gmp_gmp(m_gmp, m_scale, detail::convert_int64_to_gmp(rhs.m_i64),
+                        return add_gmp_gmp(m_gmp, m_scale, detail::conv_64_to_gmp320(rhs.m_i64),
                                            rhs.m_scale);
 
                 } else if (rhs.m_dtype == DType::kInt128) {
-                        return add_gmp_gmp(m_gmp, m_scale,
-                                           detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        return add_gmp_gmp(m_gmp, m_scale, detail::conv_128_to_gmp320(rhs.m_i128),
+                                           rhs.m_scale);
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
+                } else if (rhs.m_dtype == DType::kGmp) {
                         return add_gmp_gmp(m_gmp, m_scale, rhs.m_gmp, rhs.m_scale);
 
                 } else {
@@ -1556,14 +1626,9 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
         __BIGNUM_ASSERT(lscale >= 0 && lscale <= kMaxScale);
         __BIGNUM_ASSERT(rscale >= 0 && rscale <= kMaxScale);
 
-        if (r.is_zero()) {
-                return kDivByZero;
-        }
-
         // kNumLimbs=5 limbs -> 320 bit
         // 2 * 320bit -> 640 bit (80 bytes) -> 10 * int64_t
         detail::Gmp640 res640;
-
         mpz_mul(&res640.mpz, &l.mpz, &r.mpz);
 
         if (lscale + rscale > detail::kDecimalMaxScale) {
@@ -1578,7 +1643,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
 
                 if (delta_scale - 1 > 0) {
                         __int128_t div_first_part = detail::get_int128_power10(delta_scale - 1);
-                        detail::Gmp320 divisor = detail::convert_int128_to_gmp(div_first_part);
+                        detail::Gmp320 divisor = detail::conv_128_to_gmp320(div_first_part);
                         // => res640 /= divisor
                         detail::Gmp640 tmp640;
                         mpz_tdiv_q(&tmp640.mpz, &res640.mpz, &divisor.mpz);
@@ -1586,13 +1651,13 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
                 }
 
                 detail::Gmp640 remainder;
-                mpz_tdiv_r(&remainder.mpz, &res640.mpz, &detail::kGmpValue10.mpz);
+                mpz_tdiv_r_ui(&remainder.mpz, &res640.mpz, 10);
 
                 detail::Gmp640 tmp640;
-                mpz_tdiv_q(&tmp640.mpz, &res640.mpz, &detail::kGmpValue10.mpz);
+                mpz_tdiv_q_ui(&tmp640.mpz, &res640.mpz, 10);
                 res640 = tmp640;
 
-                int cmp5 = mpz_cmp(&remainder.mpz, &detail::kGmpValue5.mpz);
+                int cmp5 = mpz_cmp_ui(&remainder.mpz, 5);
                 if (cmp5 >= 0) {
                         mpz_add_ui(&res640.mpz, &res640.mpz, 1);
                 }
@@ -1604,14 +1669,12 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t l
         } else {
                 m_scale = lscale + rscale;
         }
-        m_dtype = DType::kGeneral;
 
         if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
                 return kDecimalMulOverflow;
         }
 
-        init_internal_gmp();
-        detail::copy_gmp_to_gmp(m_gmp, res640);
+        store_gmp_value(res640);
         return kOk;
 }
 
@@ -1640,13 +1703,13 @@ constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = mul_gmp_gmp(detail::convert_int64_to_gmp(m_i64), m_scale,
-                                          detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        err = mul_gmp_gmp(detail::conv_64_to_gmp320(m_i64), m_scale,
+                                          detail::conv_128_to_gmp320(rhs.m_i128), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return kOk;
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        return mul_gmp_gmp(detail::convert_int64_to_gmp(m_i64), m_scale, rhs.m_gmp,
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        return mul_gmp_gmp(detail::conv_64_to_gmp320(m_i64), m_scale, rhs.m_gmp,
                                            rhs.m_scale);
 
                 } else {
@@ -1661,8 +1724,8 @@ constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = mul_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                          detail::convert_int64_to_gmp(rhs.m_i64), rhs.m_scale);
+                        err = mul_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale,
+                                          detail::conv_64_to_gmp320(rhs.m_i64), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return kOk;
 
@@ -1672,29 +1735,29 @@ constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) {
                                 return kOk;
                         }
 
-                        err = mul_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                          detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        err = mul_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale,
+                                          detail::conv_128_to_gmp320(rhs.m_i128), rhs.m_scale);
                         __BIGNUM_ASSERT(!err);
                         return err;
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        return mul_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale,
-                                           rhs.m_gmp, rhs.m_scale);
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        return mul_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale, rhs.m_gmp,
+                                           rhs.m_scale);
 
                 } else {
                         __BIGNUM_ASSERT(false);
                         return kErr;
                 }
-        } else if (m_dtype == DType::kGeneral) {
+        } else if (m_dtype == DType::kGmp) {
                 if (rhs.m_dtype == DType::kInt64) {
-                        return mul_gmp_gmp(m_gmp, m_scale, detail::convert_int64_to_gmp(rhs.m_i64),
+                        return mul_gmp_gmp(m_gmp, m_scale, detail::conv_64_to_gmp320(rhs.m_i64),
                                            rhs.m_scale);
 
                 } else if (rhs.m_dtype == DType::kInt128) {
-                        return mul_gmp_gmp(m_gmp, m_scale,
-                                           detail::convert_int128_to_gmp(rhs.m_i128), rhs.m_scale);
+                        return mul_gmp_gmp(m_gmp, m_scale, detail::conv_128_to_gmp320(rhs.m_i128),
+                                           rhs.m_scale);
 
-                } else if (rhs.m_dtype == DType::kGeneral) {
+                } else if (rhs.m_dtype == DType::kGmp) {
                         return mul_gmp_gmp(m_gmp, m_scale, rhs.m_gmp, rhs.m_scale);
 
                 } else {
@@ -1721,10 +1784,10 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         detail::Gmp320 l320;
         int32_t lscale = m_scale;
         if (m_dtype == DType::kInt64) {
-                l320 = detail::convert_int64_to_gmp(m_i64);
+                l320 = detail::conv_64_to_gmp320(m_i64);
         } else if (m_dtype == DType::kInt128) {
-                l320 = detail::convert_int128_to_gmp(m_i128);
-        } else if (m_dtype == DType::kGeneral) {
+                l320 = detail::conv_128_to_gmp320(m_i128);
+        } else if (m_dtype == DType::kGmp) {
                 l320 = m_gmp;
         } else {
                 __BIGNUM_ASSERT(false);
@@ -1734,10 +1797,10 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
         detail::Gmp320 r320;
         int32_t rscale = rhs.m_scale;
         if (rhs.m_dtype == DType::kInt64) {
-                r320 = detail::convert_int64_to_gmp(rhs.m_i64);
+                r320 = detail::conv_64_to_gmp320(rhs.m_i64);
         } else if (rhs.m_dtype == DType::kInt128) {
-                r320 = detail::convert_int128_to_gmp(rhs.m_i128);
-        } else if (rhs.m_dtype == DType::kGeneral) {
+                r320 = detail::conv_128_to_gmp320(rhs.m_i128);
+        } else if (rhs.m_dtype == DType::kGmp) {
                 r320 = rhs.m_gmp;
         } else {
                 __BIGNUM_ASSERT(false);
@@ -1809,9 +1872,7 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
                 return kDecimalMulOverflow;
         }
 
-        init_internal_gmp();
-        detail::copy_gmp_to_gmp(m_gmp, res640);
-        m_dtype = DType::kGeneral;
+        store_gmp_value(res640);
         m_scale = detail::constexpr_min(detail::kDecimalMaxScale,
                                         lscale + detail::kDecimalDivIncrScale);
         sanity_check();
@@ -1826,77 +1887,76 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
         sanity_check();
         rhs.sanity_check();
 
-        detail::Gmp320 l320;
+        detail::Gmp640 l640;
         int32_t lscale = m_scale;
         if (m_dtype == DType::kInt64) {
-                l320 = detail::convert_int64_to_gmp(m_i64);
+                l640 = detail::conv_64_to_gmp640(m_i64);
         } else if (m_dtype == DType::kInt128) {
-                l320 = detail::convert_int128_to_gmp(m_i128);
-        } else if (m_dtype == DType::kGeneral) {
-                l320 = m_gmp;
+                l640 = detail::conv_128_to_gmp640(m_i128);
+        } else if (m_dtype == DType::kGmp) {
+                detail::copy_gmp_to_gmp(l640, m_gmp);
         } else {
                 __BIGNUM_ASSERT(false);
                 return kErr;
         }
 
-        detail::Gmp320 r320;
+        detail::Gmp640 r640;
         int32_t rscale = rhs.m_scale;
         if (rhs.m_dtype == DType::kInt64) {
-                r320 = detail::convert_int64_to_gmp(rhs.m_i64);
+                r640 = detail::conv_64_to_gmp640(rhs.m_i64);
         } else if (rhs.m_dtype == DType::kInt128) {
-                r320 = detail::convert_int128_to_gmp(rhs.m_i128);
-        } else if (rhs.m_dtype == DType::kGeneral) {
-                r320 = rhs.m_gmp;
+                r640 = detail::conv_128_to_gmp640(rhs.m_i128);
+        } else if (rhs.m_dtype == DType::kGmp) {
+                detail::copy_gmp_to_gmp(r640, m_gmp);
         } else {
                 __BIGNUM_ASSERT(false);
                 return kErr;
         }
 
-        if (r320.is_zero()) {
+        if (r640.is_zero()) {
                 return kDivByZero;
-        } else if (l320.is_zero()) {
+        } else if (l640.is_zero()) {
                 m_scale = 0;
                 m_dtype = DType::kInt64;
                 m_i64 = 0;
                 return kOk;
         }
 
-        bool l_negative = l320.is_negative();
-        l320.mpz._mp_size = detail::constexpr_abs(l320.mpz._mp_size);
+        bool l_negative = l640.is_negative();
+        l640.mpz._mp_size = detail::constexpr_abs(l640.mpz._mp_size);
 
-        // Always mod by posititve number
-        r320.mpz._mp_size = detail::constexpr_abs(r320.mpz._mp_size);
+        // Always mod by posititve number, i.e.,
+        // If rhs is negative, we need to calculate -l640 % abs(r640)
+        r640.mpz._mp_size = detail::constexpr_abs(r640.mpz._mp_size);
 
         // First align the scale of two numbers
         if (lscale < rscale) {
                 const detail::Gmp320 mul_lhs = detail::get_gmp320_power10(rscale - lscale);
-                mpz_mul(&l320.mpz, &l320.mpz, &mul_lhs.mpz);
+                mpz_mul(&l640.mpz, &l640.mpz, &mul_lhs.mpz);
                 lscale = rscale;
         } else if (lscale > rscale) {
                 const detail::Gmp320 mul_rhs = detail::get_gmp320_power10(lscale - rscale);
-                mpz_mul(&r320.mpz, &r320.mpz, &mul_rhs.mpz);
+                mpz_mul(&r640.mpz, &r640.mpz, &mul_rhs.mpz);
                 rscale = lscale;
         }
 
         // Get the exact divide result (no fractional part)
-        detail::Gmp320 quotient;
-        mpz_tdiv_q(&quotient.mpz, &l320.mpz, &r320.mpz);
+        detail::Gmp640 quotient;
+        mpz_tdiv_q(&quotient.mpz, &l640.mpz, &r640.mpz);
 
-        // remainer is l320 - quotient * r320
-        detail::Gmp320 qr;
-        mpz_mul(&qr.mpz, &quotient.mpz, &r320.mpz);
+        // remainder is l640 - quotient * r640
+        detail::Gmp640 qr;
+        mpz_mul(&qr.mpz, &quotient.mpz, &r640.mpz);
 
-        detail::Gmp320 remainder;
-        mpz_sub(&remainder.mpz, &l320.mpz, &qr.mpz);
+        detail::Gmp640 remainder;
+        mpz_sub(&remainder.mpz, &l640.mpz, &qr.mpz);
 
         if (l_negative) {
                 remainder.negate();
         }
 
-        init_internal_gmp();
-        detail::copy_gmp_to_gmp(m_gmp, remainder);
+        store_gmp_value(remainder);
         m_scale = lscale;
-        m_dtype = DType::kGeneral;
 
 #ifndef NDEBUG
         __BIGNUM_ASSERT(!detail::check_gmp_out_of_range(remainder, detail::kMinGmpValue,
@@ -1918,37 +1978,39 @@ constexpr inline int DecimalImpl<T>::cmp_i64_i64(int64_t l64, int32_t lscale, in
         if (lscale == rscale) {
                 return detail::cmp_integral(l64, r64);
         } else if (rscale > lscale) {
+                int32_t scale_diff = rscale - lscale;
                 int64_t newl = 0;
-                if (!detail::safe_mul(newl, l64, detail::get_int64_power10(rscale - lscale))) {
+                if (!detail::safe_mul(newl, l64, detail::get_int64_power10(scale_diff))) {
                         return detail::cmp_integral(newl, r64);
                 }
 
                 // cast to __int128_t and do it again.
                 __int128_t newl128;
                 if (!detail::safe_mul(newl128, static_cast<__int128_t>(l64),
-                                      detail::get_int128_power10(rscale - lscale))) {
+                                      detail::get_int128_power10(scale_diff))) {
                         return detail::cmp_integral(newl128, static_cast<__int128_t>(r64));
                 }
 
                 // otherwise, simply divide the one with larger scale by 10^diff, and compare again.
-                int64_t newr = r64 / detail::get_int64_power10(rscale - lscale);
+                int64_t newr = r64 / detail::get_int64_power10(scale_diff);
                 return detail::cmp_integral_with_delta(l64, newr, /*lr_delta*/ 1);
         } else {
                 assert(rscale < lscale);
+                int32_t scale_diff = lscale - rscale;
                 int64_t newr = 0;
-                if (!detail::safe_mul(newr, r64, detail::get_int64_power10(lscale - rscale))) {
+                if (!detail::safe_mul(newr, r64, detail::get_int64_power10(scale_diff))) {
                         return detail::cmp_integral(l64, newr);
                 }
 
                 // cast to __int128_t and do it again.
                 __int128_t newr128;
                 if (!detail::safe_mul(newr128, static_cast<__int128_t>(r64),
-                                      detail::get_int128_power10(lscale - rscale))) {
+                                      detail::get_int128_power10(scale_diff))) {
                         return detail::cmp_integral(static_cast<__int128_t>(l64), newr128);
                 }
 
                 // otherwise, simply divide the one with larger scale by 10^diff, and compare again.
-                int64_t newl = l64 / detail::get_int64_power10(lscale - rscale);
+                int64_t newl = l64 / detail::get_int64_power10(scale_diff);
                 return detail::cmp_integral_with_delta(newl, r64, /*lr_delta*/ 0);
         }
 
@@ -1968,6 +2030,8 @@ constexpr inline int DecimalImpl<T>::cmp_i128_i128(__int128_t l128, int32_t lsca
         if (lscale == rscale) {
                 return detail::cmp_integral(l128, r128);
         } else if (rscale > lscale) {
+                // First try to adjust l128 to the same scale as r128 by multiplying 10^diff.
+                // If overflow, adjust r128 to the same scale as l128 by dividing 10^diff.
                 __int128_t newl = 0;
                 if (!detail::safe_mul(newl, l128, detail::get_int128_power10(rscale - lscale))) {
                         return detail::cmp_integral(newl, r128);
@@ -2016,6 +2080,15 @@ constexpr inline int DecimalImpl<T>::cmp_gmp_gmp(const detail::Gmp320 &l320, int
 
 template <typename T>
 constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
+        sanity_check();
+        rhs.sanity_check();
+
+        if (is_negative() && !rhs.is_negative()) {
+                return -1;
+        } else if (!is_negative() && rhs.is_negative()) {
+                return 1;
+        }
+
         int res = 0;
         if (m_dtype == DType::kInt64) {
                 if (rhs.m_dtype == DType::kInt64) {
@@ -2023,8 +2096,8 @@ constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
                 } else if (rhs.m_dtype == DType::kInt128) {
                         res = cmp_i128_i128(static_cast<__int128_t>(m_i64), m_scale, rhs.m_i128,
                                             rhs.m_scale);
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        res = cmp_gmp_gmp(detail::convert_int64_to_gmp(m_i64), m_scale, rhs.m_gmp,
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        res = cmp_gmp_gmp(detail::conv_64_to_gmp320(m_i64), m_scale, rhs.m_gmp,
                                           rhs.m_scale);
                 } else {
                         __BIGNUM_ASSERT(false);
@@ -2035,20 +2108,20 @@ constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
                                             rhs.m_scale);
                 } else if (rhs.m_dtype == DType::kInt128) {
                         res = cmp_i128_i128(m_i128, m_scale, rhs.m_i128, rhs.m_scale);
-                } else if (rhs.m_dtype == DType::kGeneral) {
-                        res = cmp_gmp_gmp(detail::convert_int128_to_gmp(m_i128), m_scale, rhs.m_gmp,
+                } else if (rhs.m_dtype == DType::kGmp) {
+                        res = cmp_gmp_gmp(detail::conv_128_to_gmp320(m_i128), m_scale, rhs.m_gmp,
                                           rhs.m_scale);
                 } else {
                         __BIGNUM_ASSERT(false);
                 }
-        } else if (m_dtype == DType::kGeneral) {
+        } else if (m_dtype == DType::kGmp) {
                 if (rhs.m_dtype == DType::kInt64) {
-                        res = cmp_gmp_gmp(m_gmp, m_scale, detail::convert_int64_to_gmp(rhs.m_i64),
+                        res = cmp_gmp_gmp(m_gmp, m_scale, detail::conv_64_to_gmp320(rhs.m_i64),
                                           rhs.m_scale);
                 } else if (rhs.m_dtype == DType::kInt128) {
-                        res = cmp_gmp_gmp(m_gmp, m_scale, detail::convert_int128_to_gmp(rhs.m_i128),
+                        res = cmp_gmp_gmp(m_gmp, m_scale, detail::conv_128_to_gmp320(rhs.m_i128),
                                           rhs.m_scale);
-                } else if (rhs.m_dtype == DType::kGeneral) {
+                } else if (rhs.m_dtype == DType::kGmp) {
                         res = cmp_gmp_gmp(m_gmp, m_scale, rhs.m_gmp, rhs.m_scale);
                 } else {
                         __BIGNUM_ASSERT(false);
@@ -2061,49 +2134,27 @@ constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
 
 template <typename T>
 constexpr inline bool DecimalImpl<T>::operator==(const DecimalImpl<T> &rhs) const {
-        sanity_check();
-        rhs.sanity_check();
-
-        if (is_negative() != rhs.is_negative()) {
-                return false;
-        }
         int res = cmp(rhs);
         return res == 0;
 }
 
 template <typename T>
 constexpr inline bool DecimalImpl<T>::operator<(const DecimalImpl<T> &rhs) const {
-        sanity_check();
-        rhs.sanity_check();
-
-        if (is_negative() && !rhs.is_negative()) {
-                return true;
-        } else if (!is_negative() && rhs.is_negative()) {
-                return false;
-        }
-
         int res = cmp(rhs);
         return res < 0;
 }
 
 template <typename T>
 constexpr inline bool DecimalImpl<T>::operator<=(const DecimalImpl<T> &rhs) const {
-        sanity_check();
-        rhs.sanity_check();
-
-        if (is_negative() && !rhs.is_negative()) {
-                return true;
-        } else if (!is_negative() && rhs.is_negative()) {
-                return false;
-        }
-
         int res = cmp(rhs);
         return res <= 0;
 }
 
 template <typename T>
 constexpr inline void DecimalImpl<T>::sanity_check() const {
+#ifndef NDEBUG
         __BIGNUM_ASSERT(m_scale >= 0 && m_scale <= kMaxScale);
-        __BIGNUM_ASSERT(m_dtype != DType::kGeneral || m_gmp.ptr_check());
+        __BIGNUM_ASSERT(m_dtype != DType::kGmp || m_gmp.ptr_check());
+#endif
 }
 }  // namespace bignum

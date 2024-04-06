@@ -87,28 +87,29 @@ else()
 endif()
 
 install(TARGETS bignum
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
+    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+    INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 )
 
 # decimal_calculator
-add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/DecimalCalculator.cc)
+add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/Calculator.cc)
 target_link_libraries(decimal_calculator bignum)
 target_include_directories(decimal_calculator PRIVATE ${PROJECT_ROOT}/src)
 target_include_directories(decimal_calculator PRIVATE ${GMP_INCLUDE_DIR})
 install(TARGETS decimal_calculator
-    LIBRARY DESTINATION lib
-    ARCHIVE DESTINATION lib
-    RUNTIME DESTINATION bin
-    INCLUDES DESTINATION include
+    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+    INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
 )
 
 if (BIGNUM_BUILD_TESTS)
     add_executable(unittest
         ${PROJECT_ROOT}/tests/op.cc
         ${PROJECT_ROOT}/tests/gmp.cc
+        #${PROJECT_ROOT}/tests/issues.cc
     )
     target_link_libraries(unittest bignum)
     target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
@@ -117,10 +118,10 @@ if (BIGNUM_BUILD_TESTS)
     target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
     add_dependencies(unittest gtest_lib)
     install(TARGETS unittest
-        LIBRARY DESTINATION lib
-        ARCHIVE DESTINATION lib
-        RUNTIME DESTINATION bin
-        INCLUDES DESTINATION include
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
     )
 endif()
 

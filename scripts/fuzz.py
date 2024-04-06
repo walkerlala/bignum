@@ -134,6 +134,16 @@ def run_bignum_test(d1: Decimal, d2: Decimal, op: str) -> str:
 
     return result.stdout.decode()
 
+def decimal_str_cmp(dmysql: str, dbignum: str) -> bool:
+    if dmysql == dbignum:
+        return True
+
+    # bignum trim trailing '0' in least significant part
+    # but mysql does not. So we should treat 1.23400 == 1.234
+    if '.' in dbignum and dmysql.startswith(dmysql) and dmysql.lstrip(dmysql).strip("0") == ".":
+        return True
+
+    return False
 
 def test_binary_expr(d1: Decimal, d2: Decimal, op: str):
     mysql_e = None
@@ -164,7 +174,9 @@ def test_binary_expr(d1: Decimal, d2: Decimal, op: str):
                 f"\nbignum exception but mysql succeed for {d1} {op} {d2}: {str(bignum_e)}, mysql_sql: {mysql_sql}\n"
             )
             return False
-    elif dmysql != dbignum:
+
+    res = decimal_str_cmp(dmysql, dbignum)
+    if not res:
         print(
             f"\nResult mismatch: {d1} {op} {d2}, expect {dmysql}, actual {dbignum}, mysql_sql: {mysql_sql}\n"
         )

@@ -19,31 +19,18 @@ static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool 
         char *pstart = p;
         const char *pend = p + result_buf_size;
 
-        // 123.10 -> 123.1
-        bool has_met_non_zero = false;
         for (int32_t i = 0; i < scale; i++) {
                 int64_t remainder = static_cast<int64_t>(v % 10);
                 v /= 10;
-                if (!remainder && !has_met_non_zero) {
-                        continue;
-                }
-                if (!has_met_non_zero) {
-                        has_met_non_zero = true;
-                }
                 int64_t digit = remainder + '0';
-                __BIGNUM_ASSERT(digit >= '0' && digit <= '9');
+                assert(digit >= '0' && digit <= '9');
                 *p++ = static_cast<char>(digit);
                 __BIGNUM_ASSERT(p < pend);
         }
 
-        // Guarantee at least one '0' after the '.' decimal point.
-        // e.g., 123.00 -> 123. -> 123.0
-        if (!has_met_non_zero && scale > 0) {
-                *p++ = '0';
-        }
-
-        // Need decimal points if there is any least significant part
+        const char *pdot = nullptr;
         if (p > pstart) {
+                pdot = p;
                 *p++ = '.';
                 __BIGNUM_ASSERT(p < pend);
         }
@@ -56,7 +43,7 @@ static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool 
                         int64_t remainder = static_cast<int64_t>(v % 10);
                         v /= 10;
                         int64_t digit = remainder + '0';
-                        __BIGNUM_ASSERT(digit >= '0' && digit <= '9');
+                        assert(digit >= '0' && digit <= '9');
                         *p++ = static_cast<char>(digit);
                         __BIGNUM_ASSERT(p < pend);
                 }
@@ -65,11 +52,22 @@ static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool 
                 *p++ = '-';
                 __BIGNUM_ASSERT(p < pend);
         }
-        std::reverse(pstart, p);
-        return std::string(pstart, p);
+
+        // Remove trailing '0'
+        char *pz = pstart;
+        if (pdot) {
+                for (; pz < pdot && *pz == '0'; pz++) {
+                }
+                if (pz == pdot) {
+                        pz++;
+                }
+        }
+
+        std::reverse(pz, p);
+        return std::string(pz, p);
 }
 
-std::string decimal64_to_string(int64_t v, int32_t scale) {
+std::string decimal_64_to_string(int64_t v, int32_t scale) {
         bool is_negative = (v < 0);
         uint64_t uv = 0;
         if (v == INT64_MIN) {
@@ -80,7 +78,7 @@ std::string decimal64_to_string(int64_t v, int32_t scale) {
         return decimal_unsigned_integral_to_string(uv, scale, is_negative);
 }
 
-std::string decimal128_to_string(__int128_t v, int32_t scale) {
+std::string decimal_128_to_string(__int128_t v, int32_t scale) {
         bool is_negative = (v < 0);
         __uint128_t uv = 0;
         if (v == kInt128Min) {
@@ -91,7 +89,7 @@ std::string decimal128_to_string(__int128_t v, int32_t scale) {
         return decimal_unsigned_integral_to_string(uv, scale, is_negative);
 }
 
-std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
+std::string my_mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         if (mpz->_mp_size == 0) {
                 return "0";
         }
@@ -143,8 +141,8 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         }
 
         if (scale > 0) {
+                char *pdot = p;
                 *p++ = '.';
-                char *pdot = p - 1;
 
                 int64_t least_significant_leading_zeros = constexpr_max(0, scale - str_size);
                 for (int64_t i = 0; i < least_significant_leading_zeros; i++) {
@@ -173,12 +171,12 @@ std::string mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         return std::string(res_buf, p);
 }
 
-std::string decimal_general_to_string(const Gmp320 &v, int32_t scale) {
-        return mpz_to_string(&(v.mpz), scale);
+std::string decimal_gmp_to_string(const Gmp320 &v, int32_t scale) {
+        return my_mpz_to_string(&(v.mpz), scale);
 }
 
-std::string decimal_general_to_string(const Gmp640 &v, int32_t scale) {
-        return mpz_to_string(&(v.mpz), scale);
+std::string decimal_gmp_to_string(const Gmp640 &v, int32_t scale) {
+        return my_mpz_to_string(&(v.mpz), scale);
 }
 }  // namespace detail
 

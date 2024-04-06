@@ -215,12 +215,14 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
                 EXPECT_EQ(dmin.to_string(), kDecimalInt128MinStr);
         }
 
-        // 65 digits, should be OK
+        // 96 digits, should be OK
         {
                 const char *PositiveLargeStr =
-                        "99999999999999999999999999999999999999999999999999999999999999999";
+                        "99999999999999999999999999999999999999999999999999999999999999999999999999"
+                        "9999999999999999999999";
                 const char *NegativeLargeStr =
-                        "-99999999999999999999999999999999999999999999999999999999999999999";
+                        "-9999999999999999999999999999999999999999999999999999999999999999999999999"
+                        "99999999999999999999999";
                 Decimal maxv(PositiveLargeStr);
                 Decimal minv(NegativeLargeStr);
 
@@ -238,12 +240,14 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
                 EXPECT_EQ(div_res, Decimal("-1"));
         }
 
-        // 69 digits, quick and simple, should be rejected.
+        // 99 digits, quick and simple, should be rejected.
         {
                 const char *PositiveOverflowStr =
-                        "100000000000000000000000000000000000000000000000000000000000000000000";
+                        "10000000000000000000000000000000000000000000000000000000000000000000000000"
+                        "0000000000000000000000000";
                 const char *NegativeOverflowStr =
-                        "-100000000000000000000000000000000000000000000000000000000000000000000";
+                        "-1000000000000000000000000000000000000000000000000000000000000000000000000"
+                        "00000000000000000000000000";
                 EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
 
@@ -255,12 +259,14 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
                 EXPECT_TRUE(!!err);
         }
 
-        // 65 digits, with non-zero scale=30 (max scale), should be OK
+        // 96 digits, with non-zero scale=30 (max scale), should be OK
         {
                 const char *PositiveLargeStr =
-                        "99999999999999999999999999999999999.999999999999999999999999999999";
+                        "999999999999999999999999999999999999999999999999999999999999999999."
+                        "999999999999999999999999999999";
                 const char *NegativeLargeStr =
-                        "-99999999999999999999999999999999999.999999999999999999999999999999";
+                        "-999999999999999999999999999999999999999999999999999999999999999999."
+                        "999999999999999999999999999999";
                 Decimal maxv(PositiveLargeStr);
                 Decimal minv(NegativeLargeStr);
 
@@ -278,12 +284,14 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
                 EXPECT_EQ(div_res, Decimal("-1"));
         }
 
-        // 65 digits, with scale>kDecimalMaxScale, should be rejected.
+        // 96 digits, with scale>kDecimalMaxScale, should be rejected.
         {
                 const char *PositiveLargeStr =
-                        "9999999999999999999999999999999999.9999999999999999999999999999999";
+                        "99999999999999999999999999999999999999999999999999999999999999999."
+                        "9999999999999999999999999999999";
                 const char *NegativeLargeStr =
-                        "-9999999999999999999999999999999999.9999999999999999999999999999999";
+                        "-99999999999999999999999999999999999999999999999999999999999999999."
+                        "9999999999999999999999999999999";
                 EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
         }
@@ -306,10 +314,12 @@ TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
 
         EXPECT_EQ(Decimal("123.0000").get_scale(), 0);
         EXPECT_EQ(Decimal("123.0000").to_string(), "123");
+        EXPECT_EQ(Decimal("123").to_string(), "123");
         EXPECT_EQ(Decimal("123.0000"), Decimal("123"));
 
         EXPECT_EQ(Decimal("-134.0000").get_scale(), 0);
         EXPECT_EQ(Decimal("-134.0000").to_string(), "-134");
+        EXPECT_EQ(Decimal("-134").to_string(), "-134");
         EXPECT_EQ(Decimal("-134.0000"), Decimal("-134"));
 
         EXPECT_EQ(Decimal("0.0000").get_scale(), 0);
@@ -481,24 +491,26 @@ TEST_F(DecimalTest, MulOverflowSignificantDigits) {
 
         // overflow
         {
-                const char *str1 = "1000000000000000000000000000000000";
+                const char *str1 = "1000000000000000000000000000000000000000000000000";
                 Decimal d1{str1};
                 EXPECT_EXIT(d1 * d1, testing::KilledBySignal(SIGABRT), "");
-                const char *str2 = "-1000000000000000000000000000000000";
+                const char *str2 = "-1000000000000000000000000000000000000000000000000";
                 Decimal d2{str2};
                 EXPECT_EXIT(d2 * d2, testing::KilledBySignal(SIGABRT), "");
         }
 
         // not overflow
         {
-                const char *str1 = "100000000000000000000000000000000";
+                const char *str1 = "100000000000000000000000000000000000000000000000";
                 Decimal d1{str1};
                 EXPECT_EQ((d1 * d1).to_string(),
-                          "10000000000000000000000000000000000000000000000000000000000000000");
-                const char *str2 = "-100000000000000000000000000000000";
+                          "100000000000000000000000000000000000000000000000000000000000000000000000"
+                          "00000000000000000000000");
+                const char *str2 = "-100000000000000000000000000000000000000000000000";
                 Decimal d2{str2};
                 EXPECT_EQ((d2 * d2).to_string(),
-                          "10000000000000000000000000000000000000000000000000000000000000000");
+                          "100000000000000000000000000000000000000000000000000000000000000000000000"
+                          "00000000000000000000000");
         }
 }
 
@@ -801,7 +813,8 @@ TEST_F(DecimalTest, DiffScaleSameSignCompare) {
 TEST_F(DecimalTest, LargeValueAddOverflow) {
         {
                 const char *PositiveLargeStr =
-                        "99999999999999999999999999999999999.999999999999999999999999999999";
+                        "99999999999999999999999999999999999999999999999999999999999999999999999999"
+                        "9999999999999999999999";
                 Decimal d0(PositiveLargeStr);
                 Decimal d1(PositiveLargeStr);
                 EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
@@ -810,7 +823,8 @@ TEST_F(DecimalTest, LargeValueAddOverflow) {
 
         {
                 const char *NegativeLargeStr =
-                        "-99999999999999999999999999999999999.999999999999999999999999999999";
+                        "-9999999999999999999999999999999999999999999999999999999999999999999999999"
+                        "99999999999999999999999";
                 Decimal d0(NegativeLargeStr);
                 Decimal d1(NegativeLargeStr);
                 EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
@@ -863,12 +877,12 @@ TEST_F(DecimalTest, safe_mul_int128) {
 }
 
 TEST_F(DecimalTest, int128_to_string) {
-        EXPECT_EQ(detail::decimal128_to_string(0, 0), "0");
-        EXPECT_EQ(detail::decimal128_to_string(123, 0), "123");
-        EXPECT_EQ(detail::decimal128_to_string(-123, 0), "-123");
-        EXPECT_EQ(detail::decimal128_to_string(kInt128Max, 0),
+        EXPECT_EQ(detail::decimal_128_to_string(0, 0), "0");
+        EXPECT_EQ(detail::decimal_128_to_string(123, 0), "123");
+        EXPECT_EQ(detail::decimal_128_to_string(-123, 0), "-123");
+        EXPECT_EQ(detail::decimal_128_to_string(kInt128Max, 0),
                   "170141183460469231731687303715884105727");
-        EXPECT_EQ(detail::decimal128_to_string(kInt128Min, 0),
+        EXPECT_EQ(detail::decimal_128_to_string(kInt128Min, 0),
                   "-170141183460469231731687303715884105728");
 }
 
@@ -896,7 +910,9 @@ TEST_F(DecimalTest, LargePartOverflow) {
         ErrCode err;
 
         // Significant digits overflow
-        err = d0.assign("1234567890123456789012345679899999999999999999999999012345678901.11");
+        err = d0.assign(
+                "1234567890123456789012345679899999999999999999999999012345678901111111111111111111"
+                "1111111111111.11");
         EXPECT_TRUE(err);
 
         // Least significant digits overflow
@@ -917,26 +933,26 @@ TEST_F(DecimalTest, InvalidCharacters) {
         EXPECT_TRUE(err);
 }
 
-TEST_F(DecimalTest, DecimalAddSubResultTrailingLeastSignificantZero) {
+TEST_F(DecimalTest, DecimalToStringTrailingLeastSignificantZero) {
         ErrCode err;
 
         Decimal d0{"124.5"};
         Decimal d1{"123.5"};
         Decimal d2 = d0 + d1;
-        EXPECT_EQ(d2.to_string(), "248.0");  // Add operation does not trim trailing zero
+        EXPECT_EQ(d2.to_string(), "248");
 
         Decimal d3 = d0 - d1;
-        EXPECT_EQ(d3.to_string(), "1.0");
+        EXPECT_EQ(d3.to_string(), "1");
 
         err = d0.assign("-124.5");
         EXPECT_TRUE(!err);
         err = d1.assign("123.5");
         EXPECT_TRUE(!err);
         d2 = d0 + d1;
-        EXPECT_EQ(d2.to_string(), "-1.0");
+        EXPECT_EQ(d2.to_string(), "-1");
 
         d3 = d0 - d1;
-        EXPECT_EQ(d3.to_string(), "-248.0");
+        EXPECT_EQ(d3.to_string(), "-248");
 }
 
 // Decimal multiply as int128 overflow, but the intermediate result could be held in gmp array.
@@ -1648,11 +1664,6 @@ TEST_F(DecimalTest, non_accept_table_string) {
         EXPECT_TRUE(!!d0.assign(".123999999999999999999999999999"));
         EXPECT_TRUE(!!d0.assign("-.123999999999999999999999999999"));
 }
-
-//=-------------------------------------------------------------------
-// These are test cases that hit bugs or corner cases as time goes by
-//=-------------------------------------------------------------------
-TEST_F(DecimalTest, bug001) {}
 
 #if 0
 TEST_F(DecimalTest, ConstExprMod) {
