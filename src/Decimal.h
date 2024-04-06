@@ -1929,7 +1929,7 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
         } else if (rhs.m_dtype == DType::kInt128) {
                 r640 = detail::conv_128_to_gmp640(rhs.m_i128);
         } else if (rhs.m_dtype == DType::kGmp) {
-                detail::copy_gmp_to_gmp(r640, m_gmp);
+                detail::copy_gmp_to_gmp(r640, rhs.m_gmp);
         } else {
                 __BIGNUM_ASSERT(false);
                 return kErr;
