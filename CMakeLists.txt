@@ -41,7 +41,7 @@ else()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=cast-function-type -Wno-error=implicit-fallthrough")
 endif()
 
-if (WITH_COVERAGE)
+if (BIGNUM_WITH_COVERAGE)
     if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fprofile-instr-generate -fcoverage-mapping")
     else()
@@ -55,7 +55,7 @@ endif()
 message(STATUS "CMAKE_CXX_COMPILER_ID: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "CMAKE_CXX_COMPILER_VERSION: ${CMAKE_CXX_COMPILER_VERSION}")
 
-if(WITH_ASAN)
+if(BIGNUM_WITH_ASAN)
   message(STATUS "Building with ASAN")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=address -fsanitize-recover=address")
   if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -86,24 +86,25 @@ else()
     target_link_libraries(bignum PRIVATE ${GMP_LIBRARIES})
 endif()
 
-install(TARGETS bignum
-    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-    INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
-)
+# static bignum lib that use gmp only. For dev and test purpose.
+add_library(bignum_gmp_only STATIC ${BIGNUM_SOURCE})
+target_include_directories(bignum_gmp_only PRIVATE ${PROJECT_ROOT}/src)
+target_include_directories(bignum_gmp_only PRIVATE ${GMP_INCLUDE_DIR} Threads::Threads)
+target_compile_definitions(bignum_gmp_only PUBLIC BIGNUM_DEV_USE_GMP_ONLY)
+add_dependencies(bignum_gmp_only gmp_static_lib)
+target_link_libraries(bignum_gmp_only PRIVATE ${GMP_LIBRARIES})
 
 # decimal_calculator
 add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/Calculator.cc)
 target_link_libraries(decimal_calculator bignum)
 target_include_directories(decimal_calculator PRIVATE ${PROJECT_ROOT}/src)
 target_include_directories(decimal_calculator PRIVATE ${GMP_INCLUDE_DIR})
-install(TARGETS decimal_calculator
-    LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-    RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-    INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
-)
+
+# decimal_calculator_gmp_only
+add_executable(decimal_calculator_gmp_only ${CMAKE_SOURCE_DIR}/src/Calculator.cc)
+target_link_libraries(decimal_calculator_gmp_only bignum_gmp_only)
+target_include_directories(decimal_calculator_gmp_only PRIVATE ${PROJECT_ROOT}/src)
+target_include_directories(decimal_calculator_gmp_only PRIVATE ${GMP_INCLUDE_DIR})
 
 if (BIGNUM_BUILD_TESTS)
     add_executable(unittest
@@ -117,22 +118,34 @@ if (BIGNUM_BUILD_TESTS)
     target_include_directories(unittest PRIVATE ${GTEST_INCLUDE_DIR})
     target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
     add_dependencies(unittest gtest_lib)
-    install(TARGETS unittest
-        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-        RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-        INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+
+    add_executable(unittest_gmp_only
+        ${PROJECT_ROOT}/tests/op.cc
+        ${PROJECT_ROOT}/tests/gmp.cc
+        #${PROJECT_ROOT}/tests/issues.cc
     )
+    target_link_libraries(unittest_gmp_only bignum_gmp_only)
+    target_include_directories(unittest_gmp_only PRIVATE ${PROJECT_ROOT}/src)
+    target_include_directories(unittest_gmp_only PRIVATE ${GMP_INCLUDE_DIR})
+    target_include_directories(unittest_gmp_only PRIVATE ${GTEST_INCLUDE_DIR})
+    target_compile_definitions(unittest_gmp_only PUBLIC BIGNUM_DEV_USE_GMP_ONLY)
+    target_link_libraries(unittest_gmp_only ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
+    add_dependencies(unittest_gmp_only gtest_lib)
 endif()
 
-################################################################################
-# These binaries and libraries are for dev purposes only
-################################################################################
-#add_executable(test ${PROJECT_ROOT}/scripts/test.cc)
-#target_include_directories(test PRIVATE ${PROJECT_ROOT}/src)
-#target_include_directories(test PRIVATE ${GMP_INCLUDE_DIR})
-#target_link_libraries(test bignum)
-#
-#add_executable(GenerateGmpPow10 ${PROJECT_ROOT}/scripts/GenerateGmpPow10.cc)
-#target_include_directories(GenerateGmpPow10 PRIVATE ${GMP_INCLUDE_DIR})
-#target_link_libraries(GenerateGmpPow10 ${GMP_LIBRARIES})
+function(gmp_install_target target)
+        install(TARGETS ${target}
+            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
+            INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
+        )
+endfunction()
+
+gmp_install_target(bignum)
+gmp_install_target(decimal_calculator)
+gmp_install_target(decimal_calculator_gmp_only)
+if (BIGNUM_BUILD_TESTS)
+    gmp_install_target(unittest)
+    gmp_install_target(unittest_gmp_only)
+endif()

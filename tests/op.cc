@@ -3,6 +3,14 @@
 
 #include "Decimal.h"
 
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+#define BIGNUM_DECIMAL_FIXTURE DecimalTestGmpOnly
+#define BIGNUM_TEST_CONSTEXPR
+#else
+#define BIGNUM_DECIMAL_FIXTURE DecimalTest
+#define BIGNUM_TEST_CONSTEXPR constexpr
+#endif
+
 namespace bignum {
 using namespace detail;
 
@@ -37,7 +45,7 @@ struct DecimalComparison {
                 : lhs(lhs), rhs(rhs), op(op), result(result) {}
 };
 
-class DecimalTest : public ::testing::Test {
+class BIGNUM_DECIMAL_FIXTURE : public ::testing::Test {
        protected:
         void DoTestDecimalArithmetic(const std::vector<DecimalArithmetic> &calculations) {
                 for (const auto &cals : calculations) {
@@ -108,7 +116,7 @@ class DecimalTest : public ::testing::Test {
         }
 };
 
-TEST_F(DecimalTest, StringConversion) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConversion) {
         // Simple C string
         EXPECT_EQ(Decimal("0").to_string(), "0");
         EXPECT_EQ(Decimal("0.1").to_string(), "0.1");
@@ -150,7 +158,7 @@ TEST_F(DecimalTest, StringConversion) {
         EXPECT_EQ(Decimal("-0.0000").to_string(), "0");
 }
 
-TEST_F(DecimalTest, Add) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Add) {
         std::vector<DecimalArithmetic> calculations = {
                 {"0.12345", "0.54321", ArithOp::ADD, "0.66666"},
                 {"123.456", "543.21", ArithOp::ADD, "666.666"},
@@ -167,7 +175,7 @@ TEST_F(DecimalTest, Add) {
         DoTestDecimalArithmetic(calculations);
 }
 
-TEST_F(DecimalTest, Sub) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Sub) {
         std::vector<DecimalArithmetic> calculations = {
                 {"0.12345", "0.54321", ArithOp::SUB, "-0.41976"},
                 {"123.456", "543.21", ArithOp::SUB, "-419.754"},
@@ -184,7 +192,7 @@ TEST_F(DecimalTest, Sub) {
         DoTestDecimalArithmetic(calculations);
 }
 
-TEST_F(DecimalTest, Mul) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Mul) {
         std::vector<DecimalArithmetic> calculations = {
                 {"0.12345", "0.54321", ArithOp::MUL, "0.0670592745"},
                 {"123.456", "543.21", ArithOp::MUL, "67062.53376"},
@@ -201,12 +209,12 @@ TEST_F(DecimalTest, Mul) {
         DoTestDecimalArithmetic(calculations);
 }
 
-TEST_F(DecimalTest, StringConstructionOverflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionOverflow) {
         // String construction of some "large" and "small" values
         {
-                constexpr static const char *kDecimalInt128MaxStr =
+                BIGNUM_TEST_CONSTEXPR static const char *kDecimalInt128MaxStr =
                         "99999999999999999999999999999999999999";
-                constexpr static const char *kDecimalInt128MinStr =
+                BIGNUM_TEST_CONSTEXPR static const char *kDecimalInt128MinStr =
                         "-100000000000000000000000000000000000000";
                 Decimal dmax(kDecimalInt128MaxStr);
                 EXPECT_EQ(dmax.to_string(), kDecimalInt128MaxStr);
@@ -303,7 +311,7 @@ TEST_F(DecimalTest, StringConstructionOverflow) {
         EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
 }
 
-TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionTrailingZeroTruncation) {
         EXPECT_EQ(Decimal("101.1010").get_scale(), 3);
         EXPECT_EQ(Decimal("101.1010").to_string(), "101.101");
         EXPECT_EQ(Decimal("101.1010"), Decimal("101.101"));
@@ -332,7 +340,7 @@ TEST_F(DecimalTest, StringConstructionTrailingZeroTruncation) {
         EXPECT_EQ(Decimal("-0.0000"), Decimal("0"));
 }
 
-TEST_F(DecimalTest, Comparison) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Comparison) {
         // Negative numbers, sorted DESC by its decimal values.
         std::vector<std::string> negatives = {
                 "-0.11223455",    "-0.12345",        "-0.12346",      "-0.54321", "-44.11223455",
@@ -454,7 +462,7 @@ TEST_F(DecimalTest, Comparison) {
         }
 }
 
-TEST_F(DecimalTest, ComparisonSpecial) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ComparisonSpecial) {
         // 0 v.s. -0
         EXPECT_EQ((Decimal("0") == Decimal("-0")), true);
         EXPECT_EQ((Decimal("0") < Decimal("-0")), false);
@@ -469,7 +477,7 @@ TEST_F(DecimalTest, ComparisonSpecial) {
         EXPECT_EQ((Decimal("0") >= Decimal("-0.00")), true);
 }
 
-TEST_F(DecimalTest, ScaleNarrowDownAfterMultiply) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ScaleNarrowDownAfterMultiply) {
         std::vector<DecimalArithmetic> calculations = {
                 {"0.4", "0.5", ArithOp::MUL, "0.2"},    {"0.4", "0.6", ArithOp::MUL, "0.24"},
                 {"1.4", "1.5", ArithOp::MUL, "2.1"},    {"1.4", "1.6", ArithOp::MUL, "2.24"},
@@ -483,7 +491,7 @@ TEST_F(DecimalTest, ScaleNarrowDownAfterMultiply) {
         DoTestDecimalArithmetic(calculations);
 }
 
-TEST_F(DecimalTest, MulOverflowSignificantDigits) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, MulOverflowSignificantDigits) {
         EXPECT_EXIT(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
                     testing::KilledBySignal(SIGABRT), "");
         EXPECT_EXIT(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
@@ -514,7 +522,7 @@ TEST_F(DecimalTest, MulOverflowSignificantDigits) {
         }
 }
 
-TEST_F(DecimalTest, MulOverflowLeastSignificantDigits) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, MulOverflowLeastSignificantDigits) {
         {
                 Decimal d1("1.123456789123456789123456789555");
                 EXPECT_EQ((d1 * d1).to_string(), "1.262155157027587256793019357528");
@@ -548,7 +556,7 @@ TEST_F(DecimalTest, MulOverflowLeastSignificantDigits) {
         }
 }
 
-TEST_F(DecimalTest, Div) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Div) {
         std::vector<DecimalArithmetic> calculations = {
                 {"1", "3", ArithOp::DIV, "0.3333"},
                 {"100000", "3.33", ArithOp::DIV, "30030.03"},
@@ -680,7 +688,7 @@ TEST_F(DecimalTest, Div) {
         EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
 
-TEST_F(DecimalTest, Mod) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Mod) {
         std::vector<DecimalArithmetic> calculations = {
                 {"1", "3", ArithOp::MOD, "1"},
                 {"100000", "3.33", ArithOp::MOD, "0.1"},
@@ -760,7 +768,7 @@ TEST_F(DecimalTest, Mod) {
         EXPECT_EXIT(Decimal{"1.01"} % Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
 }
 
-TEST_F(DecimalTest, DiffSignCompare) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, DiffSignCompare) {
         std::vector<DecimalComparison> compares = {
                 {"123.001", "-432.12", CompareOp::EQ, false},
                 {"123.001", "-432.12", CompareOp::NE, true},
@@ -772,7 +780,7 @@ TEST_F(DecimalTest, DiffSignCompare) {
         DoTestDecimalComparison(compares);
 }
 
-TEST_F(DecimalTest, DiffScaleSameSignCompare) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, DiffScaleSameSignCompare) {
         std::vector<DecimalComparison> compares = {
                 // (30,3) v.s. (19,16)
                 //  -> (30+13,3) v.s. (19,16) -> left hand side overflow
@@ -810,7 +818,7 @@ TEST_F(DecimalTest, DiffScaleSameSignCompare) {
         DoTestDecimalComparison(compares);
 }
 
-TEST_F(DecimalTest, LargeValueAddOverflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, LargeValueAddOverflow) {
         {
                 const char *PositiveLargeStr =
                         "99999999999999999999999999999999999999999999999999999999999999999999999999"
@@ -832,7 +840,7 @@ TEST_F(DecimalTest, LargeValueAddOverflow) {
         }
 }
 
-TEST_F(DecimalTest, Int128AddOverflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Int128AddOverflow) {
         __int128_t res128 = 0;
         ErrCode err = kOk;
 
@@ -845,7 +853,7 @@ TEST_F(DecimalTest, Int128AddOverflow) {
         EXPECT_TRUE(!!err);
 }
 
-TEST_F(DecimalTest, safe_mul_int128) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_mul_int128) {
         __int128_t res128 = 0;
         ErrCode err = kOk;
 
@@ -876,7 +884,7 @@ TEST_F(DecimalTest, safe_mul_int128) {
         EXPECT_TRUE(!!err);
 }
 
-TEST_F(DecimalTest, int128_to_string) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, int128_to_string) {
         EXPECT_EQ(detail::decimal_128_to_string(0, 0), "0");
         EXPECT_EQ(detail::decimal_128_to_string(123, 0), "123");
         EXPECT_EQ(detail::decimal_128_to_string(-123, 0), "-123");
@@ -886,7 +894,7 @@ TEST_F(DecimalTest, int128_to_string) {
                   "-170141183460469231731687303715884105728");
 }
 
-TEST_F(DecimalTest, InitializeDecimalWithEmptyString) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, InitializeDecimalWithEmptyString) {
         Decimal d0("");
         Decimal d1("");
         EXPECT_EQ(d0, d1);
@@ -894,7 +902,7 @@ TEST_F(DecimalTest, InitializeDecimalWithEmptyString) {
         EXPECT_EQ(d0 + d1, d1);
 }
 
-TEST_F(DecimalTest, TrailingDot) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, TrailingDot) {
         Decimal d0;
         ErrCode err;
 
@@ -905,7 +913,7 @@ TEST_F(DecimalTest, TrailingDot) {
         EXPECT_TRUE(err);
 }
 
-TEST_F(DecimalTest, LargePartOverflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, LargePartOverflow) {
         Decimal d0;
         ErrCode err;
 
@@ -920,7 +928,7 @@ TEST_F(DecimalTest, LargePartOverflow) {
         EXPECT_TRUE(err);
 }
 
-TEST_F(DecimalTest, InvalidCharacters) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, InvalidCharacters) {
         Decimal d0;
         ErrCode err;
 
@@ -933,7 +941,7 @@ TEST_F(DecimalTest, InvalidCharacters) {
         EXPECT_TRUE(err);
 }
 
-TEST_F(DecimalTest, DecimalToStringTrailingLeastSignificantZero) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, DecimalToStringTrailingLeastSignificantZero) {
         ErrCode err;
 
         Decimal d0{"124.5"};
@@ -956,7 +964,7 @@ TEST_F(DecimalTest, DecimalToStringTrailingLeastSignificantZero) {
 }
 
 // Decimal multiply as int128 overflow, but the intermediate result could be held in gmp array.
-TEST_F(DecimalTest, DecimalMulAsInt128Overflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, DecimalMulAsInt128Overflow) {
         {
                 Decimal d0{"10000000000.9999999999999999"};
                 Decimal d1{"10000000000.9999999999999999"};
@@ -979,7 +987,7 @@ TEST_F(DecimalTest, DecimalMulAsInt128Overflow) {
         }
 }
 
-TEST_F(DecimalTest, StaticCastToString) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, StaticCastToString) {
         // Simple C string
         EXPECT_EQ(static_cast<std::string>(Decimal("0")), "0");
         EXPECT_EQ(static_cast<std::string>(Decimal("0.1")), "0.1");
@@ -1017,7 +1025,7 @@ TEST_F(DecimalTest, StaticCastToString) {
         EXPECT_EQ(static_cast<std::string>(Decimal("-0.0000")), "0");
 }
 
-TEST_F(DecimalTest, DecimalDivAsInt128Overflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, DecimalDivAsInt128Overflow) {
         {
                 Decimal d0{"9999999999999999999999.22"};
                 Decimal d1{"11.9999999999999999"};
@@ -1102,7 +1110,7 @@ TEST_F(DecimalTest, DecimalDivAsInt128Overflow) {
         }
 }
 
-TEST_F(DecimalTest, StaticCastToDouble) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, StaticCastToDouble) {
         // Simple C string
         EXPECT_DOUBLE_EQ(static_cast<double>(Decimal("0")), 0.0);
         EXPECT_DOUBLE_EQ(static_cast<double>(Decimal("0.1")), 0.1);
@@ -1130,344 +1138,344 @@ TEST_F(DecimalTest, StaticCastToDouble) {
         EXPECT_DOUBLE_EQ(static_cast<double>(Decimal("-0.0000")), 0.0);
 }
 
-TEST_F(DecimalTest, SmallNumberConstexprInitializationOK) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, SmallNumberConstexprInitializationOK) {
         {
                 // Simple C string
-                constexpr Decimal d0("0");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0");
                 EXPECT_EQ(d0.to_string(), "0");
         }
         {
-                constexpr Decimal d0("0.1");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0.1");
                 EXPECT_EQ(d0.to_string(), "0.1");
         }
         {
-                constexpr Decimal d0("123.1");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.1");
                 EXPECT_EQ(d0.to_string(), "123.1");
         }
         {
-                constexpr Decimal d0("123.666");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.666");
                 EXPECT_EQ(d0.to_string(), "123.666");
         }
         {
-                constexpr Decimal d0("-123.666");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.666");
                 EXPECT_EQ(d0.to_string(), "-123.666");
         }
 
         // Leading zero truncation
         {
-                constexpr Decimal d0("000.1");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("000.1");
                 EXPECT_EQ(d0.to_string(), "0.1");
         }
         {
-                constexpr Decimal d0("00.0000");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("00.0000");
                 EXPECT_EQ(d0.to_string(), "0");
         }
         {
-                constexpr Decimal d0("00.11223455");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("00.11223455");
                 EXPECT_EQ(d0.to_string(), "0.11223455");
         }
         {
-                constexpr Decimal d0("-00.11223455");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-00.11223455");
                 EXPECT_EQ(d0.to_string(), "-0.11223455");
         }
         {
-                constexpr Decimal d0("-00123.11223455");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-00123.11223455");
                 EXPECT_EQ(d0.to_string(), "-123.11223455");
         }
         {
-                constexpr Decimal d0("-0044.11223455");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0044.11223455");
                 EXPECT_EQ(d0.to_string(), "-44.11223455");
         }
         {
-                constexpr Decimal d0("-000999.11223455");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-000999.11223455");
                 EXPECT_EQ(d0.to_string(), "-999.11223455");
         }
 
         // trailing '0' omitted, but not those middle ones
         {
-                constexpr Decimal d0("101.101");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("101.101");
                 EXPECT_EQ(d0.to_string(), "101.101");
         }
         {
-                constexpr Decimal d0("-101.101");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-101.101");
                 EXPECT_EQ(d0.to_string(), "-101.101");
         }
         {
-                constexpr Decimal d0("101.1010");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("101.1010");
                 EXPECT_EQ(d0.to_string(), "101.101");
         }
         {
-                constexpr Decimal d0("-101.1010");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-101.1010");
                 EXPECT_EQ(d0.to_string(), "-101.101");
         }
         {
-                constexpr Decimal d0("200.1000");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("200.1000");
                 EXPECT_EQ(d0.to_string(), "200.1");
         }
         {
-                constexpr Decimal d0("-200.1000");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-200.1000");
                 EXPECT_EQ(d0.to_string(), "-200.1");
         }
         {
-                constexpr Decimal d0("0.0000");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0.0000");
                 EXPECT_EQ(d0.to_string(), "0");
         }
         {
-                constexpr Decimal d0("-0.0000");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.0000");
                 EXPECT_EQ(d0.to_string(), "0");
         }
 }
 
-TEST_F(DecimalTest, ConstExprAdd) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprAdd) {
         {
-                constexpr Decimal d0("0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "0.66666");
         }
         {
-                constexpr Decimal d0("123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "666.666");
         }
         {
-                constexpr Decimal d0("444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "999.443");
         }
         {
-                constexpr Decimal d0("2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "2544464357.256");
         }
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("-0.54321");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "-0.66666");
         }
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("-543.21");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "-666.666");
         }
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("-555.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "-999.443");
         }
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("-123123123.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "-2544464357.256");
         }
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "0.41976");
         }
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "419.754");
         }
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "110.803");
         }
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 + d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
                 EXPECT_EQ(d2.to_string(), "-2298218111.01");
         }
 }
 
-TEST_F(DecimalTest, ConstExprSub) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprSub) {
         // {"0.12345", "0.54321", ArithOp::SUB, "-0.41976"},
         {
-                constexpr Decimal d0("0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-0.41976");
         }
         // {"123.456", "543.21", ArithOp::SUB, "-419.754"},
         {
-                constexpr Decimal d0("123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-419.754");
         }
         // {"444.32", "555.123", ArithOp::SUB, "-110.803"},
         {
-                constexpr Decimal d0("444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-110.803");
         }
         // {"2421341234.133", "123123123.123", ArithOp::SUB, "2298218111.01"},
         {
-                constexpr Decimal d0("2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "2298218111.01");
         }
         // {"-0.12345", "-0.54321", ArithOp::SUB, "0.41976"},
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("-0.54321");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "0.41976");
         }
         // {"-123.456", "-543.21", ArithOp::SUB, "419.754"},
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("-543.21");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "419.754");
         }
         // {"-444.32", "-555.123", ArithOp::SUB, "110.803"},
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("-555.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "110.803");
         }
         // {"-2421341234.133", "-123123123.123", ArithOp::SUB, "-2298218111.01"},
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("-123123123.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-2298218111.01");
         }
         // {"-0.12345", "0.54321", ArithOp::SUB, "-0.66666"},
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-0.66666");
         }
         // {"-123.456", "543.21", ArithOp::SUB, "-666.666"},
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-666.666");
         }
         // {"-444.32", "555.123", ArithOp::SUB, "-999.443"},
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-999.443");
         }
         // {"-2421341234.133", "123123123.123", ArithOp::SUB, "-2544464357.256"}
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 - d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 - d1;
                 EXPECT_EQ(d2.to_string(), "-2544464357.256");
         }
 }
 
-TEST_F(DecimalTest, ConstExprMul) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMul) {
         // {"0.12345", "0.54321", ArithOp::MUL, "0.0670592745"},
         {
-                constexpr Decimal d0("0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "0.0670592745");
         }
         // {"123.456", "543.21", ArithOp::MUL, "67062.53376"},
         {
-                constexpr Decimal d0("123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "67062.53376");
         }
         // {"444.32", "555.123", ArithOp::MUL, "246652.25136"},
         {
-                constexpr Decimal d0("444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "246652.25136");
         }
         // {"2421341234.133", "123123123.123", ArithOp::MUL, "298123094892954129.157359"},
         {
-                constexpr Decimal d0("2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "298123094892954129.157359");
         }
         // {"-0.12345", "-0.54321", ArithOp::MUL, "0.0670592745"},
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("-0.54321");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "0.0670592745");
         }
         // {"-123.456", "-543.21", ArithOp::MUL, "67062.53376"},
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("-543.21");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "67062.53376");
         }
         // {"-444.32", "-555.123", ArithOp::MUL, "246652.25136"},
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("-555.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "246652.25136");
         }
         // {"-2421341234.133", "-123123123.123", ArithOp::MUL, "298123094892954129.157359"},
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("-123123123.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "298123094892954129.157359");
         }
         // {"-0.12345", "0.54321", ArithOp::MUL, "-0.0670592745"},
         {
-                constexpr Decimal d0("-0.12345");
-                constexpr Decimal d1("0.54321");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-0.12345");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0.54321");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "-0.0670592745");
         }
         // {"-123.456", "543.21", ArithOp::MUL, "-67062.53376"},
         {
-                constexpr Decimal d0("-123.456");
-                constexpr Decimal d1("543.21");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("543.21");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "-67062.53376");
         }
         // {"-444.32", "555.123", ArithOp::MUL, "-246652.25136"},
         {
-                constexpr Decimal d0("-444.32");
-                constexpr Decimal d1("555.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-444.32");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("555.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "-246652.25136");
         }
         // {"-2421341234.133", "123123123.123", ArithOp::MUL, "-298123094892954129.157359"};
         {
-                constexpr Decimal d0("-2421341234.133");
-                constexpr Decimal d1("123123123.123");
-                constexpr Decimal d2 = d0 * d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-2421341234.133");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123123123.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 * d1;
                 EXPECT_EQ(d2.to_string(), "-298123094892954129.157359");
         }
 }
 
-TEST_F(DecimalTest, ConstExprCompare) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprCompare) {
         // {"123.001", "-432.12", CompareOp::EQ, false}, {"123.001", "-432.12", CompareOp::NE,
         // true},
         // {"123.001", "-432.12", CompareOp::LT, false}, {"123.001", "-432.12", CompareOp::LE,
@@ -1475,14 +1483,14 @@ TEST_F(DecimalTest, ConstExprCompare) {
         // {"123.001", "-432.12", CompareOp::GT, true},  {"123.001", "-432.12", CompareOp::GE,
         // true},
         {
-                constexpr Decimal d0("123.001");
-                constexpr Decimal d1("-432.12");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("123.001");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-432.12");
+                BIGNUM_TEST_CONSTEXPR bool b0 = d0 == d1;
+                BIGNUM_TEST_CONSTEXPR bool b1 = d0 != d1;
+                BIGNUM_TEST_CONSTEXPR bool b2 = d0 < d1;
+                BIGNUM_TEST_CONSTEXPR bool b3 = d0 <= d1;
+                BIGNUM_TEST_CONSTEXPR bool b4 = d0 > d1;
+                BIGNUM_TEST_CONSTEXPR bool b5 = d0 >= d1;
                 EXPECT_EQ(b0, false);
                 EXPECT_EQ(b1, true);
                 EXPECT_EQ(b2, false);
@@ -1492,7 +1500,7 @@ TEST_F(DecimalTest, ConstExprCompare) {
         }
 }
 
-TEST_F(DecimalTest, ConstExprCompare_2) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprCompare_2) {
         // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::EQ, false},
         // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::NE, true},
         // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::LT, false},
@@ -1500,14 +1508,14 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GT, true},
         // {"999999999999999999999999999.001", "432.1234567891234567", CompareOp::GE, true},
         {
-                constexpr Decimal d0("999999999999999999999999999.001");
-                constexpr Decimal d1("432.1234567891234567");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("999999999999999999999999999.001");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("432.1234567891234567");
+                BIGNUM_TEST_CONSTEXPR bool b0 = d0 == d1;
+                BIGNUM_TEST_CONSTEXPR bool b1 = d0 != d1;
+                BIGNUM_TEST_CONSTEXPR bool b2 = d0 < d1;
+                BIGNUM_TEST_CONSTEXPR bool b3 = d0 <= d1;
+                BIGNUM_TEST_CONSTEXPR bool b4 = d0 > d1;
+                BIGNUM_TEST_CONSTEXPR bool b5 = d0 >= d1;
                 EXPECT_EQ(b0, false);
                 EXPECT_EQ(b1, true);
                 EXPECT_EQ(b2, false);
@@ -1523,14 +1531,14 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GT, false},
         // {"432.1234567891234567", "999999999999999999999999999.001", CompareOp::GE, false},
         {
-                constexpr Decimal d0("432.1234567891234567");
-                constexpr Decimal d1("999999999999999999999999999.001");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("432.1234567891234567");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("999999999999999999999999999.001");
+                BIGNUM_TEST_CONSTEXPR bool b0 = d0 == d1;
+                BIGNUM_TEST_CONSTEXPR bool b1 = d0 != d1;
+                BIGNUM_TEST_CONSTEXPR bool b2 = d0 < d1;
+                BIGNUM_TEST_CONSTEXPR bool b3 = d0 <= d1;
+                BIGNUM_TEST_CONSTEXPR bool b4 = d0 > d1;
+                BIGNUM_TEST_CONSTEXPR bool b5 = d0 >= d1;
                 EXPECT_EQ(b0, false);
                 EXPECT_EQ(b1, true);
                 EXPECT_EQ(b2, true);
@@ -1546,14 +1554,14 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GT, false},
         // {"-999999999999999999999999999.001", "-432.1234567891234567", CompareOp::GE, false},
         {
-                constexpr Decimal d0("-999999999999999999999999999.001");
-                constexpr Decimal d1("-432.1234567891234567");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-999999999999999999999999999.001");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-432.1234567891234567");
+                BIGNUM_TEST_CONSTEXPR bool b0 = d0 == d1;
+                BIGNUM_TEST_CONSTEXPR bool b1 = d0 != d1;
+                BIGNUM_TEST_CONSTEXPR bool b2 = d0 < d1;
+                BIGNUM_TEST_CONSTEXPR bool b3 = d0 <= d1;
+                BIGNUM_TEST_CONSTEXPR bool b4 = d0 > d1;
+                BIGNUM_TEST_CONSTEXPR bool b5 = d0 >= d1;
                 EXPECT_EQ(b0, false);
                 EXPECT_EQ(b1, true);
                 EXPECT_EQ(b2, true);
@@ -1569,14 +1577,14 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GT, true},
         // {"-432.1234567891234567", "-999999999999999999999999999.001", CompareOp::GE, true},
         {
-                constexpr Decimal d0("-432.1234567891234567");
-                constexpr Decimal d1("-999999999999999999999999999.001");
-                constexpr bool b0 = d0 == d1;
-                constexpr bool b1 = d0 != d1;
-                constexpr bool b2 = d0 < d1;
-                constexpr bool b3 = d0 <= d1;
-                constexpr bool b4 = d0 > d1;
-                constexpr bool b5 = d0 >= d1;
+                BIGNUM_TEST_CONSTEXPR Decimal d0("-432.1234567891234567");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-999999999999999999999999999.001");
+                BIGNUM_TEST_CONSTEXPR bool b0 = d0 == d1;
+                BIGNUM_TEST_CONSTEXPR bool b1 = d0 != d1;
+                BIGNUM_TEST_CONSTEXPR bool b2 = d0 < d1;
+                BIGNUM_TEST_CONSTEXPR bool b3 = d0 <= d1;
+                BIGNUM_TEST_CONSTEXPR bool b4 = d0 > d1;
+                BIGNUM_TEST_CONSTEXPR bool b5 = d0 >= d1;
                 EXPECT_EQ(b0, false);
                 EXPECT_EQ(b1, true);
                 EXPECT_EQ(b2, false);
@@ -1586,25 +1594,25 @@ TEST_F(DecimalTest, ConstExprCompare_2) {
         }
 }
 
-TEST_F(DecimalTest, string_initialize_with_leading_space) {
-        constexpr Decimal d0("  123.456");
-        constexpr Decimal d1("123.456");
+TEST_F(BIGNUM_DECIMAL_FIXTURE, string_initialize_with_leading_space) {
+        BIGNUM_TEST_CONSTEXPR Decimal d0("  123.456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("123.456");
         EXPECT_EQ(d0, d1);
-        constexpr Decimal d2 = d0 + d1;
-        constexpr Decimal d3("246.912");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d3("246.912");
         EXPECT_EQ(d2, d3);
 }
 
-TEST_F(DecimalTest, string_initialize_with_trailing_space) {
-        constexpr Decimal d0("123.456  ");
-        constexpr Decimal d1("123.456");
+TEST_F(BIGNUM_DECIMAL_FIXTURE, string_initialize_with_trailing_space) {
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123.456  ");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("123.456");
         EXPECT_EQ(d0, d1);
-        constexpr Decimal d2 = d0 + d1;
-        constexpr Decimal d3("246.912");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 + d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d3("246.912");
         EXPECT_EQ(d2, d3);
 }
 
-TEST_F(DecimalTest, string_initialize_with_leading_space_no_constexpr) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, string_initialize_with_leading_space_no_constexpr) {
         Decimal d0("  123.456");
         Decimal d1("123.456");
         EXPECT_EQ(d0, d1);
@@ -1613,7 +1621,7 @@ TEST_F(DecimalTest, string_initialize_with_leading_space_no_constexpr) {
         EXPECT_EQ(d2, d3);
 }
 
-TEST_F(DecimalTest, string_initialize_with_trailing_space_no_constexpr) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, string_initialize_with_trailing_space_no_constexpr) {
         Decimal d0("123.456  ");
         Decimal d1("123.456");
         EXPECT_EQ(d0, d1);
@@ -1622,13 +1630,13 @@ TEST_F(DecimalTest, string_initialize_with_trailing_space_no_constexpr) {
         EXPECT_EQ(d2, d3);
 }
 
-TEST_F(DecimalTest, string_initialize_with_leading_traling_zero) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, string_initialize_with_leading_traling_zero) {
         {
-                constexpr Decimal d0("000123.456");
-                constexpr Decimal d1("0000.456");
-                constexpr Decimal d2("-000123.000");
-                constexpr Decimal d3("-0.000");
-                constexpr Decimal d4("-0.123");
+                BIGNUM_TEST_CONSTEXPR Decimal d0("000123.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("0000.456");
+                BIGNUM_TEST_CONSTEXPR Decimal d2("-000123.000");
+                BIGNUM_TEST_CONSTEXPR Decimal d3("-0.000");
+                BIGNUM_TEST_CONSTEXPR Decimal d4("-0.123");
 
                 EXPECT_EQ(d0.to_string(), "123.456");
                 EXPECT_EQ(d1.to_string(), "0.456");
@@ -1657,7 +1665,7 @@ TEST_F(DecimalTest, string_initialize_with_leading_traling_zero) {
 //      "-.123"
 //      ".123..."
 //      "-.123..."
-TEST_F(DecimalTest, non_accept_table_string) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, non_accept_table_string) {
         Decimal d0;
         EXPECT_TRUE(!!d0.assign(".123"));
         EXPECT_TRUE(!!d0.assign("-.123"));
@@ -1666,510 +1674,510 @@ TEST_F(DecimalTest, non_accept_table_string) {
 }
 
 #if 0
-TEST_F(DecimalTest, ConstExprMod) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMod) {
     //=------------------------------------------
-    // Transform these tests into constexpr tests
+    // Transform these tests into BIGNUM_TEST_CONSTEXPR tests
     //=------------------------------------------
     // {"1", "3", ArithOp::MOD, "1"},
     {
-        constexpr Decimal d0("1");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "1");
     }
     // {"100000", "3.33", ArithOp::MOD, "0.1"},
     {
-        constexpr Decimal d0("100000");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.1");
     }
     // {"999999", "3.33", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("999999");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"123456", "3.33", ArithOp::MOD, "2.91"},
     {
-        constexpr Decimal d0("123456");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "2.91");
     }
     // {"-1", "3", ArithOp::MOD, "-1"},
     {
-        constexpr Decimal d0("-1");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1");
     }
     // {"-100000", "3.33", ArithOp::MOD, "-0.1"},
     {
-        constexpr Decimal d0("-100000");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.1");
     }
     // {"-999999", "3.33", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-999999");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-123456", "3.33", ArithOp::MOD, "-2.91"},
     {
-        constexpr Decimal d0("-123456");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-2.91");
     }
     // {"-1", "-3", ArithOp::MOD, "-1"},
     {
-        constexpr Decimal d0("-1");
-        constexpr Decimal d1("-3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1");
     }
     // {"-100000", "-3.33", ArithOp::MOD, "-0.1"},
     {
-        constexpr Decimal d0("-100000");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.1");
     }
     // {"-999999", "-3.33", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-999999");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-123456", "-3.33", ArithOp::MOD, "-2.91"},
     {
-        constexpr Decimal d0("-123456");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-2.91");
     }
     // {"1.00001", "3", ArithOp::MOD, "1.00001"},
     {
-        constexpr Decimal d0("1.00001");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "1.00001");
     }
     // {"100000.00001", "3.33", ArithOp::MOD, "0.10001"},
     {
-        constexpr Decimal d0("100000.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.10001");
     }
     // {"999999.00001", "3.33", ArithOp::MOD, "0.00001"},
     {
-        constexpr Decimal d0("999999.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.00001");
     }
     // {"123456.00001", "3.33", ArithOp::MOD, "2.91001"},
     {
-        constexpr Decimal d0("123456.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "2.91001");
     }
     // {"-1.00001", "3", ArithOp::MOD, "-1.00001"},
     {
-        constexpr Decimal d0("-1.00001");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1.00001");
     }
     // {"-100000.00001", "3.33", ArithOp::MOD, "-0.10001"},
     {
-        constexpr Decimal d0("-100000.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.10001");
     }
     // {"-999999.00001", "3.33", ArithOp::MOD, "-0.00001"},
     {
-        constexpr Decimal d0("-999999.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.00001");
     }
     // {"-123456.00001", "3.33", ArithOp::MOD, "-2.91001"},
     {
-        constexpr Decimal d0("-123456.00001");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-2.91001");
     }
     // {"1.57565", "3", ArithOp::MOD, "1.57565"},
     {
-        constexpr Decimal d0("1.57565");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "1.57565");
     }
     // {"100000.57565", "3.33", ArithOp::MOD, "0.67565"},
     {
-        constexpr Decimal d0("100000.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.67565");
     }
     // {"999999.57565", "3.33", ArithOp::MOD, "0.57565"},
     {
-        constexpr Decimal d0("999999.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.57565");
     }
     // {"123456.57565", "3.33", ArithOp::MOD, "0.15565"},
     {
-        constexpr Decimal d0("123456.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.15565");
     }
     // {"-1.57565", "3", ArithOp::MOD, "-1.57565"},
     {
-        constexpr Decimal d0("-1.57565");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1.57565");
     }
     // {"-100000.57565", "3.33", ArithOp::MOD, "-0.67565"},
     {
-        constexpr Decimal d0("-100000.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.67565");
     }
     // {"-999999.57565", "3.33", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-999999.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"-123456.57565", "3.33", ArithOp::MOD, "-0.15565"},
     {
-        constexpr Decimal d0("-123456.57565");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.15565");
     }
     // {"-1.57565", "-3", ArithOp::MOD, "-1.57565"},
     {
-        constexpr Decimal d0("-1.57565");
-        constexpr Decimal d1("-3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1.57565");
     }
     // {"-100000.57565", "-3.33", ArithOp::MOD, "-0.67565"},
     {
-        constexpr Decimal d0("-100000.57565");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.67565");
     }
     // {"-999999.57565", "-3.33", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-999999.57565");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"-123456.57565", "-3.33", ArithOp::MOD, "-0.15565"},
     {
-        constexpr Decimal d0("-123456.57565");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.15565");
     }
     // {"1", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("1");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"100000", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("100000");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"999999", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("999999");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"123456", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("123456");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-1", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-1");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-100000", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-100000");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-999999", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-999999");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"-123456", "-1", ArithOp::MOD, "0"},
     {
-        constexpr Decimal d0("-123456");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0");
     }
     // {"1.00001", "-1", ArithOp::MOD, "0.00001"},
     {
-        constexpr Decimal d0("1.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.00001");
     }
     // {"100000.00001", "-1", ArithOp::MOD, "0.00001"},
     {
-        constexpr Decimal d0("100000.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.00001");
     }
     // {"999999.00001", "-1", ArithOp::MOD, "0.00001"},
     {
-        constexpr Decimal d0("999999.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.00001");
     }
     // {"123456.00001", "-1", ArithOp::MOD, "0.00001"},
     {
-        constexpr Decimal d0("123456.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.00001");
     }
     // {"-1.00001", "-1", ArithOp::MOD, "-0.00001"},
     {
-        constexpr Decimal d0("-1.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.00001");
     }
     // {"-100000.00001", "-1", ArithOp::MOD, "-0.00001"},
     {
-        constexpr Decimal d0("-100000.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.00001");
     }
     // {"-999999.00001", "-1", ArithOp::MOD, "-0.00001"},
     {
-        constexpr Decimal d0("-999999.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.00001");
     }
     // {"-123456.00001", "-1", ArithOp::MOD, "-0.00001"},
     {
-        constexpr Decimal d0("-123456.00001");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.00001");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.00001");
     }
     // {"1.57565", "-1", ArithOp::MOD, "0.57565"},
     {
-        constexpr Decimal d0("1.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.57565");
     }
     // {"100000.57565", "-1", ArithOp::MOD, "0.57565"},
     {
-        constexpr Decimal d0("100000.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.57565");
     }
     // {"999999.57565", "-1", ArithOp::MOD, "0.57565"},
     {
-        constexpr Decimal d0("999999.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.57565");
     }
     // {"123456.57565", "-1", ArithOp::MOD, "0.57565"},
     {
-        constexpr Decimal d0("123456.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.57565");
     }
     // {"-1.57565", "-1", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-1.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"-100000.57565", "-1", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-100000.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"-999999.57565", "-1", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-999999.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"-123456.57565", "-1", ArithOp::MOD, "-0.57565"},
     {
-        constexpr Decimal d0("-123456.57565");
-        constexpr Decimal d1("-1");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.57565");
     }
     // {"1.5756533334441", "3", ArithOp::MOD, "1.5756533334441"},
     {
-        constexpr Decimal d0("1.5756533334441");
-        constexpr Decimal d1("3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.5756533334441");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "1.5756533334441");
     }
     // {"30030.202898898933", "3.33", ArithOp::MOD, "0.262898898933"},
     {
-        constexpr Decimal d0("30030.202898898933");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("30030.202898898933");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.262898898933");
     }
     // {"100000.111111111111111", "3.33", ArithOp::MOD, "0.211111111111111"},
     {
-        constexpr Decimal d0("100000.111111111111111");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.211111111111111");
     }
     // {"999999.111111111111111", "3.33", ArithOp::MOD, "0.111111111111111"},
     {
-        constexpr Decimal d0("999999.111111111111111");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.111111111111111");
     }
     // {"123456.111111111111111", "3.33", ArithOp::MOD, "3.021111111111111"},
     {
-        constexpr Decimal d0("123456.111111111111111");
-        constexpr Decimal d1("3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "3.021111111111111");
     }
     // {"1.5756533334441", "-3", ArithOp::MOD, "1.5756533334441"},
     {
-        constexpr Decimal d0("1.5756533334441");
-        constexpr Decimal d1("-3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("1.5756533334441");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "1.5756533334441");
     }
     // {"30030.202898898933", "-3.33", ArithOp::MOD, "0.262898898933"},
     {
-        constexpr Decimal d0("30030.202898898933");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("30030.202898898933");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.262898898933");
     }
     // {"100000.111111111111111", "-3.33", ArithOp::MOD, "0.211111111111111"},
     {
-        constexpr Decimal d0("100000.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.211111111111111");
     }
     // {"999999.111111111111111", "-3.33", ArithOp::MOD, "0.111111111111111"},
     {
-        constexpr Decimal d0("999999.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "0.111111111111111");
     }
     // {"123456.111111111111111", "-3.33", ArithOp::MOD, "3.021111111111111"},
     {
-        constexpr Decimal d0("123456.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "3.021111111111111");
     }
     // {"-1.5756533334441", "-3", ArithOp::MOD, "-1.5756533334441"},
     {
-        constexpr Decimal d0("-1.5756533334441");
-        constexpr Decimal d1("-3");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.5756533334441");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-1.5756533334441");
     }
     // {"-30030.202898898933", "-3.33", ArithOp::MOD, "-0.262898898933"},
     {
-        constexpr Decimal d0("-30030.202898898933");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-30030.202898898933");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.262898898933");
     }
     // {"-100000.111111111111111", "-3.33", ArithOp::MOD, "-0.211111111111111"},
     {
-        constexpr Decimal d0("-100000.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.211111111111111");
     }
     // {"-999999.111111111111111", "-3.33", ArithOp::MOD, "-0.111111111111111"},
     {
-        constexpr Decimal d0("-999999.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-0.111111111111111");
     }
     // {"-123456.111111111111111", "-3.33", ArithOp::MOD, "-3.021111111111111"},
     {
-        constexpr Decimal d0("-123456.111111111111111");
-        constexpr Decimal d1("-3.33");
-        constexpr Decimal d2 = d0 % d1;
+        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.111111111111111");
+        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 % d1;
         EXPECT_EQ(d2.to_string(), "-3.021111111111111");
     }
 }
 
-TEST_F(DecimalTest, Int256AddOverflow) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, Int256AddOverflow) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
     ErrCode err = kOk;
@@ -2188,7 +2196,7 @@ TEST_F(DecimalTest, Int256AddOverflow) {
     EXPECT_TRUE(!err);
 }
 
-TEST_F(DecimalTest, safe_mul_int256) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_mul_int256) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
     ErrCode err = kOk;
@@ -2219,7 +2227,7 @@ TEST_F(DecimalTest, safe_mul_int256) {
     EXPECT_TRUE(!!err);
 }
 
-TEST_F(DecimalTest, safe_div_int128) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_div_int128) {
     __int128_t res128 = 0;
     ErrCode err = kOk;
 
@@ -2236,7 +2244,7 @@ TEST_F(DecimalTest, safe_div_int128) {
     EXPECT_TRUE(!err);
 }
 
-TEST_F(DecimalTest, safe_div_int256) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_div_int256) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
     ErrCode err = kOk;
@@ -2254,7 +2262,7 @@ TEST_F(DecimalTest, safe_div_int256) {
     EXPECT_TRUE(!err);
 }
 
-TEST_F(DecimalTest, int256_to_string) {
+TEST_F(BIGNUM_DECIMAL_FIXTURE, int256_to_string) {
     using namespace boost::multiprecision;
     EXPECT_EQ(convert_int256_to_string(0), "0");
     EXPECT_EQ(convert_int256_to_string(123), "123");
@@ -2265,520 +2273,520 @@ TEST_F(DecimalTest, int256_to_string) {
               "-57896044618658097711785492504343953926634992332820282019728792003956564819968");
 }
 
-TEST_F(DecimalTest, invalid_str_constexpr_init_failure) {
-        // Invalid constexpr initialization. Should fail to compile.
+TEST_F(BIGNUM_DECIMAL_FIXTURE, invalid_str_constexpr_init_failure) {
+        // Invalid BIGNUM_TEST_CONSTEXPR initialization. Should fail to compile.
         {
-            constexpr Decimal d0("1af.123");
+            BIGNUM_TEST_CONSTEXPR Decimal d0("1af.123");
             EXPECT_EQ(d0.to_string(), "0");
         }
 }
 
-TEST_F(DecimalTest, large_num_constexpr_init_failure) {
-        // Invalid constexpr initialization. Should fail to compile.
+TEST_F(BIGNUM_DECIMAL_FIXTURE, large_num_constexpr_init_failure) {
+        // Invalid BIGNUM_TEST_CONSTEXPR initialization. Should fail to compile.
         {
-            constexpr Decimal d0("1af.123");
+            BIGNUM_TEST_CONSTEXPR Decimal d0("1af.123");
             EXPECT_EQ(d0.to_string(), "0");
         }
 }
 
-// TODO have to make mpz_* function constexpr for these to be constexpr
+// TODO have to make mpz_* function BIGNUM_TEST_CONSTEXPR for these to be BIGNUM_TEST_CONSTEXPR
 // TODO or provide a method using __int128_t or int64 for small number
-//TEST_F(DecimalTest, ConstExprDiv) {
+//TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprDiv) {
 //    // {"1", "3", ArithOp::DIV, "0.3333"},
 //    {
-//        constexpr Decimal d0("1");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.3333");
 //    }
 //    // {"100000", "3.33", ArithOp::DIV, "30030.03"},
 //    {
-//        constexpr Decimal d0("100000");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.03");
 //    }
 //    // {"999999", "3.33", ArithOp::DIV, "300300"},
 //    {
-//        constexpr Decimal d0("999999");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300");
 //    }
 //    // {"123456", "3.33", ArithOp::DIV, "37073.8739"},
 //    {
-//        constexpr Decimal d0("123456");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37073.8739");
 //    }
 //    // {"-1", "3", ArithOp::DIV, "-0.3333"},
 //    {
-//        constexpr Decimal d0("-1");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-0.3333");
 //    }
 //    // {"-100000", "3.33", ArithOp::DIV, "-30030.03"},
 //    {
-//        constexpr Decimal d0("-100000");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-30030.03");
 //    }
 //    // {"-999999", "3.33", ArithOp::DIV, "-300300"},
 //    {
-//        constexpr Decimal d0("-999999");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-300300");
 //    }
 //    // {"-123456", "3.33", ArithOp::DIV, "-37073.8739"},
 //    {
-//        constexpr Decimal d0("-123456");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-37073.8739");
 //    }
 //    // {"-1", "-3", ArithOp::DIV, "0.3333"},
 //    {
-//        constexpr Decimal d0("-1");
-//        constexpr Decimal d1("-3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.3333");
 //    }
 //    // {"-100000", "-3.33", ArithOp::DIV, "30030.03"},
 //    {
-//        constexpr Decimal d0("-100000");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.03");
 //    }
 //    // {"-999999", "-3.33", ArithOp::DIV, "300300"},
 //    {
-//        constexpr Decimal d0("-999999");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300");
 //    }
 //    // {"-123456", "-3.33", ArithOp::DIV, "37073.8739"},
 //    {
-//        constexpr Decimal d0("-123456");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37073.8739");
 //    }
 //    // {"1.00001", "3", ArithOp::DIV, "0.333336667"},
 //    {
-//        constexpr Decimal d0("1.00001");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.333336667");
 //    }
 //    // {"100000.00001", "3.33", ArithOp::DIV, "30030.030033033"},
 //    {
-//        constexpr Decimal d0("100000.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.030033033");
 //    }
 //    // {"999999.00001", "3.33", ArithOp::DIV, "300300.000003003"},
 //    {
-//        constexpr Decimal d0("999999.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300.000003003");
 //    }
 //    // {"123456.00001", "3.33", ArithOp::DIV, "37073.873876877"},
 //    {
-//        constexpr Decimal d0("123456.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37073.873876877");
 //    }
 //    // {"-1.00001", "3", ArithOp::DIV, "-0.333336667"},
 //    {
-//        constexpr Decimal d0("-1.00001");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-0.333336667");
 //    }
 //    // {"-100000.00001", "3.33", ArithOp::DIV, "-30030.030033033"},
 //    {
-//        constexpr Decimal d0("-100000.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-30030.030033033");
 //    }
 //    // {"-999999.00001", "3.33", ArithOp::DIV, "-300300.000003003"},
 //    {
-//        constexpr Decimal d0("-999999.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-300300.000003003");
 //    }
 //    // {"-123456.00001", "3.33", ArithOp::DIV, "-37073.873876877"},
 //    {
-//        constexpr Decimal d0("-123456.00001");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-37073.873876877");
 //    }
 //    // {"1.57565", "3", ArithOp::DIV, "0.525216667"},
 //    {
-//        constexpr Decimal d0("1.57565");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.525216667");
 //    }
 //    // {"100000.57565", "3.33", ArithOp::DIV, "30030.202897898"},
 //    {
-//        constexpr Decimal d0("100000.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.202897898");
 //    }
 //    // {"999999.57565", "3.33", ArithOp::DIV, "300300.172867868"},
 //    {
-//        constexpr Decimal d0("999999.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300.172867868");
 //    }
 //    // {"123456.57565", "3.33", ArithOp::DIV, "37074.046741742"},
 //    {
-//        constexpr Decimal d0("123456.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37074.046741742");
 //    }
 //    // {"-1.57565", "3", ArithOp::DIV, "-0.525216667"},
 //    {
-//        constexpr Decimal d0("-1.57565");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-0.525216667");
 //    }
 //    // {"-100000.57565", "3.33", ArithOp::DIV, "-30030.202897898"},
 //    {
-//        constexpr Decimal d0("-100000.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-30030.202897898");
 //    }
 //    // {"-999999.57565", "3.33", ArithOp::DIV, "-300300.172867868"},
 //    {
-//        constexpr Decimal d0("-999999.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-300300.172867868");
 //    }
 //    // {"-123456.57565", "3.33", ArithOp::DIV, "-37074.046741742"},
 //    {
-//        constexpr Decimal d0("-123456.57565");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-37074.046741742");
 //    }
 //    // {"-1.57565", "-3", ArithOp::DIV, "0.525216667"},
 //    {
-//        constexpr Decimal d0("-1.57565");
-//        constexpr Decimal d1("-3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.525216667");
 //    }
 //    // {"-100000.57565", "-3.33", ArithOp::DIV, "30030.202897898"},
 //    {
-//        constexpr Decimal d0("-100000.57565");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.202897898");
 //    }
 //    // {"-999999.57565", "-3.33", ArithOp::DIV, "300300.172867868"},
 //    {
-//        constexpr Decimal d0("-999999.57565");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300.172867868");
 //    }
 //    // {"-123456.57565", "-3.33", ArithOp::DIV, "37074.046741742"},
 //    {
-//        constexpr Decimal d0("-123456.57565");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37074.046741742");
 //    }
 //    // {"1", "-1", ArithOp::DIV, "-1"},
 //    {
-//        constexpr Decimal d0("1");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-1");
 //    }
 //    // {"100000", "-1", ArithOp::DIV, "-100000"},
 //    {
-//        constexpr Decimal d0("100000");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-100000");
 //    }
 //    // {"999999", "-1", ArithOp::DIV, "-999999"},
 //    {
-//        constexpr Decimal d0("999999");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-999999");
 //    }
 //    // {"123456", "-1", ArithOp::DIV, "-123456"},
 //    {
-//        constexpr Decimal d0("123456");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-123456");
 //    }
 //    // {"-1", "-1", ArithOp::DIV, "1"},
 //    {
-//        constexpr Decimal d0("-1");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "1");
 //    }
 //    // {"-100000", "-1", ArithOp::DIV, "100000"},
 //    {
-//        constexpr Decimal d0("-100000");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "100000");
 //    }
 //    // {"-999999", "-1", ArithOp::DIV, "999999"},
 //    {
-//        constexpr Decimal d0("-999999");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "999999");
 //    }
 //    // {"-123456", "-1", ArithOp::DIV, "123456"},
 //    {
-//        constexpr Decimal d0("-123456");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "123456");
 //    }
 //    // {"1.00001", "-1", ArithOp::DIV, "-1.00001"},
 //    {
-//        constexpr Decimal d0("1.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-1.00001");
 //    }
 //    // {"100000.00001", "-1", ArithOp::DIV, "-100000.00001"},
 //    {
-//        constexpr Decimal d0("100000.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-100000.00001");
 //    }
 //    // {"999999.00001", "-1", ArithOp::DIV, "-999999.00001"},
 //    {
-//        constexpr Decimal d0("999999.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-999999.00001");
 //    }
 //    // {"123456.00001", "-1", ArithOp::DIV, "-123456.00001"},
 //    {
-//        constexpr Decimal d0("123456.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-123456.00001");
 //    }
 //    // {"-1.00001", "-1", ArithOp::DIV, "1.00001"},
 //    {
-//        constexpr Decimal d0("-1.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "1.00001");
 //    }
 //    // {"-100000.00001", "-1", ArithOp::DIV, "100000.00001"},
 //    {
-//        constexpr Decimal d0("-100000.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "100000.00001");
 //    }
 //    // {"-999999.00001", "-1", ArithOp::DIV, "999999.00001"},
 //    {
-//        constexpr Decimal d0("-999999.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "999999.00001");
 //    }
 //    // {"-123456.00001", "-1", ArithOp::DIV, "123456.00001"},
 //    {
-//        constexpr Decimal d0("-123456.00001");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.00001");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "123456.00001");
 //    }
 //    // {"1.57565", "-1", ArithOp::DIV, "-1.57565"},
 //    {
-//        constexpr Decimal d0("1.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-1.57565");
 //    }
 //    // {"100000.57565", "-1", ArithOp::DIV, "-100000.57565"},
 //    {
-//        constexpr Decimal d0("100000.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-100000.57565");
 //    }
 //    // {"999999.57565", "-1", ArithOp::DIV, "-999999.57565"},
 //    {
-//        constexpr Decimal d0("999999.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-999999.57565");
 //    }
 //    // {"123456.57565", "-1", ArithOp::DIV, "-123456.57565"},
 //    {
-//        constexpr Decimal d0("123456.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-123456.57565");
 //    }
 //    // {"-1.57565", "-1", ArithOp::DIV, "1.57565"},
 //    {
-//        constexpr Decimal d0("-1.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "1.57565");
 //    }
 //    // {"-100000.57565", "-1", ArithOp::DIV, "100000.57565"},
 //    {
-//        constexpr Decimal d0("-100000.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "100000.57565");
 //    }
 //    // {"-999999.57565", "-1", ArithOp::DIV, "999999.57565"},
 //    {
-//        constexpr Decimal d0("-999999.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "999999.57565");
 //    }
 //    // {"-123456.57565", "-1", ArithOp::DIV, "123456.57565"},
 //    {
-//        constexpr Decimal d0("-123456.57565");
-//        constexpr Decimal d1("-1");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.57565");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-1");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "123456.57565");
 //    }
 //    // {"1.5756533334441", "3", ArithOp::DIV, "0.5252177778147"},
 //    {
-//        constexpr Decimal d0("1.5756533334441");
-//        constexpr Decimal d1("3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.5756533334441");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.5252177778147");
 //    }
 //    // {"30030.202898898933", "3.33", ArithOp::DIV, "9018.0789486182981982"},
 //    {
-//        constexpr Decimal d0("30030.202898898933");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("30030.202898898933");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "9018.0789486182981982");
 //    }
 //    // {"100000.111111111111111", "3.33", ArithOp::DIV, "30030.0633967300633967"},
 //    {
-//        constexpr Decimal d0("100000.111111111111111");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.0633967300633967");
 //    }
 //    // {"999999.111111111111111", "3.33", ArithOp::DIV, "300300.0333667000333667"},
 //    {
-//        constexpr Decimal d0("999999.111111111111111");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300.0333667000333667");
 //    }
 //    // {"123456.111111111111111", "3.33", ArithOp::DIV, "37073.9072405739072405"},
 //    {
-//        constexpr Decimal d0("123456.111111111111111");
-//        constexpr Decimal d1("3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37073.9072405739072405");
 //    }
 //    // {"1.5756533334441", "-3", ArithOp::DIV, "-0.5252177778147"},
 //    {
-//        constexpr Decimal d0("1.5756533334441");
-//        constexpr Decimal d1("-3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("1.5756533334441");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-0.5252177778147");
 //    }
 //    // {"30030.202898898933", "-3.33", ArithOp::DIV, "-9018.0789486182981982"},
 //    {
-//        constexpr Decimal d0("30030.202898898933");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("30030.202898898933");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-9018.0789486182981982");
 //    }
 //    // {"100000.111111111111111", "-3.33", ArithOp::DIV, "-30030.0633967300633967"},
 //    {
-//        constexpr Decimal d0("100000.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("100000.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-30030.0633967300633967");
 //    }
 //    // {"999999.111111111111111", "-3.33", ArithOp::DIV, "-300300.0333667000333667"},
 //    {
-//        constexpr Decimal d0("999999.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("999999.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-300300.0333667000333667");
 //    }
 //    // {"123456.111111111111111", "-3.33", ArithOp::DIV, "-37073.9072405739072405"},
 //    {
-//        constexpr Decimal d0("123456.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("123456.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "-37073.9072405739072405");
 //    }
 //    // {"-1.5756533334441", "-3", ArithOp::DIV, "0.5252177778147"},
 //    {
-//        constexpr Decimal d0("-1.5756533334441");
-//        constexpr Decimal d1("-3");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-1.5756533334441");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "0.5252177778147");
 //    }
 //    // {"-30030.202898898933", "-3.33", ArithOp::DIV, "9018.0789486182981982"},
 //    {
-//        constexpr Decimal d0("-30030.202898898933");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-30030.202898898933");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "9018.0789486182981982");
 //    }
 //    // {"-100000.111111111111111", "-3.33", ArithOp::DIV, "30030.0633967300633967"},
 //    {
-//        constexpr Decimal d0("-100000.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-100000.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "30030.0633967300633967");
 //    }
 //    // {"-999999.111111111111111", "-3.33", ArithOp::DIV, "300300.0333667000333667"},
 //    {
-//        constexpr Decimal d0("-999999.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-999999.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "300300.0333667000333667");
 //    }
 //    // {"-123456.111111111111111", "-3.33", ArithOp::DIV, "37073.9072405739072405"},
 //    {
-//        constexpr Decimal d0("-123456.111111111111111");
-//        constexpr Decimal d1("-3.33");
-//        constexpr Decimal d2 = d0 / d1;
+//        BIGNUM_TEST_CONSTEXPR Decimal d0("-123456.111111111111111");
+//        BIGNUM_TEST_CONSTEXPR Decimal d1("-3.33");
+//        BIGNUM_TEST_CONSTEXPR Decimal d2 = d0 / d1;
 //        EXPECT_EQ(d2.to_string(), "37073.9072405739072405");
 //    }
 //}

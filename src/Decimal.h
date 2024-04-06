@@ -740,17 +740,7 @@ class DecimalImpl final {
         // Return error code instead of triggering assertion.
         //=--------------------------------------------------------
         template <IntegralType U>
-        constexpr ErrCode assign(U i) {
-                m_scale = 0;
-                if (sizeof(U) <= 8) {
-                        m_dtype = DType::kInt64;
-                        m_i64 = i;
-                } else {
-                        m_dtype = DType::kInt128;
-                        m_i128 = i;
-                }
-                return kOk;
-        }
+        constexpr ErrCode assign(U i);
 
         template <FloatingPointType U>
         /*constexpr*/ ErrCode assign(U &f);
@@ -1123,6 +1113,29 @@ constexpr void DecimalImpl<T>::negate() {
 }
 
 template <typename T>
+template <IntegralType U>
+constexpr inline ErrCode DecimalImpl<T>::assign(U i) {
+        m_scale = 0;
+        if (sizeof(U) <= 8) {
+                m_dtype = DType::kInt64;
+                m_i64 = i;
+        } else {
+                m_dtype = DType::kInt128;
+                m_i128 = i;
+        }
+
+#if ((!defined(NDEBUG)) && defined(BIGNUM_DEV_USE_GMP_ONLY))
+        if (m_dtype == DType::kInt64) {
+                store_gmp_value(detail::conv_64_to_gmp320(m_i64));
+        } else if (m_dtype == DType::kInt128) {
+                store_gmp_value(detail::conv_128_to_gmp320(m_i128));
+        }
+#endif
+
+        return kOk;
+}
+
+template <typename T>
 template <FloatingPointType U>
 /*constexpr*/ inline ErrCode DecimalImpl<T>::assign(U &v) {
         std::ostringstream oss;
@@ -1180,6 +1193,15 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
         }
 
         sanity_check();
+
+#if ((!defined(NDEBUG)) && defined(BIGNUM_DEV_USE_GMP_ONLY))
+        if (m_dtype == DType::kInt64) {
+                store_gmp_value(detail::conv_64_to_gmp320(m_i64));
+        } else if (m_dtype == DType::kInt128) {
+                store_gmp_value(detail::conv_128_to_gmp320(m_i128));
+        }
+#endif
+
         return kOk;
 }
 
