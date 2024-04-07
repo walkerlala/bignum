@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "Decimal.h"
+#include "decimal.h"
 
 namespace bignum {
 using namespace detail;

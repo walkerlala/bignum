@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "Decimal.h"
+#include "decimal.h"
 
 #ifdef BIGNUM_DEV_USE_GMP_ONLY
 #define BIGNUM_DECIMAL_FIXTURE DecimalTestGmpOnly

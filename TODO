@@ -1,7 +1,3 @@
 TODO
   generate random fuzz test and compare that to the result of mysql
   this is to verify that result
-
-  增加一个编译宏，允许使用 gmp-only 而不使用 int64 / int128 以最大程度测试 gmp 的正确性
-
-  把文件名改成小写，这样在用户 include 的时候，会不那么奇怪

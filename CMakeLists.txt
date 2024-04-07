@@ -70,7 +70,7 @@ include(cmake/gtest.cmake)
 find_package(Threads REQUIRED)
 
 # TODO set install rpath for gmp if needed
-set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/Decimal.cc)
+set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/decimal.cc)
 if (BIGNUM_BUILD_SHARED)
     add_library(bignum SHARED ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
@@ -95,13 +95,13 @@ add_dependencies(bignum_gmp_only gmp_static_lib)
 target_link_libraries(bignum_gmp_only PRIVATE ${GMP_LIBRARIES})
 
 # decimal_calculator
-add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/Calculator.cc)
+add_executable(decimal_calculator ${CMAKE_SOURCE_DIR}/src/calculator.cc)
 target_link_libraries(decimal_calculator bignum)
 target_include_directories(decimal_calculator PRIVATE ${PROJECT_ROOT}/src)
 target_include_directories(decimal_calculator PRIVATE ${GMP_INCLUDE_DIR})
 
 # decimal_calculator_gmp_only
-add_executable(decimal_calculator_gmp_only ${CMAKE_SOURCE_DIR}/src/Calculator.cc)
+add_executable(decimal_calculator_gmp_only ${CMAKE_SOURCE_DIR}/src/calculator.cc)
 target_link_libraries(decimal_calculator_gmp_only bignum_gmp_only)
 target_include_directories(decimal_calculator_gmp_only PRIVATE ${PROJECT_ROOT}/src)
 target_include_directories(decimal_calculator_gmp_only PRIVATE ${GMP_INCLUDE_DIR})
