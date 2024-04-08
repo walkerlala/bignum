@@ -297,6 +297,8 @@ constexpr inline Gmp320 conv_128_to_gmp320(__int128_t i128) {
 
 template <typename T, typename U>
 inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, const U &max_value) {
+        [[maybe_unused]] std::string r60s = decimal_gmp_to_string(test_value, 0);
+
         int res = mpz_cmp(&test_value.mpz, &max_value.mpz);
         if (res > 0) {
                 return kErr;
@@ -467,7 +469,10 @@ constexpr inline ErrCode decimal_add_integral(T &res, int32_t &res_scale, T lhs,
                 if (p10 < 0) {
                         return kDecimalAddSubOverflow;
                 }
-                if (safe_add(res, lhs, rhs * p10)) {
+                if (safe_mul(rhs, rhs, p10)) {
+                        return kDecimalAddSubOverflow;
+                }
+                if (safe_add(res, lhs, rhs)) {
                         return kDecimalAddSubOverflow;
                 }
                 res_scale = lscale;
@@ -476,7 +481,10 @@ constexpr inline ErrCode decimal_add_integral(T &res, int32_t &res_scale, T lhs,
                 if (p10 < 0) {
                         return kDecimalAddSubOverflow;
                 }
-                if (safe_add(res, lhs * p10, rhs)) {
+                if (safe_mul(lhs, lhs, p10)) {
+                        return kDecimalAddSubOverflow;
+                }
+                if (safe_add(res, lhs, rhs)) {
                         return kDecimalAddSubOverflow;
                 }
                 res_scale = rscale;

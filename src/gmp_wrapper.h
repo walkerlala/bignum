@@ -130,7 +130,11 @@ struct GmpWrapper {
 };
 
 using Gmp320 = GmpWrapper<5>;
-using Gmp640 = detail::GmpWrapper<10>;
+// Even though 640bit is enough to hold all intermediate result of Gmp320, some internal gmp
+// function might try to realloc for more space if the _mp_size==10 (to make sure that memory
+// size is enough for subsequent calculation), which would cause invalid memory access.
+// Therefore we add 1 more limbs to avoid this issue.
+using Gmp640 = GmpWrapper<11>;
 static_assert(sizeof(Gmp320) == 56);
 
 // Maximum/minimum value of precision-96 decimal number

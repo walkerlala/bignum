@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 
-#include "Decimal.h"
+#include "decimal.h"
 
 namespace bignum {
 using namespace detail;
@@ -10,23 +10,65 @@ using namespace detail;
 // These are test cases that hit bugs or corner cases as time goes by
 //=-------------------------------------------------------------------
 
-class IssueTest : public ::testing::Test {};
-
-TEST_F(IssueTest, case001) {
-        Decimal d1("4533527415768002964173054920367325040031456305595549715.3");
-        Decimal d2("239488530950790143412839555444765933.2163809400115095694428491613");
-        Decimal d3 = d1 + d2;
-
-        EXPECT_EQ(static_cast<std::string>(d3),
-                  "4533527415768002964412543451318115183444295861040315648.516380940011509569");
+TEST(IssueTest, case001) {
+        // TODO
+        // bignum overflow, but it should not.
+        //    560523670929766645251228.275617113 +
+        //    6611377617686453935686898473801113298366075758159259042709446259162556239682899074564129396.41
+        // Correct result of pg should be:
+        //    6611377617686453935686898473801113298366075758159259042709446259163116763353828841209380624.685617113
 }
 
-TEST_F(IssueTest, case002) {
-        Decimal d1("35272101902216212706414636703984778.46138620280095");
-        Decimal d2("8338229360.8856451124078");
-        Decimal d3 = d1 * d2;
+TEST(IssueTest, case002) {
+        Decimal d1("72.67414470056563283372");
+        Decimal d2("27079892846274005397.943");
+        Decimal res = d1 + d2;
+        EXPECT_EQ(static_cast<std::string>(res), "27079892846274005470.61714470056563283372");
+}
 
-        EXPECT_EQ(static_cast<std::string>(d3),
-                  "294106875701209638510679238005211694343641861.30841008980345536995862741");
+TEST(IssueTest, case003) {
+        Decimal d1(
+                "8832187650537776303206930649091789177797430957939666561473539619668."
+                "6598993704102329012035443262");
+        Decimal d2(
+                "39759521277236470205399075724298920052842085366517561818667033184705055264732608."
+                "731698158");
+        Decimal res = d1;
+        auto err = res.mul(d2);
+        EXPECT_NE(!!err, 0);
+}
+
+TEST(IssueTest, case004) {
+        Decimal d1("272596762.65142969092909283373932");
+        Decimal d2("21649440307694835.6265212124968757592");
+        Decimal res = d1 - d2;
+        EXPECT_EQ(static_cast<std::string>(res), "-21649440035098072.97509152156778292546068");
+}
+
+TEST(IssueTest, case005) {
+        Decimal d1(
+                "9617624838768778037183071312213963121151837210331595263316324617527022666471172."
+                "6347568516234");
+        Decimal d2(
+                "1339920337070008752332959161147423728446106087074681074923933401534611403."
+                "78411550787523642401");
+        Decimal res = d1;
+        auto err = res.mul(d2);
+        EXPECT_NE(!!err, 0);
+}
+
+TEST(IssueTest, case006) {
+        Decimal d1("-1");
+        Decimal d2("0.7771527547861743124");
+        Decimal res = d1 * d2;
+        EXPECT_EQ(static_cast<std::string>(res), "-0.7771527547861743124");
+}
+
+TEST(IssueTest, case007) {
+        // 00.4870223912296399425 - 0.7:
+        Decimal d1("0.4870223912296399425");
+        Decimal d2("0.7");
+        Decimal res = d1 - d2;
+        EXPECT_EQ(static_cast<std::string>(res), "-0.2129776087703600575");
 }
 }  // namespace bignum

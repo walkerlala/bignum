@@ -8,3 +8,4 @@ install/
 extra/gmp/gmp-6.3.0/
 extra/gtest/googletest-1.14.0/
 compile_commands.json
+.vscode

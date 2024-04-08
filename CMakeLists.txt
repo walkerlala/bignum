@@ -107,11 +107,12 @@ target_include_directories(decimal_calculator_gmp_only PRIVATE ${PROJECT_ROOT}/s
 target_include_directories(decimal_calculator_gmp_only PRIVATE ${GMP_INCLUDE_DIR})
 
 if (BIGNUM_BUILD_TESTS)
-    add_executable(unittest
+    set(UNITTEST_SOURCES
         ${PROJECT_ROOT}/tests/op.cc
         ${PROJECT_ROOT}/tests/gmp.cc
-        #${PROJECT_ROOT}/tests/issues.cc
+        ${PROJECT_ROOT}/tests/issues.cc
     )
+    add_executable(unittest ${UNITTEST_SOURCES})
     target_link_libraries(unittest bignum)
     target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(unittest PRIVATE ${GMP_INCLUDE_DIR})
@@ -119,11 +120,7 @@ if (BIGNUM_BUILD_TESTS)
     target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
     add_dependencies(unittest gtest_lib)
 
-    add_executable(unittest_gmp_only
-        ${PROJECT_ROOT}/tests/op.cc
-        ${PROJECT_ROOT}/tests/gmp.cc
-        #${PROJECT_ROOT}/tests/issues.cc
-    )
+    add_executable(unittest_gmp_only ${UNITTEST_SOURCES})
     target_link_libraries(unittest_gmp_only bignum_gmp_only)
     target_include_directories(unittest_gmp_only PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(unittest_gmp_only PRIVATE ${GMP_INCLUDE_DIR})

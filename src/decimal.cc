@@ -7,13 +7,13 @@ namespace bignum {
 namespace detail {
 template <UnsignedIntegralType T>
 static std::string decimal_unsigned_integral_to_string(T v, int32_t scale, bool is_negative) {
-        // int128_t -> 39 + 1 + 1 + 1 = 42 (1 for '-', 1 for '.', 1 for '\0')
-        // int64_t -> 19 + 1 + 1 + 1 = 22
+        // uint128_t -> 39 + 1 + 1 + 1 = 42 (1 for '-', 1 for '.', 1 for '\0')
+        // uint64_t -> 20 + 1 + 1 + 1 = 23
         //
         // Considering that scale might be equal to the number digits, e.g., 0.12345,
         // where scale is 5, we need to add 1 more digit for the leading 0.
-        // So 42 -> 43, 22 -> 23
-        constexpr size_t result_buf_size = (sizeof(T) == 16) ? 43 : 22;
+        // So 42 -> 43, 23 -> 24
+        constexpr size_t result_buf_size = (sizeof(T) == 16) ? 43 : 24;
         char result_buffer[result_buf_size] = {0};
         char *p = &(result_buffer[0]);
         char *pstart = p;
@@ -104,7 +104,11 @@ std::string my_mpz_to_string(const __mpz_struct *mpz, int32_t scale) {
         // Considering that scale might be equal to the number digits, e.g., 0.12345,
         // where scale is 5, we need to add 1 more digit for the leading 0.
         // So this is 101.
-        constexpr int64_t buf_size = 101;
+        //
+        // With kNumLimbs=10 limbs, there is 640 bits (signed).
+        // Therefore there is at most 193 digits for this mpz object.
+        // So there is 193 + 1 + 1 + 1 + 1 = 197
+        constexpr int64_t buf_size = 197;
         char buf[buf_size] = {0};
 
         bool is_negative = (mpz->_mp_size < 0);

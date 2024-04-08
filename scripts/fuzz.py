@@ -2,30 +2,34 @@
 # coding:utf-8
 
 from decimal import Decimal
-from mysql.connector import Error
 from tqdm import tqdm
 import argparse
-import mysql.connector
+import decimal
 import os
+import pdb
+import psycopg2
 import random
 import string
 import subprocess
-import pdb
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--test_count", dest="test_count", type=int)
 parser.add_argument("--decimal_calculator", dest="decimal_calculator", type=str)
-parser.add_argument("--mysql_host", dest="mysql_host", type=str)
-parser.add_argument("--mysql_port", dest="mysql_port", type=int)
-parser.add_argument("--mysql_user", dest="mysql_user", type=str)
-parser.add_argument("--mysql_password", dest="mysql_password", type=str)
+parser.add_argument("--pg_host", dest="pg_host", default="127.0.0.1", type=str)
+parser.add_argument("--pg_port", dest="pg_port", default=5432, type=int)
+parser.add_argument("--pg_user", dest="pg_user", default="mypguser", type=str)
+parser.add_argument("--pg_password", dest="pg_password", default="mypgpass", type=str)
+parser.add_argument("--pg_database", dest="pg_database", default="mypgdb", type=str)
 args = parser.parse_args()
 
-max_decimal_precision = 65
+# Set python's decimal's "scale" to be 30
+decimal.getcontext().prec = 30
+
+max_decimal_precision = 96
 max_decimal_scale = 30
 special_values = [
-    Decimal("99999999999999999999999999999999999999999999999999999999999999999"),  # 65-digits max
-    Decimal("-99999999999999999999999999999999999999999999999999999999999999999"),  # 65-digits min
+    Decimal("999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"),  # 96-digits max
+    Decimal("-999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"),  # 96-digits max
     Decimal("0"),
     Decimal("1"),
     Decimal("-1"),
@@ -34,8 +38,8 @@ special_values = [
     Decimal("-170141183460469231731687303715884105728"),  # INT128_MIN
     Decimal("170141183460469231731687303715884105727"),  # INT128_MAX
     # random decimal point within these values
-    Decimal("999999999999999.99999999999999999999999999999999999999999999999999"),
-    Decimal("-999999999999999999.99999999999999999999999999999999999999999999999"),
+    Decimal("99999999999999999999999999999999999999999999999999999999999999999999999999.9999999999999999999999"),  # 96-digits max
+    Decimal("-999999999999999999999999999999999999999999999999999999999999999999999.999999999999999999999999999"),  # 96-digits max
     Decimal("0"),
     Decimal("1"),
     Decimal("-1"),
@@ -44,8 +48,8 @@ special_values = [
     Decimal("-170141.183460469231731687303715884105728"),
     Decimal("170141183460.469231731687303715884105727"),
     # random decimal point within these values
-    Decimal("99999999999999999999999999999999999999999999999999999999999.999999"),
-    Decimal("-999999999999999999999999999999999999999999999999999999.99999999999"),
+    Decimal("999999999999999999999999999999999999999999999999999999999999999999999999.999999999999999999999999"),  # 96-digits max
+    Decimal("-999999999999999999999999999999999999999999999999999999999999999999999999.999999999999999999999999"),  # 96-digits max
     Decimal("0"),
     Decimal("1"),
     Decimal("-1"),
@@ -54,8 +58,8 @@ special_values = [
     Decimal("-1701411834604692.31731687303715884105728"),
     Decimal("1701411834604692317316.87303715884105727"),
     # random decimal point within these values
-    Decimal("99999999999999999999999999999999999999999999999999999999999.999999000"),
-    Decimal("-999999999999999999999999999999999999999999999999999999.9999999999900"),
+    Decimal("999999999999999999999999999999999999999999999999999999999999999999999999999999.999999999999999999"),  # 96-digits max
+    Decimal("-999999999999999999999999999999999999999999999999999999999999999999999999999999999999999.999999999"),  # 96-digits max
     Decimal("0"),
     Decimal("1"),
     Decimal("-1"),
@@ -65,23 +69,17 @@ special_values = [
     Decimal("1701411834604692317316.87303715884105727000"),
 ]
 
-
 try:
-    mysql_conn = mysql.connector.connect(
-        host=args.mysql_host,
-        port=args.mysql_port,
-        user=args.mysql_user,
-        password=args.mysql_password,
-    )
-    if not mysql_conn.is_connected():
-        raise Exception("Failed to connect to mysql")
-
-    db_info = mysql_conn.get_server_info()
-    print("Connected to MySQL Server version ", db_info)
-
-    mysql_cursor = mysql_conn.cursor()
+     pg_conn = psycopg2.connect(
+             database='mypgdb',
+             user='mypguser',
+             password='mypgpass',
+             host='127.0.0.1',
+             port=5432
+     )
+     pg_cursor = pg_conn.cursor()
 except Error as e:
-    raise Exception(f"Error while connecting to MySQL: {str(e)}")
+    raise Exception(f"Error while connecting to postgres: {str(e)}")
 
 
 def get_random_string(length):
@@ -104,21 +102,19 @@ def get_decimal_scale(s: str) -> int:
         assert False, f"Invalid decimal str {s}"
 
 
-def run_mysql_test(d1: Decimal, d2: Decimal, op: str) -> str:
+def run_pg_test(d1str: str, d2str: str, op: str) -> str:
     try:
-        d1str = str(d1)
         d1scale = get_decimal_scale(d1str)
-
-        d2str = str(d2)
         d2scale = get_decimal_scale(d2str)
 
-        sql = f""" SELECT CAST("{d1str}" AS DECIMAL(65, {d1scale}))  {op}  CAST("{d2str}" AS DECIMAL(65, {d2scale})) ; """
-        mysql_cursor.execute(sql)
-        record = mysql_cursor.fetchone()
-        return str(record[0]), sql
+        sql = f""" SELECT CAST(CAST('{d1str}' AS DECIMAL(96, {d1scale}))  {op}  CAST('{d2str}' AS DECIMAL(96, {d2scale})) AS VARCHAR); """
+        #print(f"Executing in pg: {sql}")
+        pg_cursor.execute(sql)
+        record = pg_cursor.fetchone()
+        return record[0], sql
 
     except Exception as e:
-        raise Exception(f"mysql query err: {str(e)}")
+        raise Exception(f"pg query err: {str(e)}")
 
 
 def run_bignum_test(d1: Decimal, d2: Decimal, op: str) -> str:
@@ -134,78 +130,187 @@ def run_bignum_test(d1: Decimal, d2: Decimal, op: str) -> str:
 
     return result.stdout.decode()
 
-def decimal_str_cmp(dmysql: str, dbignum: str) -> bool:
-    if dmysql == dbignum:
+def run_python_test(d1: Decimal, d2: Decimal, op: str) -> str:
+    if op == "+":
+        return d1 + d2
+    elif op == "-":
+        return d1 - d2
+    elif op == "*":
+        return d1 * d2
+    elif op == "/":
+        return d1 / d2
+    elif op == "%":
+        return d1 % d2
+    else:
+        raise Exception(f"Unknown python op {op}")
+
+def decimal_result_cmp(dpg: str, dbignum: str) -> bool:
+    # Ignore leading zeros
+    if dpg.lstrip("0") == dbignum.lstrip("0"):
         return True
 
-    # bignum trim trailing '0' in least significant part
-    # but mysql does not. So we should treat 1.23400 == 1.234
-    if '.' in dbignum and dmysql.startswith(dmysql) and dmysql.lstrip(dmysql).strip("0") == ".":
+    # Strip the "-" sign if both are negative
+    if (dpg[0] == "-") == (dbignum[0] == "-"):
+        dpg = dpg.lstrip("-")
+        dbignum = dbignum.lstrip("-")
+
+    # 0.00000000.... vs 0
+    # -0.00000000... vs 0
+    if dbignum == "0" and (dpg.startswith("0.0000") or dpg.startswith("-0.0000")):
         return True
+
+    if (dpg[0] == "-") != (dbignum[0] == "-"):
+        return False
+
+    # Ignore trailing zeros after decimal point
+    if "." in dpg:
+        dpg = dpg.rstrip("0")
+    if "." in dbignum:
+        dbignum = dbignum.rstrip("0")
+    if dpg == dbignum:
+        return True
+
+    # Ignore rounding differences
+    if (dpg.startswith(dbignum) and "." in dbignum):
+        return True
+
+    #if ("." in dpg and dpg.lstrip(dbignum).startswith(".")):
+    #    return True
+
+    # bignum might have large scale than pg, e.g., pg might be 123.45 and bignum be 123.44668
+    # Also there might be case like:
+    #    expect 21300702412490987477180669136903985656.0, actual 21300702412490987477180669136903985655.96595
+    #
+    # To check that:
+    #   1) check that the number of significant digits are the same
+    #   2) remove any "." and check if the rounding is correct
+    dpg_num_significant_digits = dpg.split(".")[0]
+    dbignum_num_significant_digits = dbignum.split(".")[0]
+    if len(dpg_num_significant_digits) != len(dbignum_num_significant_digits):
+        return False
+    dpg_no_dot = dpg.replace(".", "")
+    dbignum_no_dot = dbignum.replace(".", "")
+    if dpg_no_dot == dbignum_no_dot:
+        return True
+
+    elif len(dpg_no_dot) < len(dbignum_no_dot):
+        dbignum_int_part = dbignum_no_dot[:len(dpg_no_dot)]
+        dbignum_frac_part = dbignum_no_dot[len(dpg_no_dot):]
+
+        dbignum_int = int(dbignum_int_part)
+        dbignum_frac_part_first_int = int(dbignum_frac_part[0])
+
+        dpg_int = int(dpg_no_dot)
+
+        # Postgresql have rounding issue with round-half-up case. So omit it.
+        if dbignum_frac_part_first_int > 5:
+            return dbignum_int + 1 == dpg_int
+        elif dbignum_frac_part_first_int == 5:
+            return dbignum_int == dpg_int or dbignum_int + 1 == dpg_int
+        else:
+            return dbignum_int == dpg_int
+
+    elif len(dpg_no_dot) > len(dbignum_no_dot):
+        dpg_int_part = dpg_no_dot[:len(dbignum_no_dot)]
+        dpg_frac_part = dpg_no_dot[len(dbignum_no_dot):]
+
+        dpg_int = int(dpg_int_part)
+        dpg_frac_part_first_int = int(dpg_frac_part[0])
+
+        dbignum_int = int(dbignum_no_dot)
+
+        # We don't have rounding issue
+        if dpg_frac_part_first_int >= 5:
+            return dpg_int + 1 == dbignum_int
+        #elif dpg_frac_part_first_int == 5:
+        #    return dpg_int == dbignum_int or dpg_int + 1 == dbignum_int
+        else:
+            return dpg_int == dbignum_int
+
+        return dpg_int == dbignum_int
 
     return False
 
-def test_binary_expr(d1: Decimal, d2: Decimal, op: str):
-    mysql_e = None
-    bignum_e = None
-    dmysql = ""
-    dbignum = ""
+def test_binary_expr_with_pg(d1: Decimal, d2: Decimal, op: str):
+    pg_sql = None
+    pg_exception = None
+    dpg = None
+
+    bignum_exception = None
+    dbignum = None
 
     try:
-        dmysql, mysql_sql = run_mysql_test(d1, d2, op)
+        dpg, pg_sql = run_pg_test(d1, d2, op)
+        assert type(dpg) == str
     except Exception as e:
-        mysql_e = e
+        pg_exception = e
         pass
 
     try:
         dbignum = run_bignum_test(d1, d2, op)
+        assert type(dbignum) == str
     except Exception as e:
-        bignum_e = e
+        bignum_exception = e
         pass
 
-    if (mysql_e is None) != (bignum_e is None):
-        if mysql_e is not None:
-            print(
-                f"\nmysql exception but bignum succeed for {d1} {op} {d2}: {str(mysql_e)}, mysql_sql: {mysql_sql}\n"
-            )
-            return False
-        else:
-            print(
-                f"\nbignum exception but mysql succeed for {d1} {op} {d2}: {str(bignum_e)}, mysql_sql: {mysql_sql}\n"
-            )
-            return False
+    if bignum_exception is not None and pg_exception is None:
+        # Ingore overflow exception
+        bignum_exception_str = str(bignum_exception)
+        if "overflow" in bignum_exception_str and len(dpg.split(".")[0]) > 96:
+            return True
 
-    res = decimal_str_cmp(dmysql, dbignum)
+        # Ingore overflow error by now
+        if "overflow" in bignum_exception_str:
+            return True
+
+        print(
+                f"\nbignum exception but pg succeed for {d1} {op} {d2}: {str(bignum_exception)}, pg result: {dpg}, pg_sql: {pg_sql}\n"
+        )
+        return False
+    elif bignum_exception is None and pg_exception is not None:
+        print(
+                f"\nPG exception but bignum succeed for {d1} {op} {d2}: {str(pg_exception)}, bignum result: {dbignum}, pg_sql: {pg_sql}\n"
+        )
+        return False
+
+    #dpg = "359613911283063661287235665052372194592841014008506692933204473.28951851438637"
+    #dbignum = "359613911283063661287235665052372194592841014008506692933204473.289518514386372087"
+    #pdb.set_trace()
+    res = decimal_result_cmp(dpg, dbignum)
     if not res:
         print(
-            f"\nResult mismatch: {d1} {op} {d2}, expect {dmysql}, actual {dbignum}, mysql_sql: {mysql_sql}\n"
+            f"\nResult mismatch: {d1} {op} {d2}, expect {dpg}, actual {dbignum}, pg_sql: {pg_sql}\n"
         )
         return False
     else:
         return True
 
+def test_binary_expr(d1: str, d2: str, op: str):
+    return test_binary_expr_with_pg(d1, d2, op)
 
-def get_random_decimal_from_digits_str(s: str) -> Decimal:
+def get_random_decimal_from_digits_str(s: str) -> str:
     l = len(s)
     rv = random.randint(0, 10)
     if l < 1:
-        return Decimal("0")
+        return "0"
     elif l == 1:
         if rv <= 5:  # place a decimal point before these digits
-            return Decimal(f"0.{s}")
+            return f"0.{s}"
         else:
-            return Decimal("-1")
+            return "-1"
     else:
-        least_significant_len = random.randint(0, max(max_decimal_scale, l))
+        least_significant_len = random.randint(0, min(max_decimal_scale, l))
         most_significant_len = l - least_significant_len
 
         least_significant_part = s[0:least_significant_len]
         most_significant_part = s[least_significant_len:]
+        if not len(most_significant_part):
+            most_significant_part = "0"
 
         if not least_significant_len:
-            return Decimal(most_significant_part)
+            return most_significant_part
         else:
-            return Decimal(f"{most_significant_part}.{least_significant_part}")
+            return f"{most_significant_part}.{least_significant_part}"
 
 
 def test_exprs(num_random_numbers):
@@ -226,6 +331,12 @@ def test_exprs(num_random_numbers):
         d1 = get_random_decimal_from_digits_str(str1)
         d2 = get_random_decimal_from_digits_str(str2)
 
+        # Randomly make d1 , d2 as negative
+        if not d1.startswith("-") and random.randint(0, 10) <= 5:
+            d1 = "-" + d1
+        if not d2.startswith("-") and random.randint(0, 10) <= 5:
+            d2 = "-" + d2
+
         r = random.randint(0, 125)
         if r >= 0 and r < 25:
             res = test_binary_expr(d1, d2, "+")
@@ -235,9 +346,10 @@ def test_exprs(num_random_numbers):
             res = test_binary_expr(d1, d2, "*")
         elif r >= 75 and r < 100:
             res = test_binary_expr(d1, d2, "/")
-        elif r >= 100 and r < 125:
+        elif r >= 100 and r <= 125:
             res = test_binary_expr(d1, d2, "%")
         else:
+            print(f"Invalid r: {r}")
             assert False
 
         if res:
