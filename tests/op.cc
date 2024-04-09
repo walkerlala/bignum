@@ -241,8 +241,13 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionOverflow) {
                 EXPECT_EQ(add_res, Decimal("0"));
                 EXPECT_EQ(add_res.to_string(), "0");
 
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(maxv - minv, std::runtime_error);
+                EXPECT_THROW(maxv * minv, std::runtime_error);
+#endif
 
                 Decimal div_res = maxv / minv;
                 EXPECT_EQ(div_res, Decimal("-1"));
@@ -256,8 +261,13 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionOverflow) {
                 const char *NegativeOverflowStr =
                         "-1000000000000000000000000000000000000000000000000000000000000000000000000"
                         "00000000000000000000000000";
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(Decimal{PositiveOverflowStr}, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(Decimal{NegativeOverflowStr}, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(Decimal{PositiveOverflowStr}, std::runtime_error);
+                EXPECT_THROW(Decimal{NegativeOverflowStr}, std::runtime_error);
+#endif
 
                 Decimal dd;
                 ErrCode err;
@@ -285,8 +295,13 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionOverflow) {
                 EXPECT_EQ(add_res, Decimal("0"));
                 EXPECT_EQ(add_res.to_string(), "0");
 
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(maxv - minv, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(maxv * minv, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(maxv - minv, std::runtime_error);
+                EXPECT_THROW(maxv * minv, std::runtime_error);
+#endif
 
                 Decimal div_res = maxv / minv;
                 EXPECT_EQ(div_res, Decimal("-1"));
@@ -300,15 +315,28 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionOverflow) {
                 const char *NegativeLargeStr =
                         "-99999999999999999999999999999999999999999999999999999999999999999."
                         "9999999999999999999999999999999";
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(Decimal{PositiveLargeStr}, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(Decimal{NegativeLargeStr}, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(Decimal{PositiveLargeStr}, std::runtime_error);
+                EXPECT_THROW(Decimal{NegativeLargeStr}, std::runtime_error);
+#endif
         }
 
         // Invalid characters inside decimal string would trigger error.
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
         EXPECT_EXIT(Decimal{"1234567890abcdef"}, testing::KilledBySignal(SIGABRT), "");
+#else
+        EXPECT_THROW(Decimal{"1234567890abcdef"}, std::runtime_error);
+#endif
 
         // Trailing '.' is not acceptable.
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
         EXPECT_EXIT(Decimal{"1234567890."}, testing::KilledBySignal(SIGABRT), "");
+#else
+        EXPECT_THROW(Decimal{"1234567890."}, std::runtime_error);
+#endif
 }
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, StringConstructionTrailingZeroTruncation) {
@@ -492,19 +520,34 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, ScaleNarrowDownAfterMultiply) {
 }
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, MulOverflowSignificantDigits) {
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
         EXPECT_EXIT(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
                     testing::KilledBySignal(SIGABRT), "");
         EXPECT_EXIT(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
                     testing::KilledBySignal(SIGABRT), "");
+#else
+        EXPECT_THROW(Decimal{detail::kDecimalMaxStr} * Decimal{detail::kDecimalMaxStr},
+                     std::runtime_error);
+        EXPECT_THROW(Decimal{detail::kDecimalMinStr} * Decimal{detail::kDecimalMinStr},
+                     std::runtime_error);
+#endif
 
         // overflow
         {
                 const char *str1 = "1000000000000000000000000000000000000000000000000";
                 Decimal d1{str1};
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(d1 * d1, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(d1 * d1, std::runtime_error);
+#endif
                 const char *str2 = "-1000000000000000000000000000000000000000000000000";
                 Decimal d2{str2};
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(d2 * d2, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(d2 * d2, std::runtime_error);
+#endif
         }
 
         // not overflow
@@ -685,7 +728,11 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, Div) {
         DoTestDecimalArithmetic(calculations);
 
         // Divison by zero
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
         EXPECT_EXIT(Decimal{"1.01"} / Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
+#else
+        EXPECT_THROW(Decimal{"1.01"} / Decimal{"0"}, std::runtime_error);
+#endif
 }
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, Mod) {
@@ -765,7 +812,11 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, Mod) {
         DoTestDecimalArithmetic(calculations);
 
         // Modulo by zero
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
         EXPECT_EXIT(Decimal{"1.01"} % Decimal{"0"}, testing::KilledBySignal(SIGABRT), "");
+#else
+        EXPECT_THROW(Decimal{"1.01"} % Decimal{"0"}, std::runtime_error);
+#endif
 }
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, DiffSignCompare) {
@@ -825,8 +876,13 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, LargeValueAddOverflow) {
                         "9999999999999999999999";
                 Decimal d0(PositiveLargeStr);
                 Decimal d1(PositiveLargeStr);
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(d0 + d0, std::runtime_error);
+                EXPECT_THROW(d1 + d1, std::runtime_error);
+#endif
         }
 
         {
@@ -835,8 +891,13 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, LargeValueAddOverflow) {
                         "99999999999999999999999";
                 Decimal d0(NegativeLargeStr);
                 Decimal d1(NegativeLargeStr);
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(d0 + d0, testing::KilledBySignal(SIGABRT), "");
                 EXPECT_EXIT(d1 + d1, testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(d0 + d0, std::runtime_error);
+                EXPECT_THROW(d1 + d1, std::runtime_error);
+#endif
         }
 }
 
@@ -1671,6 +1732,75 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, non_accept_table_string) {
         EXPECT_TRUE(!!d0.assign("-.123"));
         EXPECT_TRUE(!!d0.assign(".123999999999999999999999999999"));
         EXPECT_TRUE(!!d0.assign("-.123999999999999999999999999999"));
+}
+
+TEST_F(BIGNUM_DECIMAL_FIXTURE, ostream_operator) {
+        Decimal d1("123.345");
+
+        std::ostringstream oss;
+        oss << d1;
+
+        EXPECT_EQ(oss.str(), "123.345");
+        return;
+}
+
+TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
+        // from int64 to int64 -> never overflow
+        {
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123.345");
+                int64_t i = static_cast<int64_t>(d1);
+                EXPECT_EQ(i, 123);
+        }
+
+        // from __int128_t to int64_t, large value would overflow
+        {
+                BIGNUM_TEST_CONSTEXPR Decimal d1("12345678987654321001.11");
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+#endif
+        }
+
+        // from gmp to int64_t, large value would overflow
+        {
+                Decimal d1("12345678987654300000000000000002100999999991.11");
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+#endif
+        }
+
+        // from 64 to 128, never overflow
+        {
+                BIGNUM_TEST_CONSTEXPR Decimal d1("123.345");
+                __int128_t i = static_cast<__int128_t>(d1);
+                EXPECT_EQ(i, 123);
+        }
+
+        // from 128 to 128, never overflow
+        {
+                BIGNUM_TEST_CONSTEXPR Decimal d1("12345678987654321001.11");
+                __int128_t i = static_cast<__int128_t>(d1);
+                EXPECT_EQ(i, static_cast<__int128_t>(123456789876543ll) * 100000 + 21001);
+        }
+
+        // from gmp to 128, large value would overflow
+        {
+                Decimal d1("12345678987654300000000000000002100999999991.11");
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+#endif
+        }
+}
+
+TEST_F(BIGNUM_DECIMAL_FIXTURE, dval) {
+        double dval = 3.1415926;
+        Decimal d1(dval);
+        EXPECT_EQ(d1.to_string(), "3.14159260000000007");
 }
 
 #if 0

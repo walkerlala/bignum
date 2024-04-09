@@ -12,11 +12,17 @@ static_assert(sizeof(long) == 8);
 static_assert(sizeof(long long) == 8);
 
 namespace bignum {
-// This function is used to trigger a compile-time assertion if the condition is not met in case
-// of constexpr context.
-inline void __bignum_constexpr_evaluation_failure() {
-        // TODO if exception is not allowed, use other methods instead of exception
-        throw std::runtime_error("constexpr evaluation failed");
+// This function is declared as non-constexpr so that when the condition is not met,
+// the `if (std::is_constant_evaluated())` branch will be taken and the program will not compile.
+inline void __bignum_constexpr_evaluation_failure() {}
+
+template <typename T>
+inline void __bignum_runtime_assertion_failure([[maybe_unused]] T &&msg) {
+#ifdef BIGNUM_ENABLE_EXCEPTIONS
+        throw std::runtime_error(std::forward<T>(msg));
+#else
+        std::abort();
+#endif
 }
 }  // namespace bignum
 
@@ -28,8 +34,8 @@ inline void __bignum_constexpr_evaluation_failure() {
                         if (std::is_constant_evaluated()) {                      \
                                 bignum::__bignum_constexpr_evaluation_failure(); \
                         } else {                                                 \
-                                assert(condition);                               \
-                                std::abort();                                    \
+                                bignum::__bignum_runtime_assertion_failure(      \
+                                        "Assertion failed: " #condition);        \
                         }                                                        \
                 }                                                                \
         } while (0)
@@ -40,8 +46,7 @@ inline void __bignum_constexpr_evaluation_failure() {
                         if (std::is_constant_evaluated()) {                      \
                                 bignum::__bignum_constexpr_evaluation_failure(); \
                         } else {                                                 \
-                                assert(condition);                               \
-                                std::abort();                                    \
+                                bignum::__bignum_runtime_assertion_failure(msg); \
                         }                                                        \
                 }                                                                \
         } while (0)

@@ -31,6 +31,8 @@ option(BIGNUM_WITH_COVERAGE "Building with coverage" OFF)
 option(BIGNUM_BUILD_TESTS "Build tests" OFF)
 option(BIGNUM_BUILD_SHARED "Build shared library" OFF)
 
+option(BIGNUM_ENABLE_EXCEPTIONS "Enable exceptions" ON)
+
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-strict-aliasing")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-omit-frame-pointer")
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Werror -Wno-error=unused-parameter")
@@ -39,6 +41,13 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=ambiguous-reversed-operator")
 else()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-error=cast-function-type -Wno-error=implicit-fallthrough")
+endif()
+
+if(BIGNUM_ENABLE_EXCEPTIONS)
+    add_compile_definitions(BIGNUM_ENABLE_EXCEPTIONS)
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fexceptions")
+else()
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 endif()
 
 if (BIGNUM_WITH_COVERAGE)
@@ -69,9 +78,9 @@ include(cmake/gmp.cmake)
 include(cmake/gtest.cmake)
 find_package(Threads REQUIRED)
 
-# TODO set install rpath for gmp if needed
 set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/decimal.cc)
 if (BIGNUM_BUILD_SHARED)
+    # TODO set install rpath for gmp if needed
     add_library(bignum SHARED ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
@@ -86,7 +95,7 @@ else()
     target_link_libraries(bignum PRIVATE ${GMP_LIBRARIES})
 endif()
 
-# static bignum lib that use gmp only. For dev and test purpose.
+# static bignum lib that use gmp only. For dev and test purpose. So build static lib only.
 add_library(bignum_gmp_only STATIC ${BIGNUM_SOURCE})
 target_include_directories(bignum_gmp_only PRIVATE ${PROJECT_ROOT}/src)
 target_include_directories(bignum_gmp_only PRIVATE ${GMP_INCLUDE_DIR} Threads::Threads)
@@ -108,16 +117,18 @@ target_include_directories(decimal_calculator_gmp_only PRIVATE ${GMP_INCLUDE_DIR
 
 if (BIGNUM_BUILD_TESTS)
     set(UNITTEST_SOURCES
+        ${PROJECT_ROOT}/tests/main.cc
         ${PROJECT_ROOT}/tests/op.cc
         ${PROJECT_ROOT}/tests/gmp.cc
         ${PROJECT_ROOT}/tests/issues.cc
+        ${PROJECT_ROOT}/tests/exception_or_assert.cc
     )
     add_executable(unittest ${UNITTEST_SOURCES})
     target_link_libraries(unittest bignum)
     target_include_directories(unittest PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(unittest PRIVATE ${GMP_INCLUDE_DIR})
     target_include_directories(unittest PRIVATE ${GTEST_INCLUDE_DIR})
-    target_link_libraries(unittest ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
+    target_link_libraries(unittest ${GTEST_LIBRARIES} Threads::Threads)
     add_dependencies(unittest gtest_lib)
 
     add_executable(unittest_gmp_only ${UNITTEST_SOURCES})
@@ -126,7 +137,7 @@ if (BIGNUM_BUILD_TESTS)
     target_include_directories(unittest_gmp_only PRIVATE ${GMP_INCLUDE_DIR})
     target_include_directories(unittest_gmp_only PRIVATE ${GTEST_INCLUDE_DIR})
     target_compile_definitions(unittest_gmp_only PUBLIC BIGNUM_DEV_USE_GMP_ONLY)
-    target_link_libraries(unittest_gmp_only ${GTEST_LIBRARIES} ${GTEST_MAIN_LIBRARIES} Threads::Threads)
+    target_link_libraries(unittest_gmp_only ${GTEST_LIBRARIES} Threads::Threads)
     add_dependencies(unittest_gmp_only gtest_lib)
 endif()
 

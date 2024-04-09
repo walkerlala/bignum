@@ -30,15 +30,12 @@ template <typename T>
 concept SmallIntegralType = IntegralType<T> && sizeof(T) <= 8;
 
 // large integral: int128_t
-// Maybe add int256 later TODO add boost compile option for int256_t
 template <typename T>
 concept LargeIntegralType = IntegralType<T> && sizeof(T) == 16;
 
 template <typename T>
 concept FloatingPointType =
         std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, long double>;
-
-// TODO implement op for ostream
 
 namespace detail {
 constexpr int32_t kDecimalMaxScale = 30;
@@ -267,10 +264,13 @@ constexpr inline Gmp320 convert_uint128_to_gmp(__uint128_t u128) {
                 mpz->_mp_size = 0;
         } else if (u128 > 0 && u128 <= static_cast<__uint128_t>(UINT64_MAX)) {
                 mpz->_mp_d[0] = reinterpret_cast<uint64_t *>(&u128)[0];
+                // mpz->_mp_d[0] = static_cast<uint64_t>(u128);
                 mpz->_mp_size = 1;
         } else if (u128 > static_cast<__uint128_t>(UINT64_MAX)) {
                 mpz->_mp_d[0] = reinterpret_cast<uint64_t *>(&u128)[0];
                 mpz->_mp_d[1] = reinterpret_cast<uint64_t *>(&u128)[1];
+                // mpz->_mp_d[0] = static_cast<uint64_t>(u128);
+                // mpz->_mp_d[1] = static_cast<uint64_t>(u128 >> 64);
                 mpz->_mp_size = 2;
         } else {
                 __BIGNUM_ASSERT(false);
@@ -596,6 +596,109 @@ constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
         return kOk;
 }
 
+// Get int64_t/__int128_t from decimal, whose internal representation is int64_t or __int128_t .
+//
+// Getting a int64_t from a decimal whose internal representation is int64_t is safe, but
+// getting a int64_t from a decimal whose internal representation is __int128_t may cause
+// overflow, and might trigger exception or assertion. The same for __int128_t.
+template <IntegralType T>
+auto get_decimal_integral(T val, int32_t scale) -> T {
+        T p10 = get_integral_power10<T>(scale);
+        __BIGNUM_ASSERT(p10 > 0, "Invalid scale");
+        return val / p10;
+}
+
+template <IntegralType T, IntegralType U>
+auto get_integral_from_decimal_integral(U val, int32_t scale) -> T {
+        U ip10 = get_decimal_integral<U>(val, scale);
+        if constexpr (std::is_same_v<T, int64_t> && std::is_same_v<U, int64_t>) {
+                // Get int64_t from int64_t representation: never overflow
+                return ip10;
+        } else if constexpr (std::is_same_v<T, int64_t> && std::is_same_v<U, __int128_t>) {
+                // Get int64_t from __int128_t representation: may overflow
+                if (ip10 > INT64_MAX || ip10 < INT64_MIN) {
+                        __BIGNUM_ASSERT(false, "Overflow when getting int64_t from Decimal");
+                }
+                return static_cast<int64_t>(ip10);
+        } else if constexpr (std::is_same_v<T, __int128_t> && std::is_same_v<U, int64_t>) {
+                // Get __int128_t from a int64_t representation: never overflow
+                return ip10;
+        } else if constexpr (std::is_same_v<T, __int128_t> && std::is_same_v<U, __int128_t>) {
+                // Get __int128_t from a __int128_t representation: never overflow
+                return ip10;
+        } else {
+                static_assert(std::is_same_v<T, void>, "Unsupported type");
+        }
+}
+
+template <IntegralType T>
+auto get_integral_from_decimal_gmp(const Gmp320 &gmp, int32_t scale) -> T {
+        __int128_t divisor128 = get_int128_power10(scale);
+        __BIGNUM_ASSERT(divisor128 > 0, "Invalid scale");
+
+        Gmp320 divisor = conv_128_to_gmp320(divisor128);
+
+        Gmp320 res;
+        mpz_tdiv_q(&res.mpz, &gmp.mpz, &divisor.mpz);
+
+        T result = 0;
+        bool overflow = false;
+        if constexpr (std::is_same_v<T, int64_t>) {
+                constexpr uint64_t i64max = static_cast<uint64_t>(INT64_MAX);
+                if (res.mpz._mp_size == 0) {
+                        return 0;
+                } else if (res.mpz._mp_size == 1) {
+                        if (res.mpz._mp_d[0] > i64max) {
+                                overflow = true;
+                        } else {
+                                result = static_cast<int64_t>(res.mpz._mp_d[0]);
+                        }
+                } else if (res.mpz._mp_size == -1) {
+                        if (res.mpz._mp_d[0] > i64max + 1) {
+                                overflow = true;
+                        } else if (res.mpz._mp_d[0] == i64max + 1) {
+                                result = INT64_MIN;
+                        } else {
+                                result = -static_cast<int64_t>(res.mpz._mp_d[0]);
+                        }
+                } else {
+                        overflow = true;
+                }
+        } else if constexpr (std::is_same_v<T, __int128_t>) {
+                __uint128_t i128max = static_cast<__uint128_t>(kInt128Max);
+                if (res.mpz._mp_size == 0) {
+                        return 0;
+                } else if (res.mpz._mp_size == 1) {
+                        result = res.mpz._mp_d[0];
+                } else if (res.mpz._mp_size == -1) {
+                        result = -static_cast<__int128_t>(res.mpz._mp_d[0]);
+                } else if (res.mpz._mp_size == 2) {
+                        __uint128_t u128 = *reinterpret_cast<__uint128_t *>(res.mpz._mp_d);
+                        if (u128 > i128max) {
+                                overflow = true;
+                        } else {
+                                result = static_cast<__int128_t>(u128);
+                        }
+                } else if (res.mpz._mp_size == -2) {
+                        __uint128_t u128 = *reinterpret_cast<__uint128_t *>(res.mpz._mp_d);
+                        if (u128 > i128max + 1) {
+                                overflow = true;
+                        } else if (u128 == i128max + 1) {
+                                result = kInt128Min;
+                        } else {
+                                result = -static_cast<__int128_t>(u128);
+                        }
+                } else {
+                        overflow = true;
+                }
+        } else {
+                static_assert(std::is_same_v<T, void>, "T should be int64_t or __int128_t");
+        }
+
+        __BIGNUM_ASSERT(!overflow, "Overflow detected when converting Decimal to integral type");
+        return result;
+}
+
 std::string decimal_64_to_string(int64_t v, int32_t scale);
 std::string decimal_128_to_string(__int128_t v, int32_t scale);
 std::string my_mpz_to_string(const __mpz_struct *mpz, int32_t scale);
@@ -696,7 +799,8 @@ class DecimalImpl final {
         // This interface would trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
         template <FloatingPointType U>
-        constexpr DecimalImpl(U &v) {
+        // constexpr DecimalImpl(U &v) {
+        constexpr DecimalImpl(U v) {
                 // accept reference only, so literal float would not override here
                 ErrCode err = assign(v);
                 __BIGNUM_ASSERT(!err, "Decimal initialization with floating point value overflows");
@@ -704,6 +808,7 @@ class DecimalImpl final {
 
         // The whole point of this T/U template stuff is for 'static_assert' to generate
         // compile-time error if needed.
+#if 0
         template <FloatingPointType U>
         constexpr DecimalImpl(U) {
                 static_assert(std::is_same_v<U, T>,
@@ -712,6 +817,7 @@ class DecimalImpl final {
                               "use string literal instead, i.e., use Decimal(\"1.23\") instead of "
                               "Decimal(1.23)");
         }
+#endif
 
         // Construction using string value.
         //
@@ -758,12 +864,14 @@ class DecimalImpl final {
         // Cast operators.
         //=--------------------------------------------------------
         std::string to_string() const;
-        explicit operator std::string() const { return to_string(); }
+        explicit /*constexpr*/ operator std::string() const { return to_string(); }
         explicit constexpr operator double() const;
         constexpr operator bool() const;
 
-        // TODO
-        // to int64_t and __int128_t
+        // Cast to integral type. Number after the decimal point would be truncated.
+        // If overflow, exception or assertion would be triggered.
+        explicit constexpr operator int64_t() const;
+        explicit constexpr operator __int128_t() const;
 
         //=----------------------------------------------------------
         // getters && setters
@@ -1022,37 +1130,23 @@ class DecimalImpl final {
         constexpr ErrCode add_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
         constexpr ErrCode add_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
                                         int32_t rscale);
-        // TODO this interface is not good, because it incurs copy
-        constexpr ErrCode add_gmp_gmp(detail::Gmp320 l, int32_t lscale, detail::Gmp320 r,
-                                      int32_t rscale);
+        constexpr ErrCode add_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
+                                      const detail::Gmp320 &r, int32_t rscale);
 
         constexpr ErrCode mul_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
         constexpr ErrCode mul_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
                                         int32_t rscale);
 
-        // TODO this interface is not good, because it incurs copy
-        // TODO The previous issues is probably due to the  init_xxx() at the very beginning of the
-        //      function.
-        constexpr ErrCode mul_gmp_gmp(detail::Gmp320 l, int32_t lscale, detail::Gmp320 r,
-                                      int32_t rscale);
+        constexpr ErrCode mul_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
+                                      const detail::Gmp320 &r, int32_t rscale);
 
         constexpr ErrCode div_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
         constexpr ErrCode div_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
                                         int32_t rscale);
-        // TODO this interface is not good, because it incurs copy
-        // TODO The previous issues is probably due to the  init_xxx() at the very beginning of the
-        //      function.
-        constexpr ErrCode div_gmp_gmp(detail::Gmp320 l, int32_t lscale, detail::Gmp320 r,
-                                      int32_t rscale);
 
         constexpr ErrCode mod_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
         constexpr ErrCode mod_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
                                         int32_t rscale);
-        // TODO this interface is not good, because it incurs copy
-        // TODO The previous issues is probably due to the  init_xxx() at the very beginning of the
-        //      function.
-        constexpr ErrCode mod_gmp_gmp(detail::Gmp320 l, int32_t lscale, detail::Gmp320 r,
-                                      int32_t rscale);
 
         constexpr int cmp(const DecimalImpl &rhs) const;
         constexpr int cmp_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale) const;
@@ -1455,6 +1549,31 @@ constexpr inline DecimalImpl<T>::operator bool() const {
 }
 
 template <typename T>
+constexpr inline DecimalImpl<T>::operator int64_t() const {
+        if (m_dtype == DType::kInt64) {
+                return detail::get_integral_from_decimal_integral<int64_t, int64_t>(m_i64, m_scale);
+        } else if (m_dtype == DType::kInt128) {
+                return detail::get_integral_from_decimal_integral<int64_t, __int128_t>(m_i128,
+                                                                                       m_scale);
+        } else {
+                return detail::get_integral_from_decimal_gmp<int64_t>(m_gmp, m_scale);
+        }
+}
+
+template <typename T>
+constexpr inline DecimalImpl<T>::operator __int128_t() const {
+        if (m_dtype == DType::kInt64) {
+                return detail::get_integral_from_decimal_integral<__int128_t, int64_t>(m_i64,
+                                                                                       m_scale);
+        } else if (m_dtype == DType::kInt128) {
+                return detail::get_integral_from_decimal_integral<__int128_t, __int128_t>(m_i128,
+                                                                                          m_scale);
+        } else {
+                return detail::get_integral_from_decimal_gmp<__int128_t>(m_gmp, m_scale);
+        }
+}
+
+template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::add_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
                                                      int32_t rscale) {
         int64_t res64 = 0;
@@ -1485,8 +1604,8 @@ constexpr inline ErrCode DecimalImpl<T>::add_i128_i128(__int128_t l128, int32_t 
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(detail::Gmp320 l, int32_t lscale,
-                                                     detail::Gmp320 r, int32_t rscale) {
+constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
+                                                     const detail::Gmp320 &r, int32_t rscale) {
         detail::Gmp640 res640;
         if (lscale > rscale) {
                 const detail::Gmp320 pow = detail::get_gmp320_power10(lscale - rscale);
@@ -1650,8 +1769,8 @@ constexpr inline ErrCode DecimalImpl<T>::mul_i128_i128(__int128_t l128, int32_t 
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(detail::Gmp320 l, int32_t lscale,
-                                                     detail::Gmp320 r, int32_t rscale) {
+constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
+                                                     const detail::Gmp320 &r, int32_t rscale) {
         __BIGNUM_ASSERT(lscale >= 0 && lscale <= kMaxScale);
         __BIGNUM_ASSERT(rscale >= 0 && rscale <= kMaxScale);
 
@@ -2187,3 +2306,8 @@ constexpr inline void DecimalImpl<T>::sanity_check() const {
 #endif
 }
 }  // namespace bignum
+
+inline std::ostream &operator<<(std::ostream &oss, bignum::Decimal const &d) {
+        oss << d.to_string();
+        return oss;
+}

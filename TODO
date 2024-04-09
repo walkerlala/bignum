@@ -1,3 +1,19 @@
-TODO
-  generate random fuzz test and compare that to the result of mysql
-  this is to verify that result
+- enable support for c++17.
+  e.g., std::is_constant_evaluated() is added >= c++20
+
+- make constexpr failure string more specified and readable
+
+- wrap gmp function and create one around GmpWrapper
+
+- make div increase scale configurable by compile settings
+
+- support conversion from boost::int256_t if boost is detected
+  Remember to change the definitions of LargeIntegralType
+
+- reject constant float/double initialization, but accept variable float/double initialization
+
+
+- readme, add the following sections
+## assert or abort
+
+## div increase scale
