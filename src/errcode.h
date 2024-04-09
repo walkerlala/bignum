@@ -4,8 +4,8 @@
 
 namespace bignum {
 enum ErrCodeValue : int {
-        kError = -1,
-        kSuccess = 0,
+        kDecimalError = -1,
+        kDecimalSuccess = 0,
 
         kInvalidArgument,
         kDivByZero,
@@ -20,10 +20,10 @@ inline constexpr std::string_view get_err_code_value_str(ErrCodeValue ev) {
 #pragma GCC diagnostic push
 #pragma GCC diagnostic warning "-Wswitch-enum"
         switch (ev) {
-                case kError:
-                        return "kError";
-                case kSuccess:
-                        return "kSuccess";
+                case kDecimalError:
+                        return "kDecimalError";
+                case kDecimalSuccess:
+                        return "kDecimalSuccess";
                 case kInvalidArgument:
                         return "kInvalidArgument";
                 case kDivByZero:
@@ -46,7 +46,7 @@ inline constexpr std::string_view get_err_code_value_str(ErrCodeValue ev) {
 
 class /* [[nodiscard]] */ ErrCode final {
        public:
-        constexpr ErrCode() : err_(ErrCodeValue::kSuccess) {}
+        constexpr ErrCode() : err_(ErrCodeValue::kDecimalSuccess) {}
         constexpr ErrCode(int val) : err_(static_cast<ErrCodeValue>(val)) {}
         constexpr ErrCode(ErrCodeValue val) : err_(val) {}
         ~ErrCode() = default;
@@ -63,8 +63,8 @@ class /* [[nodiscard]] */ ErrCode final {
        private:
         ErrCodeValue err_;
 };
-constexpr ErrCode kErr = ErrCode{ErrCodeValue::kError};
-constexpr ErrCode kOk = ErrCode{ErrCodeValue::kSuccess};
+constexpr ErrCode kError = ErrCode{ErrCodeValue::kDecimalError};
+constexpr ErrCode kSuccess = ErrCode{ErrCodeValue::kDecimalSuccess};
 }  // namespace bignum
 
 //=--------------------------------------------------------------------------=//
