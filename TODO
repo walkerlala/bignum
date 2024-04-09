@@ -12,7 +12,7 @@
 
 - reject constant float/double initialization, but accept variable float/double initialization
 
-- benchmark: whether or not the calculation at small precision is as fast as primitive type
+- Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
 
 - readme, add the following sections
 ## assert or abort

@@ -253,5 +253,3 @@ Simply add `/path/to/install/dir/lib/` to your libraries search path and
 
 By default, bignum is built as static library. To build as shared lib,
 add `-DBIGNUM_BUILD_SHARED=ON` to the cmake command above.
-
-## Benchmark

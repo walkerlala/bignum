@@ -1,3 +1,21 @@
+/*
+ * This file is part of bignum.
+ *
+ * bignum is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 2 of the License, or
+ * (at your option) any later version.
+ *
+ * bignum is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with bignum.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * Copyright (C) 2024-present  bignum developers
+ */
 #pragma once
 
 #include "assertion.h"
@@ -1555,9 +1573,11 @@ template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::to_int64(int64_t &i) const noexcept {
         ErrCode err = kSuccess;
         if (m_dtype == DType::kInt64) {
-                err = detail::get_integral_from_decimal_integral<int64_t, int64_t>(i, m_i64, m_scale);
+                err = detail::get_integral_from_decimal_integral<int64_t, int64_t>(i, m_i64,
+                                                                                   m_scale);
         } else if (m_dtype == DType::kInt128) {
-                err = detail::get_integral_from_decimal_integral<int64_t, __int128_t>(i, m_i128, m_scale);
+                err = detail::get_integral_from_decimal_integral<int64_t, __int128_t>(i, m_i128,
+                                                                                      m_scale);
         } else {
                 err = detail::get_integral_from_decimal_gmp<int64_t>(i, m_gmp, m_scale);
         }
@@ -1569,10 +1589,10 @@ constexpr inline ErrCode DecimalImpl<T>::to_int128(__int128_t &i) const noexcept
         ErrCode err = kSuccess;
         if (m_dtype == DType::kInt64) {
                 err = detail::get_integral_from_decimal_integral<__int128_t, int64_t>(i, m_i64,
-                                                                                       m_scale);
+                                                                                      m_scale);
         } else if (m_dtype == DType::kInt128) {
                 err = detail::get_integral_from_decimal_integral<__int128_t, __int128_t>(i, m_i128,
-                                                                                          m_scale);
+                                                                                         m_scale);
         } else {
                 err = detail::get_integral_from_decimal_gmp<__int128_t>(i, m_gmp, m_scale);
         }
