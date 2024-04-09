@@ -903,7 +903,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, LargeValueAddOverflow) {
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, Int128AddOverflow) {
         __int128_t res128 = 0;
-        ErrCode err = kOk;
+        ErrCode err = kSuccess;
 
         __int128_t i128max = kInt128Max;
         err = detail::safe_add(res128, i128max, i128max);
@@ -916,7 +916,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, Int128AddOverflow) {
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_mul_int128) {
         __int128_t res128 = 0;
-        ErrCode err = kOk;
+        ErrCode err = kSuccess;
 
         // +  vs  +, non-overflow
         err = detail::safe_mul(res128, static_cast<__int128_t>(123), static_cast<__int128_t>(456));
@@ -1801,6 +1801,9 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, dval) {
         double dval = 3.1415926;
         Decimal d1(dval);
         EXPECT_EQ(d1.to_string(), "3.14159260000000007");
+
+        // This is prohibited to prevent misuse.
+        // [[maybe_unused]] Decimal d2(3.1415926);
 }
 
 #if 0
@@ -2310,7 +2313,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMod) {
 TEST_F(BIGNUM_DECIMAL_FIXTURE, Int256AddOverflow) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
-    ErrCode err = kOk;
+    ErrCode err = kSuccess;
 
     int256_t i256max = kInt256Max;
     err = safe_add_int256(res256, i256max, i256max);
@@ -2329,7 +2332,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, Int256AddOverflow) {
 TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_mul_int256) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
-    ErrCode err = kOk;
+    ErrCode err = kSuccess;
 
     // +  vs  +, non-overflow
     err = safe_mul_int256(res256, 123, 456);
@@ -2359,7 +2362,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_mul_int256) {
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_div_int128) {
     __int128_t res128 = 0;
-    ErrCode err = kOk;
+    ErrCode err = kSuccess;
 
     // Divison by zero
     err = safe_div_int128(res128, 123, 0);
@@ -2377,7 +2380,7 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_div_int128) {
 TEST_F(BIGNUM_DECIMAL_FIXTURE, safe_div_int256) {
     using namespace boost::multiprecision;
     int256_t res256 = 0;
-    ErrCode err = kOk;
+    ErrCode err = kSuccess;
 
     // Divison by zero
     err = safe_div_int256(res256, 123, 0);

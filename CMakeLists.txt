@@ -14,14 +14,14 @@ message(STATUS "Compiler Version: ${CMAKE_CXX_COMPILER_VERSION}")
 if(COMPILER_SUPPORTS_CXX20)
     message(STATUS "Compiler support C++20. Setting C++ standard to c++20")
     set(CMAKE_CXX_STANDARD 20)
-elseif(COMPILER_SUPPORTS_CXX17)
-    message(STATUS "Compiler support C++17. Setting C++ standard to c++17")
-    set(CMAKE_CXX_STANDARD 17)
-elseif(COMPILER_SUPPORTS_CXX11)
-    message(STATUS "Compiler support C++11. Setting C++ standard to c++11")
-    set(CMAKE_CXX_STANDARD 11)
+#elseif(COMPILER_SUPPORTS_CXX17)
+#    message(STATUS "Compiler support C++17. Setting C++ standard to c++17")
+#    set(CMAKE_CXX_STANDARD 17)
+#elseif(COMPILER_SUPPORTS_CXX11)
+#    message(STATUS "Compiler support C++11. Setting C++ standard to c++11")
+#    set(CMAKE_CXX_STANDARD 11)
 else()
-    message(FATAL_ERROR "Compiler should at least support C++11")
+    message(FATAL_ERROR "Currently only C++20 is supported")
 endif()
 
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
@@ -80,19 +80,19 @@ find_package(Threads REQUIRED)
 
 set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/decimal.cc)
 if (BIGNUM_BUILD_SHARED)
-    # TODO set install rpath for gmp if needed
     add_library(bignum SHARED ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR})
     set_target_properties(bignum PROPERTIES SOVERSION 1 VERSION 1.0.0)
     add_dependencies(bignum gmp_shared_lib)
-    target_link_libraries(bignum PRIVATE ${GMP_SHARED_LIBRARIES} Threads::Threads)
+    target_link_libraries(bignum PUBLIC ${GMP_SHARED_LIBRARIES} Threads::Threads)
+    set_target_properties(bignum PROPERTIES BUILD_RPATH "${GMP_LIB_DIR}")
 else()
     add_library(bignum STATIC ${BIGNUM_SOURCE})
     target_include_directories(bignum PRIVATE ${PROJECT_ROOT}/src)
     target_include_directories(bignum PRIVATE ${GMP_INCLUDE_DIR} Threads::Threads)
     add_dependencies(bignum gmp_static_lib)
-    target_link_libraries(bignum PRIVATE ${GMP_LIBRARIES})
+    target_link_libraries(bignum PUBLIC ${GMP_LIBRARIES})
 endif()
 
 # static bignum lib that use gmp only. For dev and test purpose. So build static lib only.
@@ -141,19 +141,31 @@ if (BIGNUM_BUILD_TESTS)
     add_dependencies(unittest_gmp_only gtest_lib)
 endif()
 
-function(gmp_install_target target)
-        install(TARGETS ${target}
-            LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
-            RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin
-            INCLUDES DESTINATION ${CMAKE_INSTALL_PREFIX}/include
-        )
-endfunction()
+set_target_properties(
+    bignum
+    PROPERTIES
+    PUBLIC_HEADER
+    "${PROJECT_ROOT}/src/assertion.h;${PROJECT_ROOT}/src/decimal.h;${PROJECT_ROOT}/src/errcode.h;${PROJECT_ROOT}/src/gmp_wrapper.h"
+)
+set_target_properties(
+    bignum
+    PROPERTIES
+    INSTALL_RPATH "\$ORIGIN"
+)
+install(TARGETS bignum
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/lib
+        PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_PREFIX}/include/bignum
+)
+if (BIGNUM_BUILD_SHARED)
+    install(FILES ${GMP_LIB_DIR}/libgmp.so DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+    install(FILES ${GMP_LIB_DIR}/libgmp.so.10 DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+    install(FILES ${GMP_LIB_DIR}/libgmp.so.10.5.0 DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+endif()
 
-gmp_install_target(bignum)
-gmp_install_target(decimal_calculator)
-gmp_install_target(decimal_calculator_gmp_only)
+install(TARGETS decimal_calculator ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
+install(TARGETS decimal_calculator_gmp_only ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/lib)
 if (BIGNUM_BUILD_TESTS)
-    gmp_install_target(unittest)
-    gmp_install_target(unittest_gmp_only)
+    install(TARGETS unittest RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+    install(TARGETS unittest_gmp_only RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()

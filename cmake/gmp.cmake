@@ -40,5 +40,6 @@ ADD_LIBRARY(gmp_shared_lib SHARED IMPORTED)
 ADD_DEPENDENCIES(gmp_shared_lib gmp_external)
 
 SET(GMP_INCLUDE_DIR "${GMP_INSTALL_DIR}/include" CACHE STRING "gmp include directory")
+SET(GMP_LIB_DIR "${GMP_INSTALL_DIR}/lib" CACHE STRING "gmp lib directory")
 SET(GMP_LIBRARIES "${GMP_INSTALL_DIR}/lib/libgmp.a" CACHE STRING "gmp library")
 SET(GMP_SHARED_LIBRARIES "${GMP_INSTALL_DIR}/lib/libgmp.so" CACHE STRING "gmp shared library")
