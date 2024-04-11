@@ -315,8 +315,6 @@ constexpr inline Gmp320 conv_128_to_gmp320(__int128_t i128) {
 
 template <typename T, typename U>
 inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, const U &max_value) {
-        [[maybe_unused]] std::string r60s = decimal_gmp_to_string(test_value, 0);
-
         int res = mpz_cmp(&test_value.mpz, &max_value.mpz);
         if (res > 0) {
                 return kError;
@@ -411,18 +409,18 @@ inline int cmp_gmp(const T &a, const U &b) {
 
 template <IntegralType T>
 constexpr inline ErrCode safe_add(T &res, T lhs, T rhs) {
-        // Overflow detection.
-        // For GCC, a simple "((lhs + rhs) - lhs) != rhs" is enough, but clang apply optimizations
-        // to this expression and it will always return false.
-        // So we use the following case-by-case expr to detect overflow.
+        // Overflow detection for + operation. Add overflow detection could be very easily done by
+        // a simple "((lhs + rhs) - lhs) != rhs", but this is not portable, and not usable in
+        // case of constexpr.
         if constexpr (sizeof(T) <= 8) {
                 long long int i64res = 0;
                 if (__builtin_saddll_overflow(lhs, rhs, &i64res)) {
                         return kError;
                 }
-                if (!std::is_same_v<int64_t, T> &&
-                    (i64res > type_max<T>() || i64res < type_min<T>())) {
-                        return kError;
+                if (!std::is_same_v<int64_t, T>) {
+                        if ((i64res > type_max<T>() || i64res < type_min<T>())) {
+                                return kError;
+                        }
                 }
                 res = i64res;
         } else {
@@ -438,18 +436,18 @@ constexpr inline ErrCode safe_add(T &res, T lhs, T rhs) {
 
 template <IntegralType T>
 constexpr inline ErrCode safe_mul(T &res, T lhs, T rhs) {
-        // Overflow detection.
-        // For GCC, a simple "(lhs && n128 / lhs != rhs)" is enough, but clang apply optimizations
-        // to this expression and it will always return false.
-        // So we use the following expression to detect overflow.
+        // Overflow detection for * operation. Mul overflow detection could be very easily done by
+        // a simple "((lhs * n128) / lhs != rhs)", but this is not portable, and not usable in
+        // case of constexpr.
         if constexpr (sizeof(T) <= 8) {
                 long i64res = 0;
                 if (__builtin_smull_overflow(lhs, rhs, &i64res)) {
                         return kError;
                 }
-                if (!std::is_same_v<int64_t, T> &&
-                    (i64res > type_max<T>() || i64res < type_min<T>())) {
-                        return kError;
+                if constexpr (!std::is_same_v<int64_t, T>) {
+                        if ((i64res > type_max<T>() || i64res < type_min<T>())) {
+                                return kError;
+                        }
                 }
                 res = i64res;
         } else {
@@ -616,6 +614,8 @@ constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
 
 // Get int64_t/__int128_t from decimal, whose internal representation is int64_t or __int128_t .
 //
+// e.g., 123.65 => 123, no rounding
+//
 // Getting a int64_t from a decimal whose internal representation is int64_t is safe, but
 // getting a int64_t from a decimal whose internal representation is __int128_t may cause
 // overflow, and might trigger exception or assertion. The same for __int128_t.
@@ -728,7 +728,7 @@ std::string decimal_gmp_to_string(const Gmp640 &v, int32_t scale);
 }  // namespace detail
 
 //=-----------------------------------------------------------------------------
-// Big decimal implementation similar to MySQL's DECIMAL data type in execution layer.
+// Big decimal implementation similar to database's DECIMAL data type (in execution layer).
 //
 //   - Maximum precision (i.e., maximum total number of digits) is 96 and maximum scale
 //     (i.e., maximum number of digits after the decimal point) is 30.
@@ -788,8 +788,8 @@ class DecimalImpl final {
 
         // Every division increase current scale by 4 until max scale is reached.
         // Note that even when max scale is reached, the scale is still increased
-        // before division. Intermediate result would be increased to scale 16+4=20,
-        // and then after the calculation, it is decreased to scale 16.
+        // before division. Intermediate result would be increased to scale 30+4=34,
+        // and then after the calculation, it is decreased to scale 30 by rounding.
         constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
 
        public:
@@ -798,9 +798,9 @@ class DecimalImpl final {
         // Construction using integral value, without scale (scale=0).
         //
         // Constructor for preset scale, e.g., (i=123, scale=2) => 123.00, is not
-        // provided on purpose. This is not the same as the database decimal type,
-        // which has a fixed scale data type. The scale of this class is dynamic and
-        // stored within each object.
+        // provided on purpose. This is not the same as the database (storage) decimal type,
+        // which has a fixed scale data type; instead, it is similar with that of a runtime decimal
+        // type in database, where the scale of this class is dynamic and stored within each object.
         template <SmallIntegralType U>
         constexpr DecimalImpl(U i) : m_i64(i), m_padding0{0}, m_dtype(DType::kInt64), m_scale(0) {}
 
@@ -826,7 +826,7 @@ class DecimalImpl final {
         }
 
         // The whole point of this T/U template stuff is for 'static_assert' to generate
-        // compile-time error if needed.
+        // compile-time error for literal float/double.
         template <FloatingPointType U>
         constexpr DecimalImpl(U &&) {
                 static_assert(std::is_same_v<U, T>,
@@ -889,8 +889,9 @@ class DecimalImpl final {
         constexpr bool to_bool() const noexcept;
         constexpr operator bool() const noexcept { return to_bool(); }
 
-        // Cast to integral type. Number after the decimal point would be truncated.
-        // If overflow, exception or assertion would be triggered.
+        // Cast to integral type. Number after the decimal point would be truncated but no rounding.
+        // Overflow might happens, so the return type is ErrCode for to_int64() and to_int128().
+        // Exception or assertion for `operator int64_t()` and `operator __int128_t()`.
         constexpr ErrCode to_int64(int64_t &i) const noexcept;
         explicit constexpr operator int64_t() const {
                 int64_t i = 0;
@@ -1032,16 +1033,17 @@ class DecimalImpl final {
         //=----------------------------------------------------------
         // operator /=
         //
-        // In our implementation, there is no 'overflow' for division. There would only be
-        // 'division by zero' error. This is unlike primitive integer division,
-        // where overflow can happen in case of (INT64_MIN / -1) for int64_t type.
+        // In our implementation, there is no 'overflow' for division. The only error for division
+        // is 'division by zero' error. For primitive integer division, overflow can happen
+        // in case of (INT64_MIN / -1) for int64_t type; however, for `Decimal`,
+        // Decimal::MaxValue = -Decimal::MinValue.
         //
         // In case of division result that cannot be represented exactly, every division would
         // increase the scale by 4 until max scale is reached.
         // For example, 1.28/3.3 => 0.38787878787878793.. => 0.387879, which is 2+4=6 digits
         // after decimal point.
         //
-        // Intermediate result might be increased to scale kMaxScale+4+1=35 before rounding,
+        // Intermediate result might be increased to scale kDecimalMaxScale+4+1=35 before rounding,
         // where intermediate result would be calculated using 35 least significant digits.
         // After the division, it is rounded back to maximum scale 30.
         //=----------------------------------------------------------
@@ -1404,8 +1406,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_128(const char *start, const
         int32_t scale = 0;
         if (pdot) {
                 scale = end - (pdot + 1);
-                // Num of least significant digits cannot overflow kMaxScale
-                if (scale > kMaxScale) {
+                // Num of least significant digits cannot overflow kDecimalMaxScale
+                if (scale > detail::kDecimalMaxScale) {
                         return kDecimalScaleOverflow;
                 }
 
@@ -1446,7 +1448,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const
         assert(slen > 0);
         const char *ptr = start;
 
-        if (slen > kMaxPrecision + 1 + 1) {
+        if (slen > detail::kDecimalMaxPrecision + 1 + 1) {
                 return kInvalidArgument;
         }
 
@@ -1462,8 +1464,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const
 
         // Copy all the digits out into a buffer for subsequent mpn_set_str().
         // Leading zeros are skipped.
-        // At most kMaxPrecision digits. +1 for the '\0'.
-        char buf[kMaxPrecision + 1] = {0};
+        // At most kDecimalMaxPrecision digits. +1 for the '\0'.
+        char buf[detail::kDecimalMaxPrecision + 1] = {0};
         char *pbuf = buf;
         const char *pdot = nullptr;
         for (; ptr < end; ++ptr) {
@@ -1477,7 +1479,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const
                                 // The '.' character could not be at the very end,
                                 // i.e., '1234.' is not acceptable.
                                 return kInvalidArgument;
-                        } else if (end - (pdot + 1) > kMaxScale) {
+                        } else if (end - (pdot + 1) > detail::kDecimalMaxScale) {
                                 return kInvalidArgument;
                         }
                         continue;
@@ -1487,9 +1489,9 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const
                 *pbuf++ = detail::gmp_digit_value_tab[pv];
                 num_digits++;
 
-                // The string is too long (more than kMaxPrecision digits) to fit into our
+                // The string is too long (more than kDecimalMaxPrecision digits) to fit into our
                 // representation.
-                if (num_digits > kMaxPrecision) {
+                if (num_digits > detail::kDecimalMaxPrecision) {
                         return kInvalidArgument;
                 }
         }
@@ -1662,7 +1664,7 @@ constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(const detail::Gmp320 &l, in
                 mpz_add(&res640.mpz, &l.mpz, &r.mpz);
         }
 
-        // Check whether the result exceed maximum value of precision kMaxPrecision
+        // Check whether the result exceed maximum value of precision kDecimalMaxPrecision
         if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
                 return kDecimalAddSubOverflow;
         }
@@ -1809,8 +1811,8 @@ constexpr inline ErrCode DecimalImpl<T>::mul_i128_i128(__int128_t l128, int32_t 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
                                                      const detail::Gmp320 &r, int32_t rscale) {
-        __BIGNUM_ASSERT(lscale >= 0 && lscale <= kMaxScale);
-        __BIGNUM_ASSERT(rscale >= 0 && rscale <= kMaxScale);
+        __BIGNUM_ASSERT(lscale >= 0 && lscale <= detail::kDecimalMaxScale);
+        __BIGNUM_ASSERT(rscale >= 0 && rscale <= detail::kDecimalMaxScale);
 
         // kNumLimbs=5 limbs -> 320 bit
         // 2 * 320bit -> 640 bit (80 bytes) -> 10 * int64_t
@@ -2339,7 +2341,7 @@ constexpr inline bool DecimalImpl<T>::operator<=(const DecimalImpl<T> &rhs) cons
 template <typename T>
 constexpr inline void DecimalImpl<T>::sanity_check() const {
 #ifndef NDEBUG
-        __BIGNUM_ASSERT(m_scale >= 0 && m_scale <= kMaxScale);
+        __BIGNUM_ASSERT(m_scale >= 0 && m_scale <= detail::kDecimalMaxScale);
         __BIGNUM_ASSERT(m_dtype != DType::kGmp || m_gmp.ptr_check());
 #endif
 }

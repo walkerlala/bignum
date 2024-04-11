@@ -1,7 +1,12 @@
+- Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
+
 - enable support for c++17.
   e.g., std::is_constant_evaluated() is added >= c++20
 
-- make constexpr failure string more specified and readable
+- provide Decimal::MaxValue and Decimal::MinValue
+
+- constexpr constructor for float/double.
+- make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
 
 - wrap gmp function and create one around GmpWrapper
 
@@ -10,11 +15,15 @@
 - support conversion from boost::int256_t if boost is detected
   Remember to change the definitions of LargeIntegralType
 
-- reject constant float/double initialization, but accept variable float/double initialization
+- nodiscard option for ErrCode
 
-- Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
+- make constexpr failure string more specified and readable
+  for example, operator+=()'s overflow string could contains the exact number.
+  This would require making `to_string()` constexpr.
 
 - readme, add the following sections
 ## assert or abort
 
 ## div increase scale
+
+## SYNOPSIS of class Decimal

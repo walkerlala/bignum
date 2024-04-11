@@ -1804,6 +1804,10 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, dval) {
 
         // This is prohibited to prevent misuse.
         // [[maybe_unused]] Decimal d2(3.1415926);
+
+        // but += float/double literval is allowed to make it easier to use.
+        Decimal d3 = d1 + 3.1415926;
+        EXPECT_EQ(d3.to_string(), "6.28318520000000014");
 }
 
 #if 0
