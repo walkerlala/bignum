@@ -7,5 +7,6 @@ build/
 install/
 extra/gmp/gmp-6.3.0/
 extra/gtest/googletest-1.14.0/
+extra/benchmark/benchmark-1.8.2/
 compile_commands.json
 .vscode

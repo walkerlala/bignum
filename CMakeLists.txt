@@ -29,6 +29,7 @@ set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 option(BIGNUM_WITH_ASAN "Building with address sanitizer" OFF)
 option(BIGNUM_WITH_COVERAGE "Building with coverage" OFF)
 option(BIGNUM_BUILD_TESTS "Build tests" OFF)
+option(BIGNUM_BUILD_BENCHMARK "Build tests" OFF)
 option(BIGNUM_BUILD_SHARED "Build shared library" OFF)
 
 option(BIGNUM_ENABLE_EXCEPTIONS "Enable exceptions" ON)
@@ -76,6 +77,7 @@ endif()
 
 include(cmake/gmp.cmake)
 include(cmake/gtest.cmake)
+include(cmake/benchmark.cmake)
 find_package(Threads REQUIRED)
 
 set(BIGNUM_SOURCE ${PROJECT_ROOT}/src/decimal.cc)
@@ -141,6 +143,20 @@ if (BIGNUM_BUILD_TESTS)
     add_dependencies(unittest_gmp_only gtest_lib)
 endif()
 
+if (BIGNUM_BUILD_BENCHMARK)
+    SET(BENCHMARK_SOURCES
+        ${PROJECT_ROOT}/benchmark/main.cc
+        ${PROJECT_ROOT}/benchmark/op.cc
+    )
+    add_executable(benchmark ${BENCHMARK_SOURCES})
+    target_link_libraries(benchmark bignum)
+    target_include_directories(benchmark PRIVATE ${PROJECT_ROOT}/src)
+    target_include_directories(benchmark PRIVATE ${GMP_INCLUDE_DIR})
+    target_include_directories(benchmark PRIVATE ${BENCHMARK_INCLUDE_DIR})
+    target_link_libraries(benchmark ${BENCHMARK_LIBRARIES} Threads::Threads)
+    add_dependencies(benchmark benchmark_lib)
+endif()
+
 set_target_properties(
     bignum
     PROPERTIES
@@ -168,4 +184,7 @@ install(TARGETS decimal_calculator_gmp_only ARCHIVE DESTINATION ${CMAKE_INSTALL_
 if (BIGNUM_BUILD_TESTS)
     install(TARGETS unittest RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
     install(TARGETS unittest_gmp_only RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
+endif()
+if (BIGNUM_BUILD_BENCHMARK)
+    install(TARGETS benchmark RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/bin)
 endif()

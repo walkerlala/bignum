@@ -133,6 +133,7 @@ cmake \
   -DWITH_COVERAGE="$coverage"           \
   -DWITH_ASAN=$asan                     \
   -DBIGNUM_BUILD_TESTS=1                \
+  -DBIGNUM_BUILD_BENCHMARK=1            \
   ${root_dir}
 
 cp ${default_build_dir}/compile_commands.json ${root_dir}
