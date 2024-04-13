@@ -4,11 +4,11 @@
 #include "decimal.h"
 
 #ifdef BIGNUM_DEV_USE_GMP_ONLY
-#define BIGNUM_DECIMAL_FIXTURE DecimalTestGmpOnly
-#define BIGNUM_TEST_CONSTEXPR
+        #define BIGNUM_DECIMAL_FIXTURE DecimalTestGmpOnly
+        #define BIGNUM_TEST_CONSTEXPR
 #else
-#define BIGNUM_DECIMAL_FIXTURE DecimalTest
-#define BIGNUM_TEST_CONSTEXPR constexpr
+        #define BIGNUM_DECIMAL_FIXTURE DecimalTest
+        #define BIGNUM_TEST_CONSTEXPR constexpr
 #endif
 
 namespace bignum {
@@ -1853,6 +1853,21 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, unsigned_value_constructor) {
                           "850705917302346158658436518579420528636");
         }
 }
+
+#if 0
+TEST_F(BIGNUM_DECIMAL_FIXTURE, min_max_decimal_value) {
+        Decimal dmin = std::numeric_limits<Decimal>::min();
+        Decimal dmax = std::numeric_limits<Decimal>::max();
+        constexpr Decimal dmin(detail::kMax96DigitsGmpValue);
+        constexpr Decimal dmax(detail::kMin96DigitsGmpValue);
+        EXPECT_EQ(dmin.to_string(),
+                  "99999999999999999999999999999999999999999999999999999999999999999999999999999999"
+                  "9999999999999999");
+        EXPECT_EQ(dmin.to_string(),
+                  "-9999999999999999999999999999999999999999999999999999999999999999999999999999999"
+                  "99999999999999999");
+}
+#endif
 
 #if 0
 TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMod) {

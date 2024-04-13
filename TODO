@@ -3,12 +3,13 @@
 - constexpr constructor for float/double.
 - make literal float initialization constexpr
 
+- make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
+  so that we could define kMinDecimal and kMaxDecimal
+
+- provide cast operator for unsigned integer
+
 - enable support for c++17.
   e.g., std::is_constant_evaluated() is added >= c++20
-
-- provide Decimal::MaxValue and Decimal::MinValue
-
-- make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
 
 - wrap gmp function and create one around GmpWrapper
 
@@ -16,7 +17,3 @@
 
 - support conversion from boost::int256_t if boost is detected
   Remember to change the definitions of LargeIntegralType
-
-- make constexpr failure string more specified and readable
-  for example, operator+=()'s overflow string could contains the exact number.
-  This would require making `to_string()` constexpr.

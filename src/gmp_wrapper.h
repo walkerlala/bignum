@@ -157,10 +157,12 @@ static_assert(sizeof(Gmp320) == 56);
 
 // Maximum/minimum value of precision-96 decimal number
 // If kMaxPrecision is changed, this value should be updated accordingly.
-constexpr auto kMaxGmpValue = Gmp320(5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b,
-                                     0x62e7f4a779f5080f, 0x77d9d58b62cd8a51);
-constexpr auto kMinGmpValue = Gmp320(-5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b,
-                                     0x62e7f4a779f5080f, 0x77d9d58b62cd8a51);
+constexpr auto kMax96DigitsGmpValue =
+        Gmp320(5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b, 0x62e7f4a779f5080f,
+               0x77d9d58b62cd8a51);
+constexpr auto kMin96DigitsGmpValue =
+        Gmp320(-5, 0xffffffffffffffff, 0xe1178e80ffffffff, 0x1c46d01ae478b23b, 0x62e7f4a779f5080f,
+               0x77d9d58b62cd8a51);
 constexpr auto kGmpValueMinus1 = Gmp320(-1, 0x1, 0x0, 0x0, 0x0, 0x0);
 }  // namespace detail
 }  // namespace bignum

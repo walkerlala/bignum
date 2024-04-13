@@ -9,12 +9,12 @@ using namespace detail;
 class GmpTest : public ::testing::Test {};
 
 TEST_F(GmpTest, gmp_constant) {
-        auto gmp_max = kMaxGmpValue;
+        auto gmp_max = kMax96DigitsGmpValue;
         ASSERT_EQ(my_mpz_to_string(&gmp_max.mpz, /*scale*/ 0),
                   "99999999999999999999999999999999999999999999999999999999999999999999999999999999"
                   "9999999999999999");
 
-        auto gmp_min = kMinGmpValue;
+        auto gmp_min = kMin96DigitsGmpValue;
         ASSERT_EQ(my_mpz_to_string(&gmp_min.mpz, /*scale*/ 0),
                   "-9999999999999999999999999999999999999999999999999999999999999999999999999999999"
                   "99999999999999999");

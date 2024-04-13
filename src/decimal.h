@@ -1007,8 +1007,7 @@ class DecimalImpl final {
 
         constexpr DecimalImpl &operator+=(const DecimalImpl &rhs) {
                 ErrCode err = add(rhs);
-                __BIGNUM_CHECK_ERROR(!err, "Decimal addition overflow");  // FIXME constexpr string
-                                                                          // with value inside
+                __BIGNUM_CHECK_ERROR(!err, "Decimal addition overflow");
                 return *this;
         }
 
@@ -1040,9 +1039,7 @@ class DecimalImpl final {
 
         constexpr DecimalImpl &operator-=(const DecimalImpl &rhs) {
                 ErrCode err = sub(rhs);
-                __BIGNUM_CHECK_ERROR(!err,
-                                     "Decimal subtraction overflow");  // FIXME constexpr string
-                                                                       // with value inside
+                __BIGNUM_CHECK_ERROR(!err, "Decimal subtraction overflow");
                 return *this;
         }
         constexpr DecimalImpl &operator-=(double f) {
@@ -1082,9 +1079,7 @@ class DecimalImpl final {
 
         constexpr DecimalImpl &operator*=(const DecimalImpl &rhs) {
                 ErrCode err = mul(rhs);
-                __BIGNUM_CHECK_ERROR(!err,
-                                     "Decimal multiplication overflow");  // FIXME constexpr string
-                                                                          // with value inside
+                __BIGNUM_CHECK_ERROR(!err, "Decimal multiplication overflow");
                 return *this;
         }
         constexpr DecimalImpl &operator*=(double f) {
@@ -1127,10 +1122,7 @@ class DecimalImpl final {
 
         constexpr DecimalImpl &operator/=(const DecimalImpl &rhs) {
                 ErrCode err = div(rhs);
-                __BIGNUM_CHECK_ERROR(
-                        !err,
-                        "Decimal division by zero or overflow");  // FIXME constexpr string
-                                                                  // with value inside
+                __BIGNUM_CHECK_ERROR(!err, "Decimal division by zero or overflow");
                 return *this;
         }
         constexpr DecimalImpl &operator/=(double f) {
@@ -1162,7 +1154,7 @@ class DecimalImpl final {
 
         constexpr DecimalImpl &operator%=(const DecimalImpl &rhs) {
                 ErrCode err = mod(rhs);
-                __BIGNUM_CHECK_ERROR(!err, "DecimalImpl modulo err");
+                __BIGNUM_CHECK_ERROR(!err, "Decimal modulo err");
                 return *this;
         }
         constexpr DecimalImpl &operator%=(double f) {
@@ -1275,7 +1267,7 @@ class DecimalImpl final {
                                   const detail::Gmp320 &r320, int32_t rscale) const;
 
         // For dev purpose only.
-        void convert_internal_representation_to_gmp() noexcept;
+        constexpr void convert_internal_representation_to_gmp() noexcept;
 
        private:
         enum class DType : uint8_t {
@@ -1782,7 +1774,8 @@ constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(const detail::Gmp320 &l, in
         }
 
         // Check whether the result exceed maximum value of precision kDecimalMaxPrecision
-        if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
+        if (detail::check_gmp_out_of_range(res640, detail::kMin96DigitsGmpValue,
+                                           detail::kMax96DigitsGmpValue)) {
                 return kDecimalAddSubOverflow;
         }
 
@@ -1976,7 +1969,8 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(const detail::Gmp320 &l, in
                 m_scale = lscale + rscale;
         }
 
-        if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
+        if (detail::check_gmp_out_of_range(res640, detail::kMin96DigitsGmpValue,
+                                           detail::kMax96DigitsGmpValue)) {
                 return kDecimalMulOverflow;
         }
 
@@ -2174,7 +2168,8 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) noexcept
                 res640.negate();
         }
 
-        if (detail::check_gmp_out_of_range(res640, detail::kMinGmpValue, detail::kMaxGmpValue)) {
+        if (detail::check_gmp_out_of_range(res640, detail::kMin96DigitsGmpValue,
+                                           detail::kMax96DigitsGmpValue)) {
                 return kDecimalMulOverflow;
         }
 
@@ -2265,8 +2260,8 @@ constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) noexcept
         m_scale = lscale;
 
 #ifndef NDEBUG
-        __BIGNUM_ASSERT(!detail::check_gmp_out_of_range(remainder, detail::kMinGmpValue,
-                                                        detail::kMaxGmpValue));
+        __BIGNUM_ASSERT(!detail::check_gmp_out_of_range(remainder, detail::kMin96DigitsGmpValue,
+                                                        detail::kMax96DigitsGmpValue));
 #endif
 
         return kSuccess;
@@ -2439,7 +2434,7 @@ constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
 }
 
 template <typename T>
-inline void DecimalImpl<T>::convert_internal_representation_to_gmp() noexcept {
+constexpr inline void DecimalImpl<T>::convert_internal_representation_to_gmp() noexcept {
         if (m_dtype == DType::kInt64) {
                 store_gmp_value(detail::conv_64_to_gmp320(m_i64));
         } else if (m_dtype == DType::kInt128) {
@@ -2474,7 +2469,9 @@ constexpr inline void DecimalImpl<T>::sanity_check() const {
 }
 }  // namespace bignum
 
-inline std::ostream &operator<<(std::ostream &oss, bignum::Decimal const &d) {
-        oss << static_cast<std::string>(d);
+namespace std {
+inline ostream &operator<<(ostream &oss, bignum::Decimal const &d) {
+        oss << static_cast<string>(d);
         return oss;
 }
+}  // namespace std

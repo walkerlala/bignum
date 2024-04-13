@@ -6,9 +6,8 @@ bignum is a large precision Decimal implementation in C++ that supports up-to 96
 
 ## Features
 - Large precision (at most 96 digits) and scale (at most 30 digits) decimal
-- Optimized for speed;
+- Optimized for speed, and provide compile-time calculation via `constexpr` expression
 - Each `Decimal` object occupies fixed 64 bytes; no dynamic allocation;
-- compile-time calculation with `constexpr` expression
 
 Currently only Linux platform with gcc/clang is tested. A compiler with C++20 support is required.
 
@@ -115,6 +114,9 @@ No rounding happens in constructor or `assign()` interfaces.
 - Scale of division result is equal to `dividend_scale + Decimal::kDivIncreaseScale`.
 If `dividend_scale + Decimal::kDivIncreaseScale` is larger than `Decimal::kMaxScale`,
 result scale is rounded to `Decimal::kMaxScale`.
+
+- `Decimal` division would never overflow, because `bignum::kMinDecimal == -bignum::kMaxDecimal`.
+However, `Decimal` division might have divide-by-zero error.
 
 - All rounding is done using the "round-half-up" rule and round away from zero.
 
@@ -319,6 +321,7 @@ Public members of the `Decimal` class are listed for quick reference.
 Some implementation details are hidden.
 More details could be found at comments in `decimal.h` header file.
 ```cpp
+namespace bignum {
 class Decimal final {
     public:
         // Maximum decimal digits in total
@@ -499,6 +502,14 @@ class Decimal final {
         constexpr bool operator>(double f) const { return !(*this <= f); }
         constexpr bool operator>=(double f) const { return !(*this < f); }
 };
+}  // namespace bignum
+
+namespace std {
+inline ostream &operator<<(ostream &oss, bignum::Decimal const &d) {
+        oss << static_cast<string>(d);
+        return oss;
+}
+}  // namespace std
 ```
 
 Each `Decimal` object occupies 64 bytes.

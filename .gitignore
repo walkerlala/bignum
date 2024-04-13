@@ -1,5 +1,5 @@
-scripts/GenerateGmpPow10
-scripts/GenerateGmpPow10Test
+scripts/generate_gmp_pow10
+scripts/generate_gmp_pow10_test
 scripts/test_gmp
 
 venv/
