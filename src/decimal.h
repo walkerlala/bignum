@@ -808,6 +808,7 @@ class DecimalImpl final {
         constexpr DecimalImpl(U i)
                 : m_i128(i), m_padding0{0}, m_dtype(DType::kInt128), m_scale(0) {}
 
+#ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         // Construction using floating point value.
         //
         // Construction using floating point value would result in rounding if the
@@ -831,10 +832,19 @@ class DecimalImpl final {
         constexpr DecimalImpl(U &&) {
                 static_assert(std::is_same_v<U, T>,
                               "Using literal floating point value to initialize Decimal is "
-                              "error-prone, "
-                              "use string literal instead, e.g., use Decimal(\"1.23\") instead of "
-                              "Decimal(1.23)");
+                              "error-prone, use string literal instead, "
+                              "e.g., use `constexpr Decimal(\"1.23\")` instead of "
+                              "`constexpr Decimal(1.23)`. "
+                              "Or define the BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR macro");
         }
+#else  // BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
+        template <FloatingPointType U>
+        constexpr DecimalImpl(U v) {
+                ErrCode err = assign(v);
+                __BIGNUM_ASSERT(!err, "Decimal initialization with floating point value overflows");
+        }
+
+#endif  // BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
 
         // Construction using string value.
         //
@@ -872,8 +882,17 @@ class DecimalImpl final {
         template <IntegralType U>
         constexpr ErrCode assign(U i);
 
+#ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign(U &f);
+        /*constexpr*/ ErrCode assign(U &f) {
+                return assign_float(f);
+        }
+#else
+        template <FloatingPointType U>
+        /*constexpr*/ ErrCode assign(U f) {
+                return assign_float(f);
+        }
+#endif
 
         constexpr ErrCode assign(std::string_view sv);
 
@@ -1156,6 +1175,9 @@ class DecimalImpl final {
                 }
         }
 
+        template <FloatingPointType U>
+        /*constexpr*/ ErrCode assign_float(U f);
+
         constexpr ErrCode assign_str_128(const char *start, const char *end);
         constexpr ErrCode assign_str_gmp(const char *start, const char *end);
 
@@ -1273,7 +1295,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign(U i) {
 
 template <typename T>
 template <FloatingPointType U>
-/*constexpr*/ inline ErrCode DecimalImpl<T>::assign(U &v) {
+/*constexpr*/ inline ErrCode DecimalImpl<T>::assign_float(U v) {
         std::ostringstream oss;
         if constexpr (std::is_same_v<U, float>) {
                 oss << std::fixed << std::setprecision(7) << v;

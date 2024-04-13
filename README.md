@@ -2,6 +2,8 @@
 bignum is a large precision Decimal implementation in C++ that supports up-to 96 digits precision
 (i.e., 96 digits in total) and up-to 30 digits scale (i.e., digits after the decimal point).
 
+***This package is currently being benchmark and NOT released yet***
+
 ## Features
 - Large precision (at most 96 digits) and scale (at most 30 digits) decimal
 - compile-time calculation with `constexpr` expression
@@ -31,13 +33,13 @@ precision and scale are auto-detected when initializing a Decimal object.
     Decimal d1(i64val);
     std::cout << "value: " << d1 << std::endl;  // output "31415926"
 
-    int64_t i128val = 9999999999999999999.9;
+    __int128_t i128val = 9999999999999999999.9;
     Decimal d2(i128val);
     std::cout << "value: " << d2 << std::endl;  // output "9999999999999999999.9"
 }
 
-// Initialize with float/double variables (i.e., lvalue) is allowed, but initializing from
-// rvalue (e.g., float/double literal) is not allowed to prevent misuse.
+// To prevent misuse, initializing from float/double lvalue (e.g., float/double variables)
+// is allowed, but initializing from rvalue (e.g., float/double literal) is not allowed.
 {
     double dval = 3.1415926;
     Decimal d1(dval);
@@ -45,13 +47,27 @@ precision and scale are auto-detected when initializing a Decimal object.
 
     // Initialize from float/double literal would cause compile-error such as
     // 
-    //    static assertion failed: Using literal floating point value to
-    //    initialize Decimal is error-prone, use string literal instead,
-    //    i.e., use Decimal("1.23") instead of Decimal(1.23)
+    //    " static assertion failed: Using literal floating point value to
+    //      initialize Decimal is error-prone, use string literal instead,
+    //      i.e., use Decimal("1.23") instead of Decimal(1.23) "
     //
     // [[maybe_unused]] Decimal d2(3.1415926);
 }
 ```
+
+Initializing from literal float/double is intentionally prohibitted by default to prevent misuse.
+This is because a initialization using literal could always be `constexpr`, and in
+case of performance, a float literal initialization `constexpr Decimal(1.23)` has
+the same effect as a string literal initialization `constexpr Decimal("1.23")` because
+these initializations are both done at compile time only.
+But using a float literal might cause unexpected precision loss,
+e.g., a float initialization `Decimal(3.1415926)` would result int `3.14159260000000007`,
+instead of the original  `3.1415926`.
+
+User who want literal float/double initialization could turn on the
+`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` cmake option (which defines the
+`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` macro at compile time).
+`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` is turned off by default.
 
 ### Simple arithmetic operations
 ```cpp
@@ -72,17 +88,32 @@ int main() {
 }
 ```
 
+Note that even if initializing from float/double literals is not allowed, arithmetic operations
+with float/double literals is allowed:
+```cpp
+#include <iostream>
+#include <bignum/decimal.h>
+
+int main() {
+    Decimal d1("678.90");
+    Decimal d2 = d1 + 3.1415926;
+    std::cout << "d2=" << d2 << std::endl;  // Output "d2=682.04159260000000007"
+}
+```
+
 ### Error handling
-All operations on `Decimal` that cause overflow or error, will throw `std::runtime_error` exception
-or trigger assertion by default, depending on whether the `BIGNUM_ENABLE_EXCEPTIONS` option is
-turned on at compile time (which defines the `BIGNUM_ENABLE_EXCEPTIONS` macro).
-`BIGNUM_ENABLE_EXCEPTIONS` is turned on by default.
+There are 3 ways to handle error while using Decimal.
 
+1. Use the explicit error-handling interfaces which return `ErrCode`. These interfaces are
+   guaranteed to not throwing any exception.
 
-There are two ways to handle error:
+2. Define the `BIGNUM_ENABLE_EXCEPTIONS` macro and use `try { ... } catch { ... }` to handle error.
+   If using CMake, user could turned on the `BIGNUM_ENABLE_EXCEPTIONS` option to define the macro.
+   The `BIGNUM_ENABLE_EXCEPTIONS` option is turned on by default.
 
-1. Enable exception and use `try { ... } catch { ... }` to handle error.
-2. Use the expliclty error-handling interfaces.
+3. Do not define the `BIGNUM_ENABLE_EXCEPTIONS` macro (turn off the cmake option), and use the
+   interface that does not return `ErrCode`. If overflow or error happends, internal assertion
+   will be triggered, which call `std::abort()` to crash the program.
 
 Examples:
 ```cpp
@@ -99,7 +130,9 @@ Examples:
 
     Decimal dsmall(small_str);  // OK
 
-    // Method 1, initialization overflow, use exception to handle error
+    // Method 1, initialization overflow, use the interface without ErrCode return.
+    // If BIGNUM_ENABLE_EXCEPTIONS is defined, exception will be thrown at error;
+    // if BIGNUM_ENABLE_EXCEPTIONS is not defined, assertion will be triggered.
     Decimal dlarge;
     try {
         dlarge = Decimal(large_str);
@@ -125,7 +158,7 @@ if (err) {
 }
 ```
 
-All exception throwing interfaces have their error-handling counter-parts:
+All exception throwing interfaces have their error-handling counterparts:
 ```cpp
 // Initialization, constructor v.s. assign()
 {
@@ -153,47 +186,49 @@ All exception throwing interfaces have their error-handling counter-parts:
 }
 ```
 
+All interfaces are documented at the *SYNOPSIS* section below.
+
 ### Cast operations:
 ```cpp
 Decimal d1("678.90");
 
-// cast to string, gauranteed to succeed
+// cast to string, gauranteed to succeed;
+// requires explicit cast;
 {
     std::ostringstream oss;
     oss << d1;
 
-    std::string str;
-    [[maybe_unused]] ErrCode err = d1.to_string(str);
-
-    std::string d2 = static_cast<std::string>(d1);
+    std::string str1 = d1.to_string();
+    std::string str2 = static_cast<std::string>(d1);
 }
 
 // cast to double, gauranteed to succeed
+// requires explicit cast;
 {
-    double dval1;
-    [[maybe_unused]] ErrCode err = d1.to_double(dval1);
-
+    double dval1 = d1.to_double();
     double dval2 = static_cast<double>(d1);
 }
 
-// cast to bool, gauranteed to succeed
+// cast to bool, gauranteed to succeed;
+// implicit cast is allowed;
 {
     // compare to 0
     if (d1) {
     }
 
-    bool b = static_cast<bool>(d1);
+    bool b1 = d1.to_bool();
+    bool b2 = static_cast<bool>(d1);
 }
 
 // cast to int64_t or __int128_t, truncate all digits after decimal points; might overflow
 {
-    // If overflow, exception or assertion occurs
+    // overflow will cause exception or assertion
     int64_t i64 = static_cast<int64_t>(d1);
-    ErrCode err1 = d1.to_int64(i64);
-
-    // If overflow, exception or assertion occurs
     __int128_t i128 = static_cast<__int128_t>(d1);
-    ErrCode err1 = d1.to_int128(i128);
+
+    // overflow will cause exception or assertion
+    ErrCode err1 = d1.to_int64(i64);
+    ErrCode err2 = d1.to_int128(i128);
 }
 ```
 
