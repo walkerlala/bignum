@@ -1819,6 +1819,41 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, errcode_to_int_implicit) {
         EXPECT_EQ(d1.to_string(), "12345678987654300000000000000002100999999992.11");
 }
 
+TEST_F(BIGNUM_DECIMAL_FIXTURE, unsigned_value_constructor) {
+        // uint64
+        {
+                Decimal d1(static_cast<uint64_t>(INT64_MAX - 1));
+                Decimal d2(static_cast<uint64_t>(INT64_MAX));
+                Decimal d3(static_cast<uint64_t>(INT64_MAX) + 1);
+                Decimal d4(static_cast<uint64_t>(UINT64_MAX));
+
+                EXPECT_EQ(d1.to_string(), "9223372036854775806");
+                EXPECT_EQ(d2.to_string(), "9223372036854775807");
+                EXPECT_EQ(d3.to_string(), "9223372036854775808");
+                EXPECT_EQ(d4.to_string(), "18446744073709551615");
+
+                EXPECT_EQ((d1 + d2 + d3).to_string(), "27670116110564327421");
+                EXPECT_EQ((d1 + d2 + d3 + d4).to_string(), "46116860184273879036");
+        }
+
+        // uint128
+        {
+                Decimal d1(static_cast<__uint128_t>(kInt128Max - 1));
+                Decimal d2(static_cast<__uint128_t>(kInt128Max));
+                Decimal d3(static_cast<__uint128_t>(kInt128Max) + 1);
+                Decimal d4(static_cast<__uint128_t>(kUint128Max));
+
+                EXPECT_EQ(d1.to_string(), "170141183460469231731687303715884105726");
+                EXPECT_EQ(d2.to_string(), "170141183460469231731687303715884105727");
+                EXPECT_EQ(d3.to_string(), "170141183460469231731687303715884105728");
+                EXPECT_EQ(d4.to_string(), "340282366920938463463374607431768211455");
+
+                EXPECT_EQ((d1 + d2 + d3).to_string(), "510423550381407695195061911147652317181");
+                EXPECT_EQ((d1 + d2 + d3 + d4).to_string(),
+                          "850705917302346158658436518579420528636");
+        }
+}
+
 #if 0
 TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMod) {
     //=------------------------------------------

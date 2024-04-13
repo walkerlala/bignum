@@ -40,16 +40,22 @@ concept IntegralType = ((std::is_integral_v<T> && std::is_signed_v<T>) ||
                         std::is_same_v<T, __int128_t>);
 
 template <typename T>
-concept UnsignedIntegralType = ((std::is_integral_v<T> || std::is_same_v<T, __int128_t>) ||
-                                !std::is_signed_v<T>);
+concept UnsignedIntegralType = ((std::is_integral_v<T> && !std::is_signed_v<T>) ||
+                                std::is_same_v<T, __uint128_t>);
 
 // integral type that is at most 64bits
 template <typename T>
 concept SmallIntegralType = IntegralType<T> && sizeof(T) <= 8;
 
+template <typename T>
+concept SmallUnsignedType = UnsignedIntegralType<T> && sizeof(T) <= 8;
+
 // large integral: int128_t
 template <typename T>
 concept LargeIntegralType = IntegralType<T> && sizeof(T) == 16;
+
+template <typename T>
+concept LargeUnsignedType = UnsignedIntegralType<T> && sizeof(T) == 16;
 
 template <typename T>
 concept FloatingPointType =
@@ -62,6 +68,7 @@ constexpr int32_t kDecimalDivIncrScale = 4;
 
 constexpr __int128_t kInt128Max = (static_cast<__int128_t>(INT64_MAX) << 64) | UINT64_MAX;
 constexpr __int128_t kInt128Min = static_cast<__int128_t>(INT64_MIN) << 64;
+constexpr __uint128_t kUint128Max = (static_cast<__uint128_t>(UINT64_MAX) << 64) | UINT64_MAX;
 
 constexpr const char *kDecimalMaxStr =
         "999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999"
@@ -275,7 +282,7 @@ constexpr inline Gmp320 conv_64_to_gmp320(int64_t i64) {
         return gmp;
 }
 
-constexpr inline Gmp320 convert_uint128_to_gmp(__uint128_t u128) {
+constexpr inline Gmp320 conv_uint128_to_gmp320(__uint128_t u128) {
         Gmp320 gmp;
         auto *mpz = &gmp.mpz;
         if (u128 == 0) {
@@ -298,16 +305,16 @@ constexpr inline Gmp320 convert_uint128_to_gmp(__uint128_t u128) {
 
 constexpr inline Gmp320 conv_128_to_gmp320(__int128_t i128) {
         if (i128 >= 0) {
-                return convert_uint128_to_gmp(static_cast<__uint128_t>(i128));
+                return conv_uint128_to_gmp320(static_cast<__uint128_t>(i128));
         }
 
         Gmp320 gmp;
         if (i128 != kInt128Min) {
                 __uint128_t positive_i128 = constexpr_abs(i128);
-                gmp = convert_uint128_to_gmp(positive_i128);
+                gmp = conv_uint128_to_gmp320(positive_i128);
         } else {
                 __uint128_t positive_i128 = static_cast<__uint128_t>(kInt128Max) + 1;
-                gmp = convert_uint128_to_gmp(positive_i128);
+                gmp = conv_uint128_to_gmp320(positive_i128);
         }
         gmp.mpz._mp_size = -gmp.mpz._mp_size;
         return gmp;
@@ -744,13 +751,13 @@ std::string decimal_gmp_to_string(const Gmp640 &v, int32_t scale);
 //
 //   - negative scale is NOT supported;
 //
-//   - calculation overflow would trigger assertion error by default, unless the
+//   - calculation overflow would throw or assert by default, unless the
 //     error-handling interfaces are used;
 //
 //   - initialization using constructor that
 //       * overflows the maximum precision or
 //       * results in error (e.g., invalid argument)
-//     would trigger assertion.
+//     would throw or assert.
 //     To initialize safely (with error code returned), use the default constructor
 //     and then use the "assign(..)" interfaces to initialize the value;
 //
@@ -806,11 +813,50 @@ class DecimalImpl final {
         // which has a fixed scale data type; instead, it is similar with that of a runtime decimal
         // type in database, where the scale of this class is dynamic and stored within each object.
         template <SmallIntegralType U>
-        constexpr DecimalImpl(U i) : m_i64(i), m_padding0{0}, m_dtype(DType::kInt64), m_scale(0) {}
+        constexpr DecimalImpl(U i) : m_i64(i), m_padding0{0}, m_dtype(DType::kInt64), m_scale(0) {
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+                convert_internal_representation_to_gmp();
+#endif
+        }
+
+        template <SmallUnsignedType U>
+        constexpr DecimalImpl(U i) : m_padding0{0}, m_scale(0) {
+                if constexpr (sizeof(U) < sizeof(int64_t)) {
+                        m_i64 = i;
+                        m_dtype = DType::kInt64;
+                } else if (i <= static_cast<uint64_t>(INT64_MAX)) {
+                        m_i64 = i;
+                        m_dtype = DType::kInt64;
+                } else {
+                        m_i128 = i;
+                        m_dtype = DType::kInt128;
+                }
+
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+                convert_internal_representation_to_gmp();
+#endif
+        }
 
         template <LargeIntegralType U>
-        constexpr DecimalImpl(U i)
-                : m_i128(i), m_padding0{0}, m_dtype(DType::kInt128), m_scale(0) {}
+        constexpr DecimalImpl(U i) : m_i128(i), m_padding0{0}, m_dtype(DType::kInt128), m_scale(0) {
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+                convert_internal_representation_to_gmp();
+#endif
+        }
+
+        template <LargeUnsignedType U>
+        constexpr DecimalImpl(U i) : m_padding0{0}, m_scale(0) {
+                if (i <= static_cast<__uint128_t>(detail::kInt128Max)) {
+                        m_i128 = i;
+                        m_dtype = DType::kInt128;
+                } else {
+                        detail::Gmp320 nv = detail::conv_uint128_to_gmp320(i);
+                        store_gmp_value(nv);
+                }
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+                convert_internal_representation_to_gmp();
+#endif
+        }
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         // Construction using floating point value.
@@ -821,7 +867,7 @@ class DecimalImpl final {
         // intentionally prohibit constructor for literal float/double to avoid
         // misuse.
         //
-        // This interface would trigger assertion on overflow.
+        // This interface would throw exception or trigger assertion on overflow.
         // User who want explicit error handling should use the assign(..) interfaces.
         template <FloatingPointType U>
         constexpr DecimalImpl(U &v) {
@@ -859,7 +905,7 @@ class DecimalImpl final {
         // small as possible. For example, "123.10" would be stored as (i=1231,
         // scale=1).
         //
-        // This interface would trigger assertion on overflow or error.
+        // This interface would throw exception or trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
         constexpr DecimalImpl(std::string_view sv) : m_padding0{0} {
                 __BIGNUM_CHECK_ERROR(!assign(sv), "Invalid decimal string");
@@ -886,6 +932,9 @@ class DecimalImpl final {
         // Return error code instead of exception/assertion.
         //=--------------------------------------------------------
         template <IntegralType U>
+        constexpr ErrCode assign(U i) noexcept;
+
+        template <UnsignedIntegralType U>
         constexpr ErrCode assign(U i) noexcept;
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
@@ -940,10 +989,10 @@ class DecimalImpl final {
 
         //=--------------------------------------------------------
         // Arithmetic operators.
-        // Trigger assertion on overflow or error.
+        // Throw exception or trigger assertion on overflow or error.
         //
         // Decimal arithmetic operators, e.g., '+', '-', '*', '/', cannot return error code on
-        // overflow, so if overflow they trigger assertion. The is reasonable because Decimal is to
+        // overflow, so if overflow they throw or assert. The is reasonable because Decimal is to
         // used for representing "exact" values such as money, where, precision=96 is large enough
         // for most cases and overflow is not expected.
         //
@@ -1026,7 +1075,7 @@ class DecimalImpl final {
         //
         // Decimal multiplication overflowing significant digits would trigger
         // assertion. However, decimal multiplication overflowing least significant
-        // digits would not trigger assertion. Instead, the result would be rounded to
+        // digits would not throw or assert. Instead, the result would be rounded to
         // the maximum scale (using round-half-up rule) if necessary.
         //=----------------------------------------------------------
         constexpr ErrCode mul(const DecimalImpl &rhs) noexcept;
@@ -1225,6 +1274,9 @@ class DecimalImpl final {
         constexpr int cmp_gmp_gmp(const detail::Gmp320 &l320, int32_t lscale,
                                   const detail::Gmp320 &r320, int32_t rscale) const;
 
+        // For dev purpose only.
+        void convert_internal_representation_to_gmp() noexcept;
+
        private:
         enum class DType : uint8_t {
                 kInt64 = 0,
@@ -1295,12 +1347,43 @@ constexpr inline ErrCode DecimalImpl<T>::assign(U i) noexcept {
                 m_i128 = i;
         }
 
-#if ((!defined(NDEBUG)) && defined(BIGNUM_DEV_USE_GMP_ONLY))
-        if (m_dtype == DType::kInt64) {
-                store_gmp_value(detail::conv_64_to_gmp320(m_i64));
-        } else if (m_dtype == DType::kInt128) {
-                store_gmp_value(detail::conv_128_to_gmp320(m_i128));
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+        convert_internal_representation_to_gmp();
+#endif
+
+        return kSuccess;
+}
+
+template <typename T>
+template <UnsignedIntegralType U>
+constexpr inline ErrCode DecimalImpl<T>::assign(U i) noexcept {
+        m_scale = 0;
+
+        if constexpr (sizeof(U) < 8) {
+                m_i64 = i;
+                m_dtype = DType::kInt64;
+        } else if constexpr (sizeof(U) == 8) {
+                if (i <= static_cast<uint64_t>(INT64_MAX)) {
+                        m_i64 = i;
+                        m_dtype = DType::kInt64;
+                } else {
+                        m_i128 = i;
+                        m_dtype = DType::kInt128;
+                }
+        } else if constexpr (std::is_same_v<U, __uint128_t>) {
+                if (i <= static_cast<__uint128_t>(detail::kInt128Max)) {
+                        m_i128 = i;
+                        m_dtype = DType::kInt128;
+                } else {
+                        detail::Gmp320 nv = detail::conv_uint128_to_gmp320(i);
+                        store_gmp_value(nv);
+                }
+        } else {
+                static_assert(std::is_same_v<U, void>, "Invalid type");
         }
+
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+        convert_internal_representation_to_gmp();
 #endif
 
         return kSuccess;
@@ -1341,7 +1424,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) noexcept {
 
         const size_t slen = end - ptr;
         if (!slen) {
-                (void) assign(0ll);
+                (void)assign(0ll);
                 return kSuccess;
         }
 
@@ -1365,12 +1448,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) noexcept {
 
         sanity_check();
 
-#if ((!defined(NDEBUG)) && defined(BIGNUM_DEV_USE_GMP_ONLY))
-        if (m_dtype == DType::kInt64) {
-                store_gmp_value(detail::conv_64_to_gmp320(m_i64));
-        } else if (m_dtype == DType::kInt128) {
-                store_gmp_value(detail::conv_128_to_gmp320(m_i128));
-        }
+#ifdef BIGNUM_DEV_USE_GMP_ONLY
+        convert_internal_representation_to_gmp();
 #endif
 
         return kSuccess;
@@ -2357,6 +2436,15 @@ constexpr inline int DecimalImpl<T>::cmp(const DecimalImpl &rhs) const {
                 __BIGNUM_ASSERT(false);
         }
         return res;
+}
+
+template <typename T>
+inline void DecimalImpl<T>::convert_internal_representation_to_gmp() noexcept {
+        if (m_dtype == DType::kInt64) {
+                store_gmp_value(detail::conv_64_to_gmp320(m_i64));
+        } else if (m_dtype == DType::kInt128) {
+                store_gmp_value(detail::conv_128_to_gmp320(m_i128));
+        }
 }
 
 template <typename T>

@@ -3,8 +3,6 @@
 - denote the arithmetic operations: construction that overflow the maximum scale is not allowed,
     but calculation that overflow the maximum scale is implicitly truncated and rounded
 
-- constructor for unsigned integer
-
 - constexpr constructor for float/double.
 - make literal float initialization constexpr
 
@@ -25,10 +23,3 @@
 - make constexpr failure string more specified and readable
   for example, operator+=()'s overflow string could contains the exact number.
   This would require making `to_string()` constexpr.
-
-- readme, add the following sections
-## assert or abort
-
-## div increase scale
-
-## SYNOPSIS of class Decimal

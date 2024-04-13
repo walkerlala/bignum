@@ -300,7 +300,7 @@ Some implementation details are hidden.
 More details could be found at comments in `decimal.h` header file.
 ```cpp
 class Decimal final {
-       public:
+    public:
         // Maximum decimal digits in total
         constexpr static int32_t kMaxPrecision = 96;
 
@@ -326,7 +326,7 @@ class Decimal final {
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         // Construction using floating point value (lvalue).
         //
-        // This interface would trigger assertion on overflow.
+        // This interface would throw exception or trigger assertion on overflow.
         // User who want explicit error handling should use the assign(..) interfaces.
         template <FloatingPointType U>
         constexpr Decimal(U &v);
@@ -342,7 +342,7 @@ class Decimal final {
 
         // Construction using string value.
         //
-        // This interface would trigger assertion on overflow or error.
+        // This interface would throw exception or trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
         constexpr Decimal(std::string_view sv);
         constexpr Decimal(const char *s);
@@ -480,3 +480,5 @@ class Decimal final {
         constexpr bool operator>=(double f) const { return !(*this < f); }
 };
 ```
+
+Each `Decimal` object occupies 64 bytes.
