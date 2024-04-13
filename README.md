@@ -9,8 +9,7 @@ bignum is a large precision Decimal implementation in C++ that supports up-to 96
 - compile-time calculation with `constexpr` expression
 - Currently only Linux platform with gcc/clang is tested. A compiler with C++20 support is required.
 
-## Examples
-### Initialization
+## Initialization
 A Decimal could be initialized from string/integer/floating point values;
 precision and scale are auto-detected when initializing a Decimal object.
 ```cpp
@@ -70,7 +69,7 @@ Users who truely want literal float/double initialization could turn on the
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` macro at compile time.
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` is turned off by default.
 
-### Simple arithmetic operations
+## Arithmetic operations
 ```cpp
 #include <iostream>
 #include <bignum/decimal.h>
@@ -102,7 +101,7 @@ int main() {
 }
 ```
 
-### Error handling
+## Error handling
 There are 3 ways to handle error while using Decimal.
 
 1. Use the explicit error-handling interfaces which return `ErrCode`. These interfaces are
@@ -194,7 +193,7 @@ All exception throwing interfaces have their error-handling counterparts:
 
 All interfaces are documented at the *SYNOPSIS* section below.
 
-### Cast operations:
+## Cast operations:
 ```cpp
 Decimal d1("678.90");
 
@@ -238,7 +237,7 @@ Decimal d1("678.90");
 }
 ```
 
-### compile-time calculation and compile time error
+## compile-time calculation and compile time error
 A Decimal could be constructed and calculated at compile time if the expression is declared as
 `constexpr`:
 ```cpp
@@ -294,3 +293,189 @@ Simply add `/path/to/install/dir/lib/` to your libraries search path and
 
 By default, bignum is built as static library. To build as shared lib,
 add `-DBIGNUM_BUILD_SHARED=ON` to the cmake command above.
+
+## Synopsis of Decimal class
+Public members of the `Decimal` class is listed for quick reference.
+More detail could be found at the `decimal.h` header file.
+```cpp
+class Decimal final {
+       public:
+        // Maximum decimal digits in total
+        constexpr static int32_t kMaxPrecision = 96;
+
+        // Maximum decimal digits after the decimal points
+        constexpr static int32_t kMaxScale = 30;
+
+        // Every division increase current scale by 4 until max scale is reached.
+        // e.g., a 1.7 / 11 => 0.154545454545... => 0.15455
+        // (scale increase from 1 to 5, with rounding).
+        //
+        // Intermediate result might be increased to maximum of 30+4=34,
+        // and then after the calculation, it is decreased to scale 30 by rounding.
+        constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
+
+       public:
+        // default initialization to 0
+        constexpr DecimalImpl();
+
+        // Construction using signed integral values, i.e., (u)int8_t,..,(u)int64_t,__(u)int128_t
+        template <IntegralType U>
+        constexpr DecimalImpl(U i);
+
+#ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
+        // Construction using floating point value (lvalue).
+        //
+        // This interface would trigger assertion on overflow.
+        // User who want explicit error handling should use the assign(..) interfaces.
+        template <FloatingPointType U>
+        constexpr DecimalImpl(U &v);
+
+        template <FloatingPointType U>
+        constexpr DecimalImpl(U &&) = delete;
+
+#else
+
+        template <FloatingPointType U>
+        constexpr DecimalImpl(U v);
+#endif
+
+        // Construction using string value.
+        //
+        // This interface would trigger assertion on overflow or error.
+        // User who want explicit error handling should use the assign(..) interfaces.
+        constexpr DecimalImpl(std::string_view sv);
+        constexpr DecimalImpl(const char *s);
+
+        constexpr DecimalImpl(const DecimalImpl &rhs);
+        constexpr DecimalImpl(DecimalImpl &&rhs);
+        constexpr DecimalImpl &operator=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator=(DecimalImpl &&rhs);
+
+        ~DecimalImpl() = default;
+
+        //=--------------------------------------------------------
+        // Assignment/conversion operators.
+        // Return error code instead of exception/assertion.
+        //=--------------------------------------------------------
+        template <IntegralType U>
+        constexpr ErrCode assign(U i) noexcept;
+
+#ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
+        template <FloatingPointType U>
+        ErrCode assign(U &f) noexcept;
+#else
+        template <FloatingPointType U>
+        ErrCode assign(U f) noexcept;
+#endif
+
+        constexpr ErrCode assign(std::string_view sv) noexcept;
+
+        //=--------------------------------------------------------
+        // Cast operators.
+        //=--------------------------------------------------------
+        std::string to_string() const noexcept;
+        explicit operator std::string() const noexcept;
+
+        constexpr double to_double() const noexcept;
+        explicit constexpr operator double() const noexcept;
+
+        constexpr bool to_bool() const noexcept;
+        constexpr operator bool() const noexcept;
+
+        constexpr ErrCode to_int64(int64_t &i) const noexcept;
+        explicit constexpr operator int64_t() const;
+
+        constexpr ErrCode to_int128(__int128_t &i) const noexcept;
+        explicit constexpr operator __int128_t();
+
+        //=----------------------------------------------------------
+        // getters && setters
+        //=----------------------------------------------------------
+        constexpr int32_t get_scale() const { return m_scale; }
+        constexpr bool is_negative() const;
+
+        //=-=--------------------------------------------------------
+        // operator +=
+        //=-=--------------------------------------------------------
+        constexpr ErrCode add(const DecimalImpl &rhs) noexcept;
+        constexpr DecimalImpl &operator+=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator+=(double f);
+
+        //=-=--------------------------------------------------------
+        // operator +
+        //=-=--------------------------------------------------------
+        constexpr DecimalImpl operator+(const DecimalImpl &rhs) const;
+        constexpr DecimalImpl operator+(double f) const;
+
+        //=-=--------------------------------------------------------
+        // operator -=
+        //=-=--------------------------------------------------------
+        constexpr ErrCode sub(const DecimalImpl &rhs) noexcept;
+        constexpr DecimalImpl &operator-=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator-=(double f);
+
+        //=-=--------------------------------------------------------
+        // operator -
+        //=-=--------------------------------------------------------
+        constexpr DecimalImpl operator-(const DecimalImpl &rhs) const;
+        constexpr DecimalImpl operator-(double f) const;
+        constexpr DecimalImpl operator-() const;
+
+        //=----------------------------------------------------------
+        // operator *=
+        //=----------------------------------------------------------
+        constexpr ErrCode mul(const DecimalImpl &rhs) noexcept;
+        constexpr DecimalImpl &operator*=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator*=(double f);
+
+        //=-=--------------------------------------------------------
+        // operator *
+        //=-=--------------------------------------------------------
+        constexpr DecimalImpl operator*(const DecimalImpl &rhs) const;
+        constexpr DecimalImpl operator*(double f) const;
+
+        //=----------------------------------------------------------
+        // operator /=
+        //=----------------------------------------------------------
+        constexpr ErrCode div(const DecimalImpl &rhs) noexcept;
+        constexpr DecimalImpl &operator/=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator/=(double f);
+
+        //=-=--------------------------------------------------------
+        // operator /
+        //=-=--------------------------------------------------------
+        constexpr DecimalImpl operator/(const DecimalImpl &rhs) const;
+        constexpr DecimalImpl operator/(double f) const;
+
+        //=----------------------------------------------------------
+        // operator %=
+        //=----------------------------------------------------------
+        constexpr ErrCode mod(const DecimalImpl &rhs) noexcept;
+        constexpr DecimalImpl &operator%=(const DecimalImpl &rhs);
+        constexpr DecimalImpl &operator%=(double f);
+
+        //=-=--------------------------------------------------------
+        // operator %
+        //=-=--------------------------------------------------------
+        constexpr DecimalImpl operator%(const DecimalImpl &rhs) const;
+        constexpr DecimalImpl operator%(double f) const;
+
+        //=--------------------------------------------------------
+        // Comparison operators.
+        //=--------------------------------------------------------
+        constexpr bool operator==(const DecimalImpl &rhs) const;
+        constexpr bool operator<(const DecimalImpl &rhs) const;
+        constexpr bool operator<=(const DecimalImpl &rhs) const;
+        constexpr bool operator!=(const DecimalImpl &rhs) const;
+        constexpr bool operator>(const DecimalImpl &rhs) const;
+        constexpr bool operator>=(const DecimalImpl &rhs) const;
+
+        constexpr bool operator==(double f) const;
+        constexpr bool operator<(double f) const;
+        constexpr bool operator<=(double f) const;
+
+        constexpr bool operator!=(double f) const { return !(*this == f); }
+        constexpr bool operator>(double f) const { return !(*this <= f); }
+        constexpr bool operator>=(double f) const { return !(*this < f); }
+};
+```

@@ -789,8 +789,10 @@ class DecimalImpl final {
         constexpr static int32_t kMaxPrecision = detail::kDecimalMaxPrecision;
 
         // Every division increase current scale by 4 until max scale is reached.
-        // Note that even when max scale is reached, the scale is still increased
-        // before division. Intermediate result would be increased to scale 30+4=34,
+        // e.g., a 1.7 / 11 => 0.154545454545... => 0.15455
+        // (scale increase from 1 to 5, with rounding).
+        //
+        // Intermediate result might be increased to maximum of 30+4=34,
         // and then after the calculation, it is decreased to scale 30 by rounding.
         constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
 
@@ -819,7 +821,7 @@ class DecimalImpl final {
         // intentionally prohibit constructor for literal float/double to avoid
         // misuse.
         //
-        // This interface would trigger assertion on overflow or error.
+        // This interface would trigger assertion on overflow.
         // User who want explicit error handling should use the assign(..) interfaces.
         template <FloatingPointType U>
         constexpr DecimalImpl(U &v) {
@@ -881,7 +883,7 @@ class DecimalImpl final {
 
         //=--------------------------------------------------------
         // Assignment/conversion operators.
-        // Return error code instead of triggering assertion.
+        // Return error code instead of exception/assertion.
         //=--------------------------------------------------------
         template <IntegralType U>
         constexpr ErrCode assign(U i) noexcept;
