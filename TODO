@@ -1,19 +1,16 @@
 - Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
 
-- mark those ErrCode interfaces as nothrow
 - define our own exception type
 - SYNOPSIS of class Decimal
 
+- constexpr constructor for float/double.
 - make literal float initialization constexpr
-
-- distinguish between internal error and calculation error
 
 - enable support for c++17.
   e.g., std::is_constant_evaluated() is added >= c++20
 
 - provide Decimal::MaxValue and Decimal::MinValue
 
-- constexpr constructor for float/double.
 - make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
 
 - wrap gmp function and create one around GmpWrapper

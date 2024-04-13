@@ -36,9 +36,16 @@ inline void __bignum_constexpr_evaluation_failure() {}
 
 template <typename T>
 inline void __bignum_runtime_assertion_failure([[maybe_unused]] T &&msg) {
+        assert(false);
+        std::abort();
+}
+
+template <typename T>
+inline void __bignum_expr_error([[maybe_unused]] T &&msg) {
 #ifdef BIGNUM_ENABLE_EXCEPTIONS
         throw std::runtime_error(std::forward<T>(msg));
 #else
+        assert(false && msg);
         std::abort();
 #endif
 }
@@ -46,6 +53,7 @@ inline void __bignum_runtime_assertion_failure([[maybe_unused]] T &&msg) {
 
 #define __BIGNUM_GET_MACRO_2(_1, _2, NAME, ...) NAME
 
+// bignum assertion, used for internal sanity checks.
 #define __BIGNUM_ASSERT_1(condition)                                             \
         do {                                                                     \
                 if (!(condition)) {                                              \
@@ -71,3 +79,30 @@ inline void __bignum_runtime_assertion_failure([[maybe_unused]] T &&msg) {
 
 #define __BIGNUM_ASSERT(...) \
         __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_ASSERT_2, __BIGNUM_ASSERT_1)(__VA_ARGS__)
+
+// bignum error, used for reporting error.
+// trigger exception or abort, depending on the macro BIGNUM_ENABLE_EXCEPTIONS.
+#define __BIGNUM_ERROR_1(condition)                                                        \
+        do {                                                                               \
+                if (!(condition)) {                                                        \
+                        if (std::is_constant_evaluated()) {                                \
+                                bignum::__bignum_constexpr_evaluation_failure();           \
+                        } else {                                                           \
+                                bignum::__bignum_expr_error("Decimal error: " #condition); \
+                        }                                                                  \
+                }                                                                          \
+        } while (0)
+
+#define __BIGNUM_ERROR_2(condition, msg)                                         \
+        do {                                                                     \
+                if (!(condition)) {                                              \
+                        if (std::is_constant_evaluated()) {                      \
+                                bignum::__bignum_constexpr_evaluation_failure(); \
+                        } else {                                                 \
+                                bignum::__bignum_expr_error(msg);                \
+                        }                                                        \
+                }                                                                \
+        } while (0)
+
+#define __BIGNUM_CHECK_ERROR(...) \
+        __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_ERROR_2, __BIGNUM_ERROR_1)(__VA_ARGS__)

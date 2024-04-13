@@ -314,7 +314,8 @@ constexpr inline Gmp320 conv_128_to_gmp320(__int128_t i128) {
 }
 
 template <typename T, typename U>
-inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value, const U &max_value) {
+inline ErrCode check_gmp_out_of_range(const T &test_value, const U &min_value,
+                                      const U &max_value) noexcept {
         int res = mpz_cmp(&test_value.mpz, &max_value.mpz);
         if (res > 0) {
                 return kError;
@@ -408,7 +409,7 @@ inline int cmp_gmp(const T &a, const U &b) {
 }
 
 template <IntegralType T>
-constexpr inline ErrCode safe_add(T &res, T lhs, T rhs) {
+constexpr inline ErrCode safe_add(T &res, T lhs, T rhs) noexcept {
         // Overflow detection for + operation. Add overflow detection could be very easily done by
         // a simple "((lhs + rhs) - lhs) != rhs", but this is not portable, and not usable in
         // case of constexpr.
@@ -435,7 +436,7 @@ constexpr inline ErrCode safe_add(T &res, T lhs, T rhs) {
 }
 
 template <IntegralType T>
-constexpr inline ErrCode safe_mul(T &res, T lhs, T rhs) {
+constexpr inline ErrCode safe_mul(T &res, T lhs, T rhs) noexcept {
         // Overflow detection for * operation. Mul overflow detection could be very easily done by
         // a simple "((lhs * n128) / lhs != rhs)", but this is not portable, and not usable in
         // case of constexpr.
@@ -479,7 +480,7 @@ constexpr inline ErrCode safe_mul(T &res, T lhs, T rhs) {
 
 template <IntegralType T>
 constexpr inline ErrCode decimal_add_integral(T &res, int32_t &res_scale, T lhs, int32_t lscale,
-                                              T rhs, int32_t rscale) {
+                                              T rhs, int32_t rscale) noexcept {
         if (lscale > rscale) {
                 T p10 = get_integral_power10<T>(lscale - rscale);
                 if (p10 < 0) {
@@ -510,7 +511,7 @@ constexpr inline ErrCode decimal_add_integral(T &res, int32_t &res_scale, T lhs,
 
 template <IntegralType T>
 constexpr inline ErrCode decimal_mul_integral(T &res, int32_t &res_scale, T lhs, int32_t lscale,
-                                              T rhs, int32_t rscale) {
+                                              T rhs, int32_t rscale) noexcept {
         ErrCode err = safe_mul(res, lhs, rhs);
         // For int128 or int256 onwards, if overflow, try to trim trailing zeros and multiply again,
         // e.g., 1.000 * 1.000 = 1.000000  =>  1 * 1 = 1
@@ -578,7 +579,8 @@ constexpr inline ErrCode decimal_mul_integral(T &res, int32_t &res_scale, T lhs,
 // Convert a string into __int128_t and assume no overflow would occur.
 // Leading '0' characters would be ignored, i.e., "000123" is the same as "123".
 // Return error if non-digit characters are found in the string.
-constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr, const char *end) {
+constexpr inline ErrCode convert_str_to_int128(__int128_t &res, const char *ptr,
+                                               const char *end) noexcept {
         __int128_t v128 = 0;
         bool met_non_zero_significant = false;
         for (; ptr < end; ++ptr) {
@@ -627,7 +629,7 @@ auto get_decimal_integral(T val, int32_t scale) -> T {
 }
 
 template <IntegralType T, IntegralType U>
-ErrCode get_integral_from_decimal_integral(T &res, U val, int32_t scale) {
+ErrCode get_integral_from_decimal_integral(T &res, U val, int32_t scale) noexcept {
         U ip10 = get_decimal_integral<U>(val, scale);
         if constexpr (std::is_same_v<T, int64_t> && std::is_same_v<U, int64_t>) {
                 // Get int64_t from int64_t representation: never overflow
@@ -651,7 +653,7 @@ ErrCode get_integral_from_decimal_integral(T &res, U val, int32_t scale) {
 }
 
 template <IntegralType T>
-ErrCode get_integral_from_decimal_gmp(T &result, const Gmp320 &gmp, int32_t scale) {
+ErrCode get_integral_from_decimal_gmp(T &result, const Gmp320 &gmp, int32_t scale) noexcept {
         __int128_t divisor128 = get_int128_power10(scale);
         __BIGNUM_ASSERT(divisor128 > 0, "Invalid scale");
 
@@ -823,7 +825,8 @@ class DecimalImpl final {
         constexpr DecimalImpl(U &v) {
                 // accept reference only, so literal float would not override here
                 ErrCode err = assign(v);
-                __BIGNUM_ASSERT(!err, "Decimal initialization with floating point value overflows");
+                __BIGNUM_CHECK_ERROR(!err,
+                                     "Decimal initialization with floating point value overflows");
         }
 
         // The whole point of this T/U template stuff is for 'static_assert' to generate
@@ -841,7 +844,8 @@ class DecimalImpl final {
         template <FloatingPointType U>
         constexpr DecimalImpl(U v) {
                 ErrCode err = assign(v);
-                __BIGNUM_ASSERT(!err, "Decimal initialization with floating point value overflows");
+                __BIGNUM_CHECK_ERROR(!err,
+                                     "Decimal initialization with floating point value overflows");
         }
 
 #endif  // BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
@@ -856,10 +860,10 @@ class DecimalImpl final {
         // This interface would trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
         constexpr DecimalImpl(std::string_view sv) : m_padding0{0} {
-                __BIGNUM_ASSERT(!assign(sv), "Invalid decimal string");
+                __BIGNUM_CHECK_ERROR(!assign(sv), "Invalid decimal string");
         }
         constexpr DecimalImpl(const char *s) : m_padding0{0} {
-                __BIGNUM_ASSERT(!assign(std::string_view(s)), "Invalid decimal string");
+                __BIGNUM_CHECK_ERROR(!assign(std::string_view(s)), "Invalid decimal string");
         }
 
         constexpr DecimalImpl(const DecimalImpl &rhs) : m_padding0{0} { copy(rhs); }
@@ -880,21 +884,21 @@ class DecimalImpl final {
         // Return error code instead of triggering assertion.
         //=--------------------------------------------------------
         template <IntegralType U>
-        constexpr ErrCode assign(U i);
+        constexpr ErrCode assign(U i) noexcept;
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign(U &f) {
+        /*constexpr*/ ErrCode assign(U &f) noexcept {
                 return assign_float(f);
         }
 #else
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign(U f) {
+        /*constexpr*/ ErrCode assign(U f) noexcept {
                 return assign_float(f);
         }
 #endif
 
-        constexpr ErrCode assign(std::string_view sv);
+        constexpr ErrCode assign(std::string_view sv) noexcept;
 
         //=--------------------------------------------------------
         // Cast operators.
@@ -915,14 +919,14 @@ class DecimalImpl final {
         explicit constexpr operator int64_t() const {
                 int64_t i = 0;
                 ErrCode err = to_int64(i);
-                __BIGNUM_ASSERT(!err, "Decimal to int64 overflow");
+                __BIGNUM_CHECK_ERROR(!err, "Decimal to int64 overflow");
                 return i;
         }
         constexpr ErrCode to_int128(__int128_t &i) const noexcept;
         explicit constexpr operator __int128_t() const {
                 __int128_t i = 0;
                 ErrCode err = to_int128(i);
-                __BIGNUM_ASSERT(!err, "Decimal to int128 overflow");
+                __BIGNUM_CHECK_ERROR(!err, "Decimal to int128 overflow");
                 return i;
         }
 
@@ -948,12 +952,12 @@ class DecimalImpl final {
         //=-=--------------------------------------------------------
         // operator +=
         //=-=--------------------------------------------------------
-        constexpr ErrCode add(const DecimalImpl &rhs);
+        constexpr ErrCode add(const DecimalImpl &rhs) noexcept;
 
         constexpr DecimalImpl &operator+=(const DecimalImpl &rhs) {
                 ErrCode err = add(rhs);
-                __BIGNUM_ASSERT(!err, "Decimal addition overflow");  // FIXME constexpr string with
-                                                                     // value inside
+                __BIGNUM_CHECK_ERROR(!err, "Decimal addition overflow");  // FIXME constexpr string
+                                                                          // with value inside
                 return *this;
         }
 
@@ -981,12 +985,13 @@ class DecimalImpl final {
         //=-=--------------------------------------------------------
         // operator -=
         //=-=--------------------------------------------------------
-        constexpr ErrCode sub(const DecimalImpl &rhs);
+        constexpr ErrCode sub(const DecimalImpl &rhs) noexcept;
 
         constexpr DecimalImpl &operator-=(const DecimalImpl &rhs) {
                 ErrCode err = sub(rhs);
-                __BIGNUM_ASSERT(!err, "Decimal subtraction overflow");  // FIXME constexpr string
-                                                                        // with value inside
+                __BIGNUM_CHECK_ERROR(!err,
+                                     "Decimal subtraction overflow");  // FIXME constexpr string
+                                                                       // with value inside
                 return *this;
         }
         constexpr DecimalImpl &operator-=(double f) {
@@ -1022,12 +1027,13 @@ class DecimalImpl final {
         // digits would not trigger assertion. Instead, the result would be rounded to
         // the maximum scale (using round-half-up rule) if necessary.
         //=----------------------------------------------------------
-        constexpr ErrCode mul(const DecimalImpl &rhs);
+        constexpr ErrCode mul(const DecimalImpl &rhs) noexcept;
 
         constexpr DecimalImpl &operator*=(const DecimalImpl &rhs) {
                 ErrCode err = mul(rhs);
-                __BIGNUM_ASSERT(!err, "Decimal multiplication overflow");  // FIXME constexpr string
-                                                                           // with value inside
+                __BIGNUM_CHECK_ERROR(!err,
+                                     "Decimal multiplication overflow");  // FIXME constexpr string
+                                                                          // with value inside
                 return *this;
         }
         constexpr DecimalImpl &operator*=(double f) {
@@ -1066,13 +1072,14 @@ class DecimalImpl final {
         // where intermediate result would be calculated using 35 least significant digits.
         // After the division, it is rounded back to maximum scale 30.
         //=----------------------------------------------------------
-        constexpr ErrCode div(const DecimalImpl &rhs);
+        constexpr ErrCode div(const DecimalImpl &rhs) noexcept;
 
         constexpr DecimalImpl &operator/=(const DecimalImpl &rhs) {
                 ErrCode err = div(rhs);
-                __BIGNUM_ASSERT(!err,
-                                "Decimal division by zero or overflow");  // FIXME constexpr string
-                                                                          // with value inside
+                __BIGNUM_CHECK_ERROR(
+                        !err,
+                        "Decimal division by zero or overflow");  // FIXME constexpr string
+                                                                  // with value inside
                 return *this;
         }
         constexpr DecimalImpl &operator/=(double f) {
@@ -1100,11 +1107,11 @@ class DecimalImpl final {
         // Modulo operator. If the rhs is not and integer, or if rhs is zero, trigger
         // assertion.
         //=----------------------------------------------------------
-        constexpr ErrCode mod(const DecimalImpl &rhs);
+        constexpr ErrCode mod(const DecimalImpl &rhs) noexcept;
 
         constexpr DecimalImpl &operator%=(const DecimalImpl &rhs) {
                 ErrCode err = mod(rhs);
-                __BIGNUM_ASSERT(!err, "DecimalImpl modulo err");
+                __BIGNUM_CHECK_ERROR(!err, "DecimalImpl modulo err");
                 return *this;
         }
         constexpr DecimalImpl &operator%=(double f) {
@@ -1176,34 +1183,38 @@ class DecimalImpl final {
         }
 
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign_float(U f);
+        /*constexpr*/ ErrCode assign_float(U f) noexcept;
 
-        constexpr ErrCode assign_str_128(const char *start, const char *end);
-        constexpr ErrCode assign_str_gmp(const char *start, const char *end);
+        constexpr ErrCode assign_str_128(const char *start, const char *end) noexcept;
+        constexpr ErrCode assign_str_gmp(const char *start, const char *end) noexcept;
 
         constexpr void init_internal_gmp();
         constexpr void negate();
 
-        constexpr ErrCode add_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
+        constexpr ErrCode add_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
+                                      int32_t rscale) noexcept;
         constexpr ErrCode add_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
-                                        int32_t rscale);
+                                        int32_t rscale) noexcept;
         constexpr ErrCode add_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
-                                      const detail::Gmp320 &r, int32_t rscale);
+                                      const detail::Gmp320 &r, int32_t rscale) noexcept;
 
-        constexpr ErrCode mul_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
+        constexpr ErrCode mul_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
+                                      int32_t rscale) noexcept;
         constexpr ErrCode mul_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
-                                        int32_t rscale);
+                                        int32_t rscale) noexcept;
 
         constexpr ErrCode mul_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
-                                      const detail::Gmp320 &r, int32_t rscale);
+                                      const detail::Gmp320 &r, int32_t rscale) noexcept;
 
-        constexpr ErrCode div_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
+        constexpr ErrCode div_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
+                                      int32_t rscale) noexcept;
         constexpr ErrCode div_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
-                                        int32_t rscale);
+                                        int32_t rscale) noexcept;
 
-        constexpr ErrCode mod_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale);
+        constexpr ErrCode mod_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
+                                      int32_t rscale) noexcept;
         constexpr ErrCode mod_i128_i128(__int128_t l128, int32_t lscale, __int128_t r128,
-                                        int32_t rscale);
+                                        int32_t rscale) noexcept;
 
         constexpr int cmp(const DecimalImpl &rhs) const;
         constexpr int cmp_i64_i64(int64_t l64, int32_t lscale, int64_t r64, int32_t rscale) const;
@@ -1272,7 +1283,7 @@ constexpr void DecimalImpl<T>::negate() {
 
 template <typename T>
 template <IntegralType U>
-constexpr inline ErrCode DecimalImpl<T>::assign(U i) {
+constexpr inline ErrCode DecimalImpl<T>::assign(U i) noexcept {
         m_scale = 0;
         if (sizeof(U) <= 8) {
                 m_dtype = DType::kInt64;
@@ -1295,7 +1306,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign(U i) {
 
 template <typename T>
 template <FloatingPointType U>
-/*constexpr*/ inline ErrCode DecimalImpl<T>::assign_float(U v) {
+/*constexpr*/ inline ErrCode DecimalImpl<T>::assign_float(U v) noexcept {
         std::ostringstream oss;
         if constexpr (std::is_same_v<U, float>) {
                 oss << std::fixed << std::setprecision(7) << v;
@@ -1306,7 +1317,7 @@ template <FloatingPointType U>
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
+constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) noexcept {
         const char *ptr = &(sv[0]);
         const char *end = ptr + sv.size();
 
@@ -1364,7 +1375,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) {
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::assign_str_128(const char *start, const char *end) {
+constexpr inline ErrCode DecimalImpl<T>::assign_str_128(const char *start,
+                                                        const char *end) noexcept {
         // Caller guarantees that
         //   - string is not empty;
         //   - leading/trailing spaces are removed;
@@ -1459,7 +1471,8 @@ constexpr inline ErrCode DecimalImpl<T>::assign_str_128(const char *start, const
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start, const char *end) {
+constexpr inline ErrCode DecimalImpl<T>::assign_str_gmp(const char *start,
+                                                        const char *end) noexcept {
         // Caller guarantees that
         //  - string is not empty;
         //  - leading/trailing spaces are removed;
@@ -1637,7 +1650,7 @@ constexpr inline bool DecimalImpl<T>::is_negative() const {
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::add_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
-                                                     int32_t rscale) {
+                                                     int32_t rscale) noexcept {
         int64_t res64 = 0;
         int32_t res_scale = 0;
         ErrCode err = detail::decimal_add_integral(res64, res_scale, l64, lscale, r64, rscale);
@@ -1652,7 +1665,7 @@ constexpr inline ErrCode DecimalImpl<T>::add_i64_i64(int64_t l64, int32_t lscale
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::add_i128_i128(__int128_t l128, int32_t lscale,
-                                                       __int128_t r128, int32_t rscale) {
+                                                       __int128_t r128, int32_t rscale) noexcept {
         __int128_t res128 = 0;
         int32_t res_scale = 0;
         ErrCode err = detail::decimal_add_integral(res128, res_scale, l128, lscale, r128, rscale);
@@ -1667,7 +1680,8 @@ constexpr inline ErrCode DecimalImpl<T>::add_i128_i128(__int128_t l128, int32_t 
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
-                                                     const detail::Gmp320 &r, int32_t rscale) {
+                                                     const detail::Gmp320 &r,
+                                                     int32_t rscale) noexcept {
         detail::Gmp640 res640;
         if (lscale > rscale) {
                 const detail::Gmp320 pow = detail::get_gmp320_power10(lscale - rscale);
@@ -1697,7 +1711,7 @@ constexpr inline ErrCode DecimalImpl<T>::add_gmp_gmp(const detail::Gmp320 &l, in
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) {
+constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) noexcept {
         sanity_check();
         rhs.sanity_check();
 
@@ -1794,7 +1808,7 @@ constexpr inline ErrCode DecimalImpl<T>::add(const DecimalImpl<T> &rhs) {
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::sub(const DecimalImpl<T> &rhs) {
+constexpr inline ErrCode DecimalImpl<T>::sub(const DecimalImpl<T> &rhs) noexcept {
         auto v = rhs;
         v.negate();
         return add(v);
@@ -1802,7 +1816,7 @@ constexpr inline ErrCode DecimalImpl<T>::sub(const DecimalImpl<T> &rhs) {
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::mul_i64_i64(int64_t l64, int32_t lscale, int64_t r64,
-                                                     int32_t rscale) {
+                                                     int32_t rscale) noexcept {
         int64_t res64 = 0;
         int32_t res_scale = 0;
         ErrCode err = detail::decimal_mul_integral(res64, res_scale, l64, lscale, r64, rscale);
@@ -1817,7 +1831,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_i64_i64(int64_t l64, int32_t lscale
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::mul_i128_i128(__int128_t l128, int32_t lscale,
-                                                       __int128_t r128, int32_t rscale) {
+                                                       __int128_t r128, int32_t rscale) noexcept {
         __int128_t res128 = 0;
         int32_t res_scale = 0;
         ErrCode err = detail::decimal_mul_integral(res128, res_scale, l128, lscale, r128, rscale);
@@ -1832,7 +1846,8 @@ constexpr inline ErrCode DecimalImpl<T>::mul_i128_i128(__int128_t l128, int32_t 
 
 template <typename T>
 constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(const detail::Gmp320 &l, int32_t lscale,
-                                                     const detail::Gmp320 &r, int32_t rscale) {
+                                                     const detail::Gmp320 &r,
+                                                     int32_t rscale) noexcept {
         __BIGNUM_ASSERT(lscale >= 0 && lscale <= detail::kDecimalMaxScale);
         __BIGNUM_ASSERT(rscale >= 0 && rscale <= detail::kDecimalMaxScale);
 
@@ -1889,7 +1904,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul_gmp_gmp(const detail::Gmp320 &l, in
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) {
+constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) noexcept {
         sanity_check();
         rhs.sanity_check();
 
@@ -1982,7 +1997,7 @@ constexpr inline ErrCode DecimalImpl<T>::mul(const DecimalImpl<T> &rhs) {
 }
 
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
+constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) noexcept {
         sanity_check();
         rhs.sanity_check();
 
@@ -2093,7 +2108,7 @@ constexpr inline ErrCode DecimalImpl<T>::div(const DecimalImpl<T> &rhs) {
 //   Suppose M is negative number, N is positive or negative, then we have:
 //       M % N = M % abs(N) = - (-M % abs(N))
 template <typename T>
-constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) {
+constexpr inline ErrCode DecimalImpl<T>::mod(const DecimalImpl<T> &rhs) noexcept {
         sanity_check();
         rhs.sanity_check();
 

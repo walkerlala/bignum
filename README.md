@@ -55,18 +55,19 @@ precision and scale are auto-detected when initializing a Decimal object.
 }
 ```
 
-Initializing from literal float/double is intentionally prohibitted by default to prevent misuse.
-This is because a initialization using literal could always be `constexpr`, and in
-case of performance, a float literal initialization `constexpr Decimal(1.23)` has
-the same effect as a string literal initialization `constexpr Decimal("1.23")` because
-these initializations are both done at compile time only.
-But using a float literal might cause unexpected precision loss,
+Initializing from literal float/double is intentionally prohibitted by default to prevent misuse,
+as using a float literal might cause unexpected precision loss,
 e.g., a float initialization `Decimal(3.1415926)` would result int `3.14159260000000007`,
 instead of the original  `3.1415926`.
+A initialization using literal could always be `constexpr`, and in
+case of performance, a float literal initialization `constexpr Decimal(1.23)` has
+the same effect as a string literal initialization `constexpr Decimal("1.23")` because
+these initializations are both done at compile time only. So user should prefer literal string
+initialization.
 
-User who want literal float/double initialization could turn on the
-`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` cmake option (which defines the
-`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` macro at compile time).
+User who truely want literal float/double initialization could turn on the
+`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` cmake option, which defines the
+`BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` macro at compile time.
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` is turned off by default.
 
 ### Simple arithmetic operations
