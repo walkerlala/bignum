@@ -6,8 +6,11 @@ bignum is a large precision Decimal implementation in C++ that supports up-to 96
 
 ## Features
 - Large precision (at most 96 digits) and scale (at most 30 digits) decimal
+- Optimized for speed;
+- Each `Decimal` object occupies fixed 64 bytes; no dynamic allocation;
 - compile-time calculation with `constexpr` expression
-- Currently only Linux platform with gcc/clang is tested. A compiler with C++20 support is required.
+
+Currently only Linux platform with gcc/clang is tested. A compiler with C++20 support is required.
 
 ## Initialization
 A Decimal could be initialized from string/integer/floating point values;
@@ -100,6 +103,23 @@ int main() {
     std::cout << "d2=" << d2 << std::endl;  // Output "d2=682.04159260000000007"
 }
 ```
+
+## Overflow and rounding behavior
+- Initialization that overflow the maximum precision (i.e., 96 digits in total) or
+maximum scale (i.e., 30 digits after the decimal point) would result in overflow error.
+No rounding happens in constructor or `assign()` interfaces.
+
+- Multiplication might increase the scale, and if theoretical result scale is larger than
+`Decimal::kMaxScale`, it is truncated and rounded to `Decimal::kMaxScale`.
+
+- Scale of division result is equal to `dividend_scale + Decimal::kDivIncreaseScale`.
+If `dividend_scale + Decimal::kDivIncreaseScale` is larger than `Decimal::kMaxScale`,
+result scale is rounded to `Decimal::kMaxScale`.
+
+- All rounding is done using the "round-half-up" rule and round away from zero.
+
+- Casting a `Decimal` object into integer (e.g, int64, int128) truncates all least significant
+digits and no rounding would happen, i.e., `static_cast<int64_t>(Decimal("123.6"))  == 123`.
 
 ## Error handling
 There are 3 ways to handle error while using Decimal.

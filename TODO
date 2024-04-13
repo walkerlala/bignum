@@ -1,8 +1,5 @@
 - Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
 
-- denote the arithmetic operations: construction that overflow the maximum scale is not allowed,
-    but calculation that overflow the maximum scale is implicitly truncated and rounded
-
 - constexpr constructor for float/double.
 - make literal float initialization constexpr
 
