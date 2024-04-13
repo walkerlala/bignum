@@ -18,6 +18,7 @@
  */
 #pragma once
 
+#include <stdexcept>
 #include <string_view>
 
 namespace bignum {
@@ -35,8 +36,10 @@ enum ErrCodeValue : int {
 };
 
 inline constexpr std::string_view get_err_code_value_str(ErrCodeValue ev) {
+#ifdef __GNUC__
 #pragma GCC diagnostic push
 #pragma GCC diagnostic warning "-Wswitch-enum"
+#endif
         switch (ev) {
                 case kDecimalError:
                         return "kDecimalError";
@@ -59,7 +62,9 @@ inline constexpr std::string_view get_err_code_value_str(ErrCodeValue ev) {
                 default:
                         return "UnknownDecimalError";
         }
+#ifdef __GNUC__
 #pragma GCC diagnostic pop
+#endif
 }
 
 class /* [[nodiscard]] */ ErrCode final {
@@ -83,6 +88,16 @@ class /* [[nodiscard]] */ ErrCode final {
 };
 constexpr ErrCode kError = ErrCode{ErrCodeValue::kDecimalError};
 constexpr ErrCode kSuccess = ErrCode{ErrCodeValue::kDecimalSuccess};
+
+class DecimalError : public std::runtime_error {
+       public:
+        DecimalError(ErrCode err, const std::string &message)
+                : std::runtime_error(message), m_err(err) {}
+        ErrCode error_code() const { return m_err; }
+
+       private:
+        ErrCode m_err;
+};
 }  // namespace bignum
 
 //=--------------------------------------------------------------------------=//

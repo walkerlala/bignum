@@ -24,6 +24,8 @@
 #include <stdexcept>
 #include <type_traits>
 
+#include "errcode.h"
+
 // The bignum library leverage some gcc/clang builtin functions
 // and use long/long long/int64_t interchangably.
 static_assert(sizeof(long) == 8);
@@ -41,9 +43,9 @@ inline void __bignum_runtime_assertion_failure([[maybe_unused]] T &&msg) {
 }
 
 template <typename T>
-inline void __bignum_expr_error([[maybe_unused]] T &&msg) {
+inline void __bignum_expr_error([[maybe_unused]] ErrCode err, [[maybe_unused]] T &&msg) {
 #ifdef BIGNUM_ENABLE_EXCEPTIONS
-        throw std::runtime_error(std::forward<T>(msg));
+        throw DecimalError(err, std::forward<T>(msg));
 #else
         assert(false && msg);
         std::abort();
@@ -82,27 +84,28 @@ inline void __bignum_expr_error([[maybe_unused]] T &&msg) {
 
 // bignum error, used for reporting error.
 // trigger exception or abort, depending on the macro BIGNUM_ENABLE_EXCEPTIONS.
-#define __BIGNUM_ERROR_1(condition)                                                        \
-        do {                                                                               \
-                if (!(condition)) {                                                        \
-                        if (std::is_constant_evaluated()) {                                \
-                                bignum::__bignum_constexpr_evaluation_failure();           \
-                        } else {                                                           \
-                                bignum::__bignum_expr_error("Decimal error: " #condition); \
-                        }                                                                  \
-                }                                                                          \
+#define __BIGNUM_CHECK_ERROR_1(err)                                                       \
+        do {                                                                              \
+                if (!(err)) {                                                             \
+                        if (std::is_constant_evaluated()) {                               \
+                                bignum::__bignum_constexpr_evaluation_failure();          \
+                        } else {                                                          \
+                                bignum::__bignum_expr_error(err, "Decimal error: " #err); \
+                        }                                                                 \
+                }                                                                         \
         } while (0)
 
-#define __BIGNUM_ERROR_2(condition, msg)                                         \
+#define __BIGNUM_CHECK_ERROR_2(err, msg)                                         \
         do {                                                                     \
-                if (!(condition)) {                                              \
+                if (!(err)) {                                                    \
                         if (std::is_constant_evaluated()) {                      \
                                 bignum::__bignum_constexpr_evaluation_failure(); \
                         } else {                                                 \
-                                bignum::__bignum_expr_error(msg);                \
+                                bignum::__bignum_expr_error(err, msg);           \
                         }                                                        \
                 }                                                                \
         } while (0)
 
-#define __BIGNUM_CHECK_ERROR(...) \
-        __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_ERROR_2, __BIGNUM_ERROR_1)(__VA_ARGS__)
+#define __BIGNUM_CHECK_ERROR(...)                                                         \
+        __BIGNUM_GET_MACRO_2(__VA_ARGS__, __BIGNUM_CHECK_ERROR_2, __BIGNUM_CHECK_ERROR_1) \
+        (__VA_ARGS__)

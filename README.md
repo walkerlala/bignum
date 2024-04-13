@@ -108,7 +108,8 @@ There are 3 ways to handle error while using Decimal.
 1. Use the explicit error-handling interfaces which return `ErrCode`. These interfaces are
    guaranteed to not throwing any exception.
 
-2. Define the `BIGNUM_ENABLE_EXCEPTIONS` macro and use `try { ... } catch { ... }` to handle error.
+2. Define the `BIGNUM_ENABLE_EXCEPTIONS` macro and use `try { ... } catch { ... }` to handle
+   the `DecimalError` exception (which is derived from `std::runtime_error`
    If using CMake, user could turned on the `BIGNUM_ENABLE_EXCEPTIONS` option to define the macro.
    The `BIGNUM_ENABLE_EXCEPTIONS` option is turned on by default.
 
@@ -137,7 +138,7 @@ Examples:
     Decimal dlarge;
     try {
         dlarge = Decimal(large_str);
-    } catch (const std::runtime_error &err) {
+    } catch (const DecimalError &err) {
         // handle Decimal exception here
     } catch (...) {
         // unknown error
