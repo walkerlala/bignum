@@ -33,13 +33,13 @@ precision and scale are auto-detected when initializing a Decimal object.
     Decimal d1(i64val);
     std::cout << "value: " << d1 << std::endl;  // output "31415926"
 
-    __int128_t i128val = 9999999999999999999.9;
+    __int128_t i128val = 9999999999999999999;
     Decimal d2(i128val);
-    std::cout << "value: " << d2 << std::endl;  // output "9999999999999999999.9"
+    std::cout << "value: " << d2 << std::endl;  // output "9999999999999999999"
 }
 
-// To prevent misuse, initializing from float/double lvalue (e.g., float/double variables)
-// is allowed, but initializing from rvalue (e.g., float/double literal) is not allowed.
+// Initializing from float/double lvalue (e.g., float/double variables) is allowed.
+// To prevent misuse, initializing from rvalue (e.g., float/double literal) is not allowed.
 {
     double dval = 3.1415926;
     Decimal d1(dval);
@@ -59,13 +59,13 @@ Initializing from literal float/double is intentionally prohibitted by default t
 as using a float literal might cause unexpected precision loss,
 e.g., a float initialization `Decimal(3.1415926)` would result int `3.14159260000000007`,
 instead of the original  `3.1415926`.
-A initialization using literal could always be `constexpr`, and in
-case of performance, a float literal initialization `constexpr Decimal(1.23)` has
-the same effect as a string literal initialization `constexpr Decimal("1.23")` because
-these initializations are both done at compile time only. So user should prefer literal string
-initialization.
+Notice that initialization with literal could always be `constexpr`, and a float literal
+initialization `constexpr Decimal(1.23)` has
+the same performance as a string literal initialization `constexpr Decimal("1.23")` because
+these initializations are both done at compile time only. So users should prefer and use
+literal string initialization.
 
-User who truely want literal float/double initialization could turn on the
+Users who truely want literal float/double initialization could turn on the
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` cmake option, which defines the
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` macro at compile time.
 `BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR` is turned off by default.
@@ -109,46 +109,45 @@ There are 3 ways to handle error while using Decimal.
    guaranteed to not throwing any exception.
 
 2. Define the `BIGNUM_ENABLE_EXCEPTIONS` macro and use `try { ... } catch { ... }` to handle
-   the `DecimalError` exception (which is derived from `std::runtime_error`
+   `DecimalError` exception (which is derived from `std::runtime_error`).
    If using CMake, user could turned on the `BIGNUM_ENABLE_EXCEPTIONS` option to define the macro.
    The `BIGNUM_ENABLE_EXCEPTIONS` option is turned on by default.
 
-3. Do not define the `BIGNUM_ENABLE_EXCEPTIONS` macro (turn off the cmake option), and use the
-   interface that does not return `ErrCode`. If overflow or error happends, internal assertion
-   will be triggered, which call `std::abort()` to crash the program.
+3. undefine the `BIGNUM_ENABLE_EXCEPTIONS` macro (just turn off the cmake option), and use the
+   interface that does not return `ErrCode`. If overflow or error happens while using these
+   interfaces, internal assertion will be triggered, which call `std::abort()` to crash the program.
 
 Examples:
 ```cpp
-{
-    std::string small_str;
-    for (int i = 0; i < Decimal::kMaxPrecision; i++) {
-        small_str.push_back('9');
-    }
+std::string small_str;
+for (int i = 0; i < Decimal::kMaxPrecision; i++) {
+    small_str.push_back('9');
+}
 
-    std::string large_str;
-    for (int i = 0; i < Decimal::kMaxPrecision * 2; i++) {
-        large_str.push_back('9');
-    }
+std::string large_str;
+for (int i = 0; i < Decimal::kMaxPrecision * 2; i++) {
+    large_str.push_back('9');
+}
 
-    Decimal dsmall(small_str);  // OK
+Decimal dsmall(small_str);  // OK
 
-    // Method 1, initialization overflow, use the interface without ErrCode return.
-    // If BIGNUM_ENABLE_EXCEPTIONS is defined, exception will be thrown at error;
-    // if BIGNUM_ENABLE_EXCEPTIONS is not defined, assertion will be triggered.
-    Decimal dlarge;
-    try {
-        dlarge = Decimal(large_str);
-    } catch (const DecimalError &err) {
-        // handle Decimal exception here
-    } catch (...) {
-        // unknown error
-    }
+// Method 1, initialization overflow, use the interface without ErrCode return.
+//
+// If BIGNUM_ENABLE_EXCEPTIONS is defined, exception will be thrown at error;
+// if BIGNUM_ENABLE_EXCEPTIONS is not defined, assertion will be triggered.
+Decimal dlarge;
+try {
+    dlarge = Decimal(large_str);
+} catch (const DecimalError &err) {
+    // handle Decimal exception here
+} catch (...) {
+    // unknown error
+}
 
-    // Method 2, initialization overflow, use error-handling interfaces
-    ErrCode err = dlarge.assign(large_str);
-    if (err) {
-        // handle error here
-    }
+// Method 2, initialization overflow, use error-handling interfaces
+ErrCode err = dlarge.assign(large_str);
+if (err) {
+    // handle error here
 }
 ```
 
@@ -159,6 +158,11 @@ if (err) {
     // ...
 }
 ```
+By defining the `BIGNUM_ERROR_NODISCARD` macro (simply turn on the `BIGNUM_ERROR_NODISCARD` cmake
+option), `ErrCode` is marked with the C++ `[[nodiscard]]` attribute and all user code must check
+for all returned `ErrCode` object. Explicitly checking all error would make user code more robust.
+The `BIGNUM_ERROR_NODISCARD` is NOT defined by default (the cmake option is NOT turned on by default)
+
 
 All exception throwing interfaces have their error-handling counterparts:
 ```cpp

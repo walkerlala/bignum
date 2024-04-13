@@ -1339,7 +1339,7 @@ constexpr inline ErrCode DecimalImpl<T>::assign(std::string_view sv) noexcept {
 
         const size_t slen = end - ptr;
         if (!slen) {
-                assign(0ll);
+                (void) assign(0ll);
                 return kSuccess;
         }
 

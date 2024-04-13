@@ -1810,6 +1810,15 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, dval) {
         EXPECT_EQ(d3.to_string(), "6.28318520000000014");
 }
 
+TEST_F(BIGNUM_DECIMAL_FIXTURE, errcode_to_int_implicit) {
+        // Make sure that the error code can be implicitly converted to int
+        // even it is marked as [[nodiscard]].
+        Decimal d1("12345678987654300000000000000002100999999991.11");
+        int err = d1.add(1);
+        EXPECT_EQ(err, 0);
+        EXPECT_EQ(d1.to_string(), "12345678987654300000000000000002100999999992.11");
+}
+
 #if 0
 TEST_F(BIGNUM_DECIMAL_FIXTURE, ConstExprMod) {
     //=------------------------------------------

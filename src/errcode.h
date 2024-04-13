@@ -21,6 +21,16 @@
 #include <stdexcept>
 #include <string_view>
 
+#ifdef BIGNUM_ERROR_NODISCARD
+# if __cplusplus >= 201703L
+#  define __BIGNUM_NODISCARD [[nodiscard]]
+# else
+#  error "C++17 or later is required for [[nodiscard]]"
+# endif
+#else
+# define __BIGNUM_NODISCARD
+#endif
+
 namespace bignum {
 enum ErrCodeValue : int {
         kDecimalError = -1,
@@ -67,7 +77,7 @@ inline constexpr std::string_view get_err_code_value_str(ErrCodeValue ev) {
 #endif
 }
 
-class /* [[nodiscard]] */ ErrCode final {
+class __BIGNUM_NODISCARD ErrCode final {
        public:
         constexpr ErrCode() : err_(ErrCodeValue::kDecimalSuccess) {}
         constexpr ErrCode(int val) : err_(static_cast<ErrCodeValue>(val)) {}

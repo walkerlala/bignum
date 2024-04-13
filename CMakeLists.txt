@@ -29,6 +29,7 @@ set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 option(BIGNUM_BUILD_SHARED "Build shared library" OFF)
 option(BIGNUM_ENABLE_EXCEPTIONS "Enable exceptions" ON)
 option(BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR "Enable literal float initialization" OFF)
+option(BIGNUM_ERROR_NODISCARD "Enable [[nodiscard]] attribute for ErrCode" OFF)
 
 option(BIGNUM_WITH_ASAN "Building with address sanitizer" OFF)
 option(BIGNUM_WITH_COVERAGE "Building with coverage" OFF)
@@ -51,8 +52,13 @@ if(BIGNUM_ENABLE_EXCEPTIONS)
 else()
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-exceptions")
 endif()
+
 if(BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR)
     add_compile_definitions(BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR)
+endif()
+
+if(BIGNUM_ERROR_NODISCARD)
+    add_compile_definitions(BIGNUM_ERROR_NODISCARD)
 endif()
 
 if (BIGNUM_WITH_COVERAGE)

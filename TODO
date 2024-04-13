@@ -20,8 +20,6 @@
 - support conversion from boost::int256_t if boost is detected
   Remember to change the definitions of LargeIntegralType
 
-- nodiscard option for ErrCode
-
 - make constexpr failure string more specified and readable
   for example, operator+=()'s overflow string could contains the exact number.
   This would require making `to_string()` constexpr.
