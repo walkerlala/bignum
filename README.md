@@ -295,8 +295,9 @@ By default, bignum is built as static library. To build as shared lib,
 add `-DBIGNUM_BUILD_SHARED=ON` to the cmake command above.
 
 ## Synopsis of Decimal class
-Public members of the `Decimal` class is listed for quick reference.
-More detail could be found at the `decimal.h` header file.
+Public members of the `Decimal` class are listed for quick reference.
+Some implementation details are hidden.
+More details could be found at comments in `decimal.h` header file.
 ```cpp
 class Decimal final {
        public:
@@ -312,15 +313,15 @@ class Decimal final {
         //
         // Intermediate result might be increased to maximum of 30+4=34,
         // and then after the calculation, it is decreased to scale 30 by rounding.
-        constexpr static int32_t kDivIncreaseScale = detail::kDecimalDivIncrScale;
+        constexpr static int32_t kDivIncreaseScale = 4;
 
        public:
         // default initialization to 0
-        constexpr DecimalImpl();
+        constexpr Decimal();
 
-        // Construction using signed integral values, i.e., (u)int8_t,..,(u)int64_t,__(u)int128_t
+        // Construction using integral values, i.e., (u)int8_t,..,(u)int64_t,__(u)int128_t
         template <IntegralType U>
-        constexpr DecimalImpl(U i);
+        constexpr Decimal(U i);
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         // Construction using floating point value (lvalue).
@@ -328,30 +329,30 @@ class Decimal final {
         // This interface would trigger assertion on overflow.
         // User who want explicit error handling should use the assign(..) interfaces.
         template <FloatingPointType U>
-        constexpr DecimalImpl(U &v);
+        constexpr Decimal(U &v);
 
         template <FloatingPointType U>
-        constexpr DecimalImpl(U &&) = delete;
+        constexpr Decimal(U &&) = delete;
 
 #else
 
         template <FloatingPointType U>
-        constexpr DecimalImpl(U v);
+        constexpr Decimal(U v);
 #endif
 
         // Construction using string value.
         //
         // This interface would trigger assertion on overflow or error.
         // User who want explicit error handling should use the assign(..) interfaces.
-        constexpr DecimalImpl(std::string_view sv);
-        constexpr DecimalImpl(const char *s);
+        constexpr Decimal(std::string_view sv);
+        constexpr Decimal(const char *s);
 
-        constexpr DecimalImpl(const DecimalImpl &rhs);
-        constexpr DecimalImpl(DecimalImpl &&rhs);
-        constexpr DecimalImpl &operator=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator=(DecimalImpl &&rhs);
+        constexpr Decimal(const Decimal &rhs);
+        constexpr Decimal(Decimal &&rhs);
+        constexpr Decimal &operator=(const Decimal &rhs);
+        constexpr Decimal &operator=(Decimal &&rhs);
 
-        ~DecimalImpl() = default;
+        ~Decimal() = default;
 
         //=--------------------------------------------------------
         // Assignment/conversion operators.
@@ -397,78 +398,78 @@ class Decimal final {
         //=-=--------------------------------------------------------
         // operator +=
         //=-=--------------------------------------------------------
-        constexpr ErrCode add(const DecimalImpl &rhs) noexcept;
-        constexpr DecimalImpl &operator+=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator+=(double f);
+        constexpr ErrCode add(const Decimal &rhs) noexcept;
+        constexpr Decimal &operator+=(const Decimal &rhs);
+        constexpr Decimal &operator+=(double f);
 
         //=-=--------------------------------------------------------
         // operator +
         //=-=--------------------------------------------------------
-        constexpr DecimalImpl operator+(const DecimalImpl &rhs) const;
-        constexpr DecimalImpl operator+(double f) const;
+        constexpr Decimal operator+(const Decimal &rhs) const;
+        constexpr Decimal operator+(double f) const;
 
         //=-=--------------------------------------------------------
         // operator -=
         //=-=--------------------------------------------------------
-        constexpr ErrCode sub(const DecimalImpl &rhs) noexcept;
-        constexpr DecimalImpl &operator-=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator-=(double f);
+        constexpr ErrCode sub(const Decimal &rhs) noexcept;
+        constexpr Decimal &operator-=(const Decimal &rhs);
+        constexpr Decimal &operator-=(double f);
 
         //=-=--------------------------------------------------------
         // operator -
         //=-=--------------------------------------------------------
-        constexpr DecimalImpl operator-(const DecimalImpl &rhs) const;
-        constexpr DecimalImpl operator-(double f) const;
-        constexpr DecimalImpl operator-() const;
+        constexpr Decimal operator-(const Decimal &rhs) const;
+        constexpr Decimal operator-(double f) const;
+        constexpr Decimal operator-() const;
 
         //=----------------------------------------------------------
         // operator *=
         //=----------------------------------------------------------
-        constexpr ErrCode mul(const DecimalImpl &rhs) noexcept;
-        constexpr DecimalImpl &operator*=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator*=(double f);
+        constexpr ErrCode mul(const Decimal &rhs) noexcept;
+        constexpr Decimal &operator*=(const Decimal &rhs);
+        constexpr Decimal &operator*=(double f);
 
         //=-=--------------------------------------------------------
         // operator *
         //=-=--------------------------------------------------------
-        constexpr DecimalImpl operator*(const DecimalImpl &rhs) const;
-        constexpr DecimalImpl operator*(double f) const;
+        constexpr Decimal operator*(const Decimal &rhs) const;
+        constexpr Decimal operator*(double f) const;
 
         //=----------------------------------------------------------
         // operator /=
         //=----------------------------------------------------------
-        constexpr ErrCode div(const DecimalImpl &rhs) noexcept;
-        constexpr DecimalImpl &operator/=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator/=(double f);
+        constexpr ErrCode div(const Decimal &rhs) noexcept;
+        constexpr Decimal &operator/=(const Decimal &rhs);
+        constexpr Decimal &operator/=(double f);
 
         //=-=--------------------------------------------------------
         // operator /
         //=-=--------------------------------------------------------
-        constexpr DecimalImpl operator/(const DecimalImpl &rhs) const;
-        constexpr DecimalImpl operator/(double f) const;
+        constexpr Decimal operator/(const Decimal &rhs) const;
+        constexpr Decimal operator/(double f) const;
 
         //=----------------------------------------------------------
         // operator %=
         //=----------------------------------------------------------
-        constexpr ErrCode mod(const DecimalImpl &rhs) noexcept;
-        constexpr DecimalImpl &operator%=(const DecimalImpl &rhs);
-        constexpr DecimalImpl &operator%=(double f);
+        constexpr ErrCode mod(const Decimal &rhs) noexcept;
+        constexpr Decimal &operator%=(const Decimal &rhs);
+        constexpr Decimal &operator%=(double f);
 
         //=-=--------------------------------------------------------
         // operator %
         //=-=--------------------------------------------------------
-        constexpr DecimalImpl operator%(const DecimalImpl &rhs) const;
-        constexpr DecimalImpl operator%(double f) const;
+        constexpr Decimal operator%(const Decimal &rhs) const;
+        constexpr Decimal operator%(double f) const;
 
         //=--------------------------------------------------------
         // Comparison operators.
         //=--------------------------------------------------------
-        constexpr bool operator==(const DecimalImpl &rhs) const;
-        constexpr bool operator<(const DecimalImpl &rhs) const;
-        constexpr bool operator<=(const DecimalImpl &rhs) const;
-        constexpr bool operator!=(const DecimalImpl &rhs) const;
-        constexpr bool operator>(const DecimalImpl &rhs) const;
-        constexpr bool operator>=(const DecimalImpl &rhs) const;
+        constexpr bool operator==(const Decimal &rhs) const;
+        constexpr bool operator<(const Decimal &rhs) const;
+        constexpr bool operator<=(const Decimal &rhs) const;
+        constexpr bool operator!=(const Decimal &rhs) const;
+        constexpr bool operator>(const Decimal &rhs) const;
+        constexpr bool operator>=(const Decimal &rhs) const;
 
         constexpr bool operator==(double f) const;
         constexpr bool operator<(double f) const;
