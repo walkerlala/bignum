@@ -635,23 +635,32 @@ auto get_decimal_integral(T val, int32_t scale) -> T {
         return val / p10;
 }
 
-template <IntegralType T, IntegralType U>
+template <typename T, typename U>
+requires((IntegralType<T> || UnsignedIntegralType<T>)&&IntegralType<U>)
 ErrCode get_integral_from_decimal_integral(T &res, U val, int32_t scale) noexcept {
+        static_assert(std::is_signed_v<U>);
+
+        if constexpr (std::is_unsigned_v<T>) {
+                if (val < 0) {
+                        return kDecimalValueOutOfRange;
+                }
+        }
+
         U ip10 = get_decimal_integral<U>(val, scale);
-        if constexpr (std::is_same_v<T, int64_t> && std::is_same_v<U, int64_t>) {
-                // Get int64_t from int64_t representation: never overflow
+        if constexpr (sizeof(T) == 8 && std::is_same_v<U, int64_t>) {
+                // Get (u)int64_t from int64_t representation: never overflow
                 res = ip10;
-        } else if constexpr (std::is_same_v<T, int64_t> && std::is_same_v<U, __int128_t>) {
-                // Get int64_t from __int128_t representation: may overflow
-                if (ip10 > INT64_MAX || ip10 < INT64_MIN) {
+        } else if constexpr (sizeof(T) == 8 && std::is_same_v<U, __int128_t>) {
+                // Get (u)int64_t from __int128_t representation: may overflow
+                if (ip10 > std::numeric_limits<T>::max() || ip10 < std::numeric_limits<T>::min()) {
                         return kDecimalValueOutOfRange;
                 }
                 res = static_cast<int64_t>(ip10);
-        } else if constexpr (std::is_same_v<T, __int128_t> && std::is_same_v<U, int64_t>) {
-                // Get __int128_t from a int64_t representation: never overflow
+        } else if constexpr (sizeof(T) == 16 && std::is_same_v<U, int64_t>) {
+                // Get __(u)int128_t from a int64_t representation: never overflow
                 res = ip10;
-        } else if constexpr (std::is_same_v<T, __int128_t> && std::is_same_v<U, __int128_t>) {
-                // Get __int128_t from a __int128_t representation: never overflow
+        } else if constexpr (sizeof(T) == 16 && std::is_same_v<U, __int128_t>) {
+                // Get __(u)int128_t from a __int128_t representation: never overflow
                 res = ip10;
         } else {
                 static_assert(std::is_same_v<T, void>, "Unsupported type");
@@ -659,8 +668,15 @@ ErrCode get_integral_from_decimal_integral(T &res, U val, int32_t scale) noexcep
         return kSuccess;
 }
 
-template <IntegralType T>
+template <typename T>
+requires(IntegralType<T> || UnsignedIntegralType<T>)
 ErrCode get_integral_from_decimal_gmp(T &result, const Gmp320 &gmp, int32_t scale) noexcept {
+        if constexpr (std::is_unsigned_v<T>) {
+                if (gmp.is_negative()) {
+                        return kDecimalValueOutOfRange;
+                }
+        }
+
         __int128_t divisor128 = get_int128_power10(scale);
         __BIGNUM_ASSERT(divisor128 > 0, "Invalid scale");
 
@@ -670,20 +686,21 @@ ErrCode get_integral_from_decimal_gmp(T &result, const Gmp320 &gmp, int32_t scal
         mpz_tdiv_q(&res.mpz, &gmp.mpz, &divisor.mpz);
 
         bool overflow = false;
-        if constexpr (std::is_same_v<T, int64_t>) {
-                constexpr uint64_t i64max = static_cast<uint64_t>(INT64_MAX);
+        if constexpr (sizeof(T) == 8) {
+                constexpr uint64_t max64 = static_cast<uint64_t>(std::numeric_limits<T>::max());
                 if (res.mpz._mp_size == 0) {
                         result = 0;
                 } else if (res.mpz._mp_size == 1) {
-                        if (res.mpz._mp_d[0] > i64max) {
+                        if (res.mpz._mp_d[0] > max64) {
                                 overflow = true;
                         } else {
                                 result = static_cast<int64_t>(res.mpz._mp_d[0]);
                         }
                 } else if (res.mpz._mp_size == -1) {
-                        if (res.mpz._mp_d[0] > i64max + 1) {
+                        assert(!std::is_unsigned_v<T>);
+                        if (res.mpz._mp_d[0] > max64 + 1) {
                                 overflow = true;
-                        } else if (res.mpz._mp_d[0] == i64max + 1) {
+                        } else if (res.mpz._mp_d[0] == max64 + 1) {
                                 result = INT64_MIN;
                         } else {
                                 result = -static_cast<int64_t>(res.mpz._mp_d[0]);
@@ -691,26 +708,30 @@ ErrCode get_integral_from_decimal_gmp(T &result, const Gmp320 &gmp, int32_t scal
                 } else {
                         overflow = true;
                 }
-        } else if constexpr (std::is_same_v<T, __int128_t>) {
-                __uint128_t i128max = static_cast<__uint128_t>(kInt128Max);
+        } else if constexpr (sizeof(T) == 16) {
+                __uint128_t max128 = std::is_same_v<T, __uint128_t>
+                                             ? kUint128Max
+                                             : static_cast<__uint128_t>(kInt128Max);
                 if (res.mpz._mp_size == 0) {
                         result = 0;
                 } else if (res.mpz._mp_size == 1) {
                         result = res.mpz._mp_d[0];
                 } else if (res.mpz._mp_size == -1) {
+                        assert(!std::is_unsigned_v<T>);
                         result = -static_cast<__int128_t>(res.mpz._mp_d[0]);
                 } else if (res.mpz._mp_size == 2) {
                         __uint128_t u128 = *reinterpret_cast<__uint128_t *>(res.mpz._mp_d);
-                        if (u128 > i128max) {
+                        if (u128 > max128) {
                                 overflow = true;
                         } else {
                                 result = static_cast<__int128_t>(u128);
                         }
                 } else if (res.mpz._mp_size == -2) {
+                        assert(!std::is_unsigned_v<T>);
                         __uint128_t u128 = *reinterpret_cast<__uint128_t *>(res.mpz._mp_d);
-                        if (u128 > i128max + 1) {
+                        if (u128 > max128 + 1) {
                                 overflow = true;
-                        } else if (u128 == i128max + 1) {
+                        } else if (u128 == max128 + 1) {
                                 result = kInt128Min;
                         } else {
                                 result = -static_cast<__int128_t>(u128);
@@ -978,6 +999,22 @@ class DecimalImpl final {
                 __int128_t i = 0;
                 ErrCode err = to_int128(i);
                 __BIGNUM_CHECK_ERROR(!err, "Decimal to int128 overflow");
+                return i;
+        }
+
+        constexpr ErrCode to_uint64(uint64_t &i) const noexcept;
+        explicit constexpr operator uint64_t() const {
+                uint64_t i = 0;
+                ErrCode err = to_uint64(i);
+                __BIGNUM_CHECK_ERROR(!err, "Decimal to uint64 overflow");
+                return i;
+        }
+
+        constexpr ErrCode to_uint128(__uint128_t &i) const noexcept;
+        explicit constexpr operator __uint128_t() const {
+                __uint128_t i = 0;
+                ErrCode err = to_uint128(i);
+                __BIGNUM_CHECK_ERROR(!err, "Decimal to uint128 overflow");
                 return i;
         }
 
@@ -1705,6 +1742,36 @@ constexpr inline ErrCode DecimalImpl<T>::to_int128(__int128_t &i) const noexcept
                                                                                          m_scale);
         } else {
                 err = detail::get_integral_from_decimal_gmp<__int128_t>(i, m_gmp, m_scale);
+        }
+        return err;
+}
+
+template <typename T>
+constexpr inline ErrCode DecimalImpl<T>::to_uint64(uint64_t &i) const noexcept {
+        ErrCode err = kSuccess;
+        if (m_dtype == DType::kInt64) {
+                err = detail::get_integral_from_decimal_integral<uint64_t, int64_t>(i, m_i64,
+                                                                                    m_scale);
+        } else if (m_dtype == DType::kInt128) {
+                err = detail::get_integral_from_decimal_integral<uint64_t, __int128_t>(i, m_i128,
+                                                                                       m_scale);
+        } else {
+                err = detail::get_integral_from_decimal_gmp<uint64_t>(i, m_gmp, m_scale);
+        }
+        return err;
+}
+
+template <typename T>
+constexpr inline ErrCode DecimalImpl<T>::to_uint128(__uint128_t &i) const noexcept {
+        ErrCode err = kSuccess;
+        if (m_dtype == DType::kInt64) {
+                err = detail::get_integral_from_decimal_integral<__uint128_t, int64_t>(i, m_i64,
+                                                                                       m_scale);
+        } else if (m_dtype == DType::kInt128) {
+                err = detail::get_integral_from_decimal_integral<__uint128_t, __int128_t>(i, m_i128,
+                                                                                          m_scale);
+        } else {
+                err = detail::get_integral_from_decimal_gmp<__uint128_t>(i, m_gmp, m_scale);
         }
         return err;
 }

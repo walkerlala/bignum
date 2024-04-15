@@ -412,6 +412,12 @@ class Decimal final {
         constexpr ErrCode to_int128(__int128_t &i) const noexcept;
         explicit constexpr operator __int128_t();
 
+        constexpr ErrCode to_uint64(uint64_t &i) const noexcept;
+        explicit constexpr operator uint64_t() const;
+
+        constexpr ErrCode to_uint128(__uint128_t &i) const noexcept;
+        explicit constexpr operator __uint128_t();
+
         //=----------------------------------------------------------
         // getters && setters
         //=----------------------------------------------------------

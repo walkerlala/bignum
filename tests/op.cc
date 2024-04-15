@@ -1752,23 +1752,37 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
                 EXPECT_EQ(i, 123);
         }
 
-        // from __int128_t to int64_t, large value would overflow
+        // from negative value to uint64, uint128 -> err
         {
-                BIGNUM_TEST_CONSTEXPR Decimal d1("12345678987654321001.11");
+                BIGNUM_TEST_CONSTEXPR Decimal d1("-123.345");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
-        // from gmp to int64_t, large value would overflow
+        // from __int128_t to int64_t/uint64_t, large value would overflow
+        {
+                BIGNUM_TEST_CONSTEXPR Decimal d1("18446744073709551617.11");
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+#endif
+        }
+
+        // from gmp to int64_t/uint64_t, large value would overflow
         {
                 Decimal d1("12345678987654300000000000000002100999999991.11");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
                 EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
@@ -1777,6 +1791,9 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
                 BIGNUM_TEST_CONSTEXPR Decimal d1("123.345");
                 __int128_t i = static_cast<__int128_t>(d1);
                 EXPECT_EQ(i, 123);
+
+                __int128_t u = static_cast<__uint128_t>(d1);
+                EXPECT_EQ(u, 123);
         }
 
         // from 128 to 128, never overflow
@@ -1784,6 +1801,9 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
                 BIGNUM_TEST_CONSTEXPR Decimal d1("12345678987654321001.11");
                 __int128_t i = static_cast<__int128_t>(d1);
                 EXPECT_EQ(i, static_cast<__int128_t>(123456789876543ll) * 100000 + 21001);
+
+                __uint128_t u = static_cast<__uint128_t>(d1);
+                EXPECT_EQ(u, static_cast<__uint128_t>(123456789876543ll) * 100000 + 21001);
         }
 
         // from gmp to 128, large value would overflow
@@ -1791,8 +1811,65 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
                 Decimal d1("12345678987654300000000000000002100999999991.11");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
                 EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
                 EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+#endif
+        }
+
+        // corner case: UINT64_MAX.YYY should be able to cast to uint64_t
+        {
+                Decimal d1("18446744073709551615.666");
+                uint64_t u = static_cast<uint64_t>(d1);
+                EXPECT_EQ(u, UINT64_MAX);
+        }
+
+        // corner case: INT64_MAX should be able to cast to int64_t and uint64_t
+        {
+                Decimal d1("9223372036854775807.666");
+                int64_t i = static_cast<int64_t>(d1);
+                EXPECT_EQ(i, INT64_MAX);
+
+                uint64_t u = static_cast<uint64_t>(d1);
+                EXPECT_EQ(u, static_cast<uint64_t>(INT64_MAX));
+        }
+
+        // corner case: UINT64_MAX value, cast to uint64_t, should never overflow;
+        // but cast to int64_t, would overflow;
+        {
+                // castting to uint64_t, should never overflow
+                Decimal d1("18446744073709551615.0");
+                uint64_t u = static_cast<uint64_t>(d1);
+                EXPECT_EQ(u, UINT64_MAX);
+
+                // castting to int64_t, should overflow
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+#endif
+
+                // castting to __(u)int128 should be ok
+                __int128_t i128 = static_cast<__int128_t>(d1);
+                EXPECT_EQ(i128, static_cast<__int128_t>(UINT64_MAX));
+                __uint128_t u128 = static_cast<__uint128_t>(d1);
+                EXPECT_EQ(u128, static_cast<__uint128_t>(UINT64_MAX));
+        }
+
+        // corner case: kUint128Max value, cast to __uint128_t, should never overflow;
+        // but cast to __int128_t, would overflow;
+        {
+                // castting to __uint128_t, should never overflow
+                Decimal d1("340282366920938463463374607431768211455.0");
+                __uint128_t u = static_cast<__uint128_t>(d1);
+                EXPECT_EQ(u, kUint128Max);
+
+                // castting to __int128_t, should overflow
+#ifndef BIGNUM_ENABLE_EXCEPTIONS
+                EXPECT_EXIT(static_cast<__int128_t>(d1), testing::KilledBySignal(SIGABRT), "");
+#else
+                EXPECT_THROW(static_cast<__int128_t>(d1), std::runtime_error);
 #endif
         }
 }

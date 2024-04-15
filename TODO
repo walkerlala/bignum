@@ -6,8 +6,6 @@
 - make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
   so that we could define kMinDecimal and kMaxDecimal
 
-- provide cast operator for unsigned integer
-
 - enable support for c++17.
   e.g., std::is_constant_evaluated() is added >= c++20
 
@@ -16,4 +14,6 @@
 - make div increase scale configurable by compile settings
 
 - support conversion from boost::int256_t if boost is detected
-  Remember to change the definitions of LargeIntegralType
+  Remember to change the definitions of LargeIntegralType and those "sizeof(T) vs 16"
+
+- propogate compiler option to subpackage
