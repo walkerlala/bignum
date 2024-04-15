@@ -28,7 +28,8 @@ ExternalProject_Add(gmp_external
     SOURCE_DIR ${GMP_SOURCE_DIR}
     BINARY_DIR ${GMP_BUILD_DIR}
     STAMP_DIR  ${GMP_BUILD_DIR}
-    CONFIGURE_COMMAND ${GMP_SOURCE_DIR}/configure --prefix=${GMP_INSTALL_DIR}
+    CONFIGURE_COMMAND ${GMP_SOURCE_DIR}/configure
+        --prefix=${GMP_INSTALL_DIR} CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER}
     BUILD_COMMAND  make -j
     INSTALL_COMMAND make install -j
 )

@@ -15,5 +15,3 @@
 
 - support conversion from boost::int256_t if boost is detected
   Remember to change the definitions of LargeIntegralType and those "sizeof(T) vs 16"
-
-- propogate compiler option to subpackage
