@@ -1,8 +1,5 @@
 - Add benchmark section: whether or not the calculation at small precision is as fast as primitive type
 
-- constexpr constructor for float/double.
-- make literal float initialization constexpr
-
 - make gmp function constexpr, so that all construction and calculation interfaces are truely constexpr
   so that we could define kMinDecimal and kMaxDecimal
 

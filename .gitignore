@@ -10,3 +10,4 @@ extra/gtest/googletest-1.14.0/
 extra/benchmark/benchmark-1.8.2/
 compile_commands.json
 .vscode
+.clangd

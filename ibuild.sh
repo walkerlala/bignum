@@ -138,4 +138,14 @@ cmake \
 
 cp ${default_build_dir}/compile_commands.json ${root_dir}
 
-make install -j8 VERBOSE=1
+# Check if nproc command exists
+if command -v nproc &>/dev/null; then
+    num_processors=$(($(nproc) - 1))
+    if [ "$num_processors" -le 0 ]; then
+        num_processors=1
+    fi
+else
+    echo "The nproc command is not available on this system."
+    num_processors=2
+fi
+make install -j${num_processors} VERBOSE=1

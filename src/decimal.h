@@ -21,6 +21,7 @@
 #include "assertion.h"
 #include "errcode.h"
 #include "gmp_wrapper.h"
+#include "mysql/dtoa_c.h"
 
 #include <array>
 #include <cassert>
@@ -57,9 +58,11 @@ concept LargeIntegralType = IntegralType<T> && sizeof(T) == 16;
 template <typename T>
 concept LargeUnsignedType = UnsignedIntegralType<T> && sizeof(T) == 16;
 
+// floating point type, but does not accept float128.
 template <typename T>
-concept FloatingPointType =
-        std::is_same_v<T, float> || std::is_same_v<T, double> || std::is_same_v<T, long double>;
+concept FloatingPointType = (sizeof(T) <= 8 &&
+                             (std::is_same_v<T, float> || std::is_same_v<T, double> ||
+                              std::is_same_v<T, long double>));
 
 namespace detail {
 constexpr int32_t kDecimalMaxScale = 30;
@@ -960,12 +963,12 @@ class DecimalImpl final {
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign(U &f) noexcept {
+        constexpr ErrCode assign(U &f) noexcept {
                 return assign_float(f);
         }
 #else
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign(U f) noexcept {
+        constexpr ErrCode assign(U f) noexcept {
                 return assign_float(f);
         }
 #endif
@@ -1263,7 +1266,7 @@ class DecimalImpl final {
         }
 
         template <FloatingPointType U>
-        /*constexpr*/ ErrCode assign_float(U f) noexcept;
+        constexpr ErrCode assign_float(U f) noexcept;
 
         constexpr ErrCode assign_str_128(const char *start, const char *end) noexcept;
         constexpr ErrCode assign_str_gmp(const char *start, const char *end) noexcept;
@@ -1420,14 +1423,13 @@ constexpr inline ErrCode DecimalImpl<T>::assign(U i) noexcept {
 
 template <typename T>
 template <FloatingPointType U>
-/*constexpr*/ inline ErrCode DecimalImpl<T>::assign_float(U v) noexcept {
-        std::ostringstream oss;
-        if constexpr (std::is_same_v<U, float>) {
-                oss << std::fixed << std::setprecision(7) << v;
-        } else {
-                oss << std::fixed << std::setprecision(17) << v;
-        }
-        return assign(oss.str());
+constexpr inline ErrCode DecimalImpl<T>::assign_float(U v) noexcept {
+        constexpr auto conv_arg_type =
+                sizeof(U) == 4 ? mysql::MY_GCVT_ARG_FLOAT : mysql::MY_GCVT_ARG_DOUBLE;
+        char buff[mysql::FLOATING_POINT_BUFFER] = {0};
+        size_t len = my_gcvt(v, conv_arg_type, (int)sizeof(buff) - 1, buff, nullptr);
+        std::string_view sv(buff, len);
+        return assign(sv);
 }
 
 template <typename T>
