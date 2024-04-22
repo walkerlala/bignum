@@ -384,10 +384,10 @@ class Decimal final {
 
 #ifndef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         template <FloatingPointType U>
-        ErrCode assign(U &f) noexcept;
+        constexpr ErrCode assign(U &f) noexcept;
 #else
         template <FloatingPointType U>
-        ErrCode assign(U f) noexcept;
+        constexpr ErrCode assign(U f) noexcept;
 #endif
 
         constexpr ErrCode assign(std::string_view sv) noexcept;

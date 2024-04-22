@@ -1756,9 +1756,9 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
         {
                 BIGNUM_TEST_CONSTEXPR Decimal d1("-123.345");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
@@ -1766,11 +1766,11 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
         {
                 BIGNUM_TEST_CONSTEXPR Decimal d1("18446744073709551617.11");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
-                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
-                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
@@ -1778,11 +1778,11 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
         {
                 Decimal d1("12345678987654300000000000000002100999999991.11");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
-                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
-                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
@@ -1810,11 +1810,11 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
         {
                 Decimal d1("12345678987654300000000000000002100999999991.11");
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
-                EXPECT_EXIT(static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<uint64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
-                EXPECT_THROW(static_cast<uint64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<uint64_t>(d1), std::runtime_error);
 #endif
         }
 
@@ -1845,9 +1845,9 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
 
                 // castting to int64_t, should overflow
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<int64_t>(d1), testing::KilledBySignal(SIGABRT), "");
 #else
-                EXPECT_THROW(static_cast<int64_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<int64_t>(d1), std::runtime_error);
 #endif
 
                 // castting to __(u)int128 should be ok
@@ -1867,9 +1867,10 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
 
                 // castting to __int128_t, should overflow
 #ifndef BIGNUM_ENABLE_EXCEPTIONS
-                EXPECT_EXIT(static_cast<__int128_t>(d1), testing::KilledBySignal(SIGABRT), "");
+                EXPECT_EXIT((void)static_cast<__int128_t>(d1), testing::KilledBySignal(SIGABRT),
+                            "");
 #else
-                EXPECT_THROW(static_cast<__int128_t>(d1), std::runtime_error);
+                EXPECT_THROW((void)static_cast<__int128_t>(d1), std::runtime_error);
 #endif
         }
 }
@@ -1877,14 +1878,14 @@ TEST_F(BIGNUM_DECIMAL_FIXTURE, cast_to_int64_int128) {
 TEST_F(BIGNUM_DECIMAL_FIXTURE, dval) {
         double dval = 3.1415926;
         Decimal d1(dval);
-        EXPECT_EQ(d1.to_string(), "3.14159260000000007");
+        EXPECT_EQ(d1.to_string(), "3.1415926");
 
 #ifdef BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR
         [[maybe_unused]] Decimal d2(3.1415926);
 #endif
         // but += float/double literval is allowed to make it easier to use.
         Decimal d3 = d1 + 3.1415926;
-        EXPECT_EQ(d3.to_string(), "6.28318520000000014");
+        EXPECT_EQ(d3.to_string(), "6.2831852");
 }
 
 TEST_F(BIGNUM_DECIMAL_FIXTURE, errcode_to_int_implicit) {

@@ -206,7 +206,7 @@ static size_t my_fcvt_internal(double x, int precision, bool shorten, char *to,
 
    @return            number of written characters (excluding terminating '\0')
 */
-size_t my_fcvt(double x, int precision, char *to, bool *error) {
+inline size_t my_fcvt(double x, int precision, char *to, bool *error) {
   return my_fcvt_internal(x, precision, false, to, error);
 }
 
@@ -237,7 +237,7 @@ size_t my_fcvt(double x, int precision, char *to, bool *error) {
 
    @return            number of written characters (excluding terminating '\0')
 */
-size_t my_fcvt_compact(double x, char *to, bool *error) {
+inline size_t my_fcvt_compact(double x, char *to, bool *error) {
   return my_fcvt_internal(x, std::numeric_limits<double>::max_digits10, true,
                           to, error);
 }
@@ -305,7 +305,7 @@ size_t my_fcvt_compact(double x, char *to, bool *error) {
      digits.
 */
 
-size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
+inline size_t my_gcvt(double x, my_gcvt_arg_type type, int width, char *to,
                bool *error) {
   int decpt, sign, len, exp_len;
   char *res, *src, *end, *dst = to, *dend = dst + width;
@@ -518,7 +518,7 @@ end:
                   returned. In case overflow, signed DBL_MAX is returned.
 */
 
-double my_strtod(const char *str, const char **end, int *error) {
+inline double my_strtod(const char *str, const char **end, int *error) {
   char buf[DTOA_BUFF_SIZE];
   double res;
   assert(end != nullptr &&

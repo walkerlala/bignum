@@ -132,7 +132,7 @@ cmake \
   -DCMAKE_CXX_COMPILER="$cxx_compiler"  \
   -DWITH_COVERAGE="$coverage"           \
   -DWITH_ASAN=$asan                     \
-  -DBIGNUM_BUILD_TESTS=0                \
+  -DBIGNUM_BUILD_TESTS=1                \
   -DBIGNUM_BUILD_BENCHMARK=1            \
   ${root_dir}
 
