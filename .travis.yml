@@ -1,0 +1,6 @@
+language: minimal
+os: linux
+dist: jammy
+
+script:
+  - ./ibuild.sh -t release
