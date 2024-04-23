@@ -2,6 +2,8 @@
 bignum is a large precision Decimal implementation in C++ that supports up-to 96 digits precision
 (i.e., 96 digits in total) and up-to 30 digits scale (i.e., digits after the decimal point).
 
+[![Build Status](https://app.travis-ci.com/walkerlala/bignum.svg?token=tBdUks3zLtSZ1SsDRUES&branch=main)](https://app.travis-ci.com/walkerlala/bignum)
+
 ## Features
 - Large precision (at most 96 digits) and scale (at most 30 digits) decimal
 - Optimized for speed, and provide compile-time calculation via `constexpr` expression
