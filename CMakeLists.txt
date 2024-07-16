@@ -26,11 +26,13 @@ endif()
 
 set(PROJECT_ROOT ${CMAKE_CURRENT_SOURCE_DIR})
 
+# These options are for user.
 option(BIGNUM_BUILD_SHARED "Build shared library" OFF)
 option(BIGNUM_ENABLE_EXCEPTIONS "Enable exceptions" ON)
 option(BIGNUM_ENABLE_LITERAL_FLOAT_CONSTRUCTOR "Enable literal float initialization" OFF)
 option(BIGNUM_ERROR_NODISCARD "Enable [[nodiscard]] attribute for ErrCode" OFF)
 
+# These options are for developer (testing, performance tuning, etc).
 option(BIGNUM_WITH_ASAN "Building with address sanitizer" OFF)
 option(BIGNUM_WITH_COVERAGE "Building with coverage" OFF)
 option(BIGNUM_BUILD_TESTS "Build tests" OFF)

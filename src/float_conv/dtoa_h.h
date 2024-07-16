@@ -27,7 +27,7 @@
 #include <cstddef>
 /* clang-format off */
 namespace bignum {
-namespace mysql {
+namespace float_conv {
 /**
   @file include/mysql/strings/dtoa.h
  */
@@ -61,6 +61,6 @@ static constexpr int DECIMAL_NOT_SPECIFIED{DECIMAL_MAX_SCALE + 1};
   (+ 1 byte for the terminating '\0').
 */
 static constexpr int FLOATING_POINT_BUFFER{311 + DECIMAL_NOT_SPECIFIED};
-}  // namespace mysql
+}  // namespace float_conv
 }  // namespace bignum
 /* clang-format on */

@@ -27,7 +27,7 @@
 
 /* clang-format off */
 namespace bignum {
-namespace mysql {
+namespace float_conv {
 /**
   @file include/my_pointer_arithmetic.h
   Some macros for dealing with pointer arithmetic, e.g., aligning
@@ -50,7 +50,7 @@ bool is_aligned(T *t) {
 }
 
 #endif  // __cplusplus
-}  // namespace mysql
+}  // namespace float_conv
 }  // namespace bignum
 
 /* clang-format on */

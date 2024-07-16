@@ -21,7 +21,7 @@
 #include "assertion.h"
 #include "errcode.h"
 #include "gmp_wrapper.h"
-#include "mysql/dtoa_c.h"
+#include "float_conv/dtoa_c.h"
 
 #include <array>
 #include <cassert>
@@ -1425,8 +1425,8 @@ template <typename T>
 template <FloatingPointType U>
 constexpr inline ErrCode DecimalImpl<T>::assign_float(U v) noexcept {
         constexpr auto conv_arg_type =
-                sizeof(U) == 4 ? mysql::MY_GCVT_ARG_FLOAT : mysql::MY_GCVT_ARG_DOUBLE;
-        char buff[mysql::FLOATING_POINT_BUFFER] = {0};
+                sizeof(U) == 4 ? float_conv::MY_GCVT_ARG_FLOAT : float_conv::MY_GCVT_ARG_DOUBLE;
+        char buff[float_conv::FLOATING_POINT_BUFFER] = {0};
         size_t len = my_gcvt(v, conv_arg_type, (int)sizeof(buff) - 1, buff, nullptr);
         std::string_view sv(buff, len);
         return assign(sv);

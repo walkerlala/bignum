@@ -32,7 +32,7 @@
 
 /* clang-format off */
 namespace bignum {
-namespace mysql {
+namespace float_conv {
 /**
   @file include/template_utils.h
 */
@@ -243,6 +243,6 @@ const auto IsSpace = [](char c) { return isspace(c); };
 const auto IsComma = [](char c) { return c == ','; };
 
 }  // namespace myu
-}  // namespace mysql
+}  // namespace float_conv
 }  // namespace bignum
 /* clang-format on */

@@ -61,13 +61,13 @@
 #include <cstring>
 #include <limits>
 
-#include "mysql/dtoa_h.h"
-#include "mysql/my_pointer_arithmetic.h"
-#include "mysql/template_utils.h"
+#include "float_conv/dtoa_h.h"
+#include "float_conv/my_pointer_arithmetic.h"
+#include "float_conv/template_utils.h"
 
 /* clang-format off */
 namespace bignum {
-namespace mysql {
+namespace float_conv {
 /**
   @file strings/dtoa.cc
  */
@@ -2485,6 +2485,6 @@ ret1:
   if (rve) *rve = s;
   return s0;
 }
-}  // namespace mysql
+}  // namespace float_conv
 }  // namespace bignum
 /* clang-format on */

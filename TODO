@@ -8,7 +8,5 @@
 
 - wrap gmp function and create one around GmpWrapper
 
-- make div increase scale configurable by compile settings
-
 - support conversion from boost::int256_t if boost is detected
   Remember to change the definitions of LargeIntegralType and those "sizeof(T) vs 16"
